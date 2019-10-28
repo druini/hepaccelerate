@@ -67,6 +67,7 @@ eraDependentParameters = {
         ],
         "btagging algorithm" : "btagDeepB",
         "btagging WP" : 0.4941, # medium working point for btagDeepB
+        "bbtagging algorithm" : "deepTagMD_HbbvsQCD",
         "bbtagging WP" : 0.8, # medium 2 working point for DeepDoubleB tagger
     }
 
