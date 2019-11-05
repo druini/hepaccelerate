@@ -19,7 +19,7 @@ from lib_analysis import mse0,mae0,r2_score0
 from definitions_analysis import histogram_settings
 
 import lib_analysis
-from lib_analysis import vertex_selection, lepton_selection, jet_selection, load_puhist_target, compute_pu_weights, compute_lepton_weights, compute_btag_weights, chunks, evaluate_DNN, calculate_variable_features
+from lib_analysis import vertex_selection, lepton_selection, jet_selection, load_puhist_target, compute_pu_weights, compute_lepton_weights, compute_btag_weights, chunks, evaluate_DNN, calculate_variable_features, select_lepton_p4, hadronic_W
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth=True
@@ -43,8 +43,15 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     #met = data["MET"]
     METp4 = TLorentzVectorArray.from_ptetaphim(scalars["MET_pt"], 0, scalars["MET_phi"], 0)
+    #muons.p4 = TLorentzVectorArray.from_ptetaphim(muons.pt, muons.eta, muons.phi, muons.mass)
+    #electrons.p4 = TLorentzVectorArray.from_ptetaphim(electrons.pt, electrons.eta, electrons.phi, electrons.mass)
 
     nEvents = muons.numevents()
+
+    indices = {
+        "leading" : NUMPY_LIB.zeros(nEvents, dtype=NUMPY_LIB.int32),
+        "subleading" : NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.int32)
+        }
 
     mask_events = NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.bool)
 
@@ -90,27 +97,42 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
       # get fatjets
       good_fatjets = jet_selection(fatjets, muons, (veto_muons | good_muons), parameters["fatjets"]) & jet_selection(fatjets, electrons, (veto_electrons | good_electrons), parameters["fatjets"])
-      bfatjets = good_fatjets & (getattr(fatjets, parameters["bbtagging algorithm"]) > parameters["bbtagging WP"])
+#      bfatjets = good_fatjets & (getattr(fatjets, parameters["bbtagging algorithm"]) > parameters["bbtagging WP"])
 
       fatjets.tau32 = NUMPY_LIB.divide(fatjets.tau3, fatjets.tau2)
       fatjets.tau21 = NUMPY_LIB.divide(fatjets.tau2, fatjets.tau1)
-      jets_to_keep = ha.mask_overlappingAK4(jets, good_jets, fatjets, good_fatjets, 1.2, tau32cut=parameters["fatjets"]["tau32cut"], tau21cut=parameters["fatjets"]["tau21cut"])
-      non_overlapping_fatjets = ha.mask_deltar_first(fatjets, good_fatjets, jets, good_jets, 1.2)
-
-      good_jets &= jets_to_keep
-      good_fatjets &= non_overlapping_fatjets | (fatjets.tau32 < parameters["fatjets"]["tau32cut"]) | (fatjets.tau21 < parameters["fatjets"]["tau21cut"]) #we keep fat jets which are not overlapping, or if they are either a top or W/H candidate
+#      jets_to_keep = ha.mask_overlappingAK4(jets, good_jets, fatjets, good_fatjets, 1.2, tau32cut=parameters["fatjets"]["tau32cut"], tau21cut=parameters["fatjets"]["tau21cut"])
+#      non_overlapping_fatjets = ha.mask_deltar_first(fatjets, good_fatjets, jets, good_jets, 1.2)
+#
+#      good_jets &= jets_to_keep
+#      good_fatjets &= non_overlapping_fatjets | (fatjets.tau32 < parameters["fatjets"]["tau32cut"]) | (fatjets.tau21 < parameters["fatjets"]["tau21cut"]) #we keep fat jets which are not overlapping, or if they are either a top or W/H candidate
 
       higgs_candidates = good_fatjets & (getattr(fatjets, parameters["bbtagging algorithm"]) > parameters["bbtagging WP"]) & (fatjets.tau21 < parameters["fatjets"]["tau21cut"])
+      nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
+      #indices["best_higgs_candidate"] = ha.index_in_offsets(getattr(fatjets, parameters["bbtagging algorithm"]), fatjets.offsets, 1, mask_events, higgs_candidates)
+      indices["best_higgs_candidate"] = ha.index_in_offsets(fatjets.pt, fatjets.offsets, 1, mask_events, higgs_candidates)
+      best_higgs_candidate = NUMPY_LIB.zeros_like(higgs_candidates)
+      best_higgs_candidate[ (fatjets.offsets[:-1] + indices["best_higgs_candidate"])[NUMPY_LIB.where( fatjets.offsets<len(best_higgs_candidate) )] ] = True
+      best_higgs_candidate[ (fatjets.offsets[:-1] + indices["best_higgs_candidate"])[NUMPY_LIB.where( fatjets.offsets<len(best_higgs_candidate) )] ] &= nhiggs.astype(NUMPY_LIB.bool)[NUMPY_LIB.where( fatjets.offsets<len(best_higgs_candidate) )] # to avoid removing the leading fatjet in events with no higgs candidate
 
-      W_candidates = good_fatjets & (fatjets.tau21 < parameters["fatjets"]["tau21cut"]) & NUMPY_LIB.invert(higgs_candidates)
+#      indices["top_candidate"] = index_in_offsets(fatjets.tau32, 0, mask_events, top_candidates)
 
-      top_candidates = good_fatjets & (fatjets.tau32 < parameters["fatjets"]["tau32cut"]) & NUMPY_LIB.invert(higgs_candidates) & NUMPY_LIB.invert(W_candidates)
+      W_candidates = good_fatjets & (fatjets.tau21 < parameters["fatjets"]["tau21cut"]) & NUMPY_LIB.invert(best_higgs_candidate)
+      nW = ha.sum_in_offsets(fatjets, W_candidates, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
+      indices["best_W_candidate"] = ha.index_in_offsets(fatjets.tau21, fatjets.offsets, 0, mask_events, W_candidates)
+      best_W_candidate = NUMPY_LIB.zeros_like(W_candidates)
+      best_W_candidate[ (fatjets.offsets[:-1] + indices["best_W_candidate"])[NUMPY_LIB.where( fatjets.offsets<len(best_W_candidate) )] ] = True
+      best_W_candidate[ (fatjets.offsets[:-1] + indices["best_W_candidate"])[NUMPY_LIB.where( fatjets.offsets<len(best_W_candidate) )] ] &= nW.astype(NUMPY_LIB.bool)[NUMPY_LIB.where( fatjets.offsets<len(best_W_candidate) )]
+
+      top_candidates = good_fatjets & (fatjets.tau32 < parameters["fatjets"]["tau32cut"]) & NUMPY_LIB.invert(best_higgs_candidate) & NUMPY_LIB.invert(best_W_candidate)
+      ntop = ha.sum_in_offsets(fatjets, top_candidates, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
+      indices["best_top_candidate"] = ha.index_in_offsets(fatjets.tau32, fatjets.offsets, 0, mask_events, top_candidates)
+      best_top_candidate = NUMPY_LIB.zeros_like(top_candidates)
+      best_top_candidate[ (fatjets.offsets[:-1] + indices["best_top_candidate"])[NUMPY_LIB.where( fatjets.offsets<len(best_top_candidate) )] ] = True
+      best_top_candidate[ (fatjets.offsets[:-1] + indices["best_top_candidate"])[NUMPY_LIB.where( fatjets.offsets<len(best_top_candidate) )] ] &= ntop.astype(NUMPY_LIB.bool)[NUMPY_LIB.where( fatjets.offsets<len(best_top_candidate) )]
 #      top_candidates = (fatjets.tau32 < parameters["fatjets"]["tau32cut"])
 #      WH_candidates = (fatjets.tau32 > tau32cut) & (fatjets.tau21 < parameters["fatjets"]["tau21cut"])
 
-      nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
-      nW = ha.sum_in_offsets(fatjets, W_candidates, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
-      ntop = ha.sum_in_offsets(fatjets, top_candidates, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
 
       categories = {
           0 : mask_events & (nhiggs == 0) & (nW == 0) & (ntop == 0),
@@ -122,15 +144,32 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
           6 : mask_events & (nhiggs > 0) & (nW == 0) & (ntop == 0)
           }
 
-      nEvents = {}
+      nEvents_cats = {}
       for i in categories.keys():
-        nEvents[i] = NUMPY_LIB.sum(categories[i])
-      contents = NUMPY_LIB.array([*nEvents.values()])
+        nEvents_cats[i] = NUMPY_LIB.sum(categories[i])
+      contents = NUMPY_LIB.array([*nEvents_cats.values()])
       contents_w2 = NUMPY_LIB.square(contents)
-      edges = NUMPY_LIB.array([*nEvents.keys()])
+      edges = NUMPY_LIB.array([*nEvents_cats.keys()])
       ret['hist_categories'] = Histogram(contents, contents_w2, edges)
 
-#      bjets = good_jets & (getattr(jets, parameters["btagging algorithm"]) > parameters["btagging WP"])
+############# leptonic W reconstruction
+      lead_lep_p4 = select_lepton_p4(muons, good_muons, electrons, good_electrons, indices["leading"], mask_events)
+#      with open('outfile.txt','w') as f:
+#        for i in range(len(lead_lep_p4)):
+#          if mask_events[i]:
+#            f.write(str(lead_lep_p4[i])+'\n')
+
+      pznu = ha.METzCalculator(lead_lep_p4, METp4, mask_events)
+      neutrinop4 = TLorentzVectorArray.from_cartesian(METp4.x, METp4.y, pznu, NUMPY_LIB.sqrt( METp4.x**2 + METp4.y**2 + pznu**2 ))
+      lepW = lead_lep_p4 + neutrinop4
+
+############ hadronic W reconstruction
+      good_jets_nohiggs = ha.mask_deltar_first(jets, good_jets, fatjets, best_higgs_candidate, 1.2)
+      bjets = good_jets_nohiggs & (getattr(jets, parameters["btagging algorithm"]) > parameters["btagging WP"])
+      nonbjets = good_jets_nohiggs & (getattr(jets, parameters["btagging algorithm"]) < parameters["btagging WP"])
+
+      hadW = hadronic_W(jets, nonbjets, lepW, mask_events)
+
 #      njets = ha.sum_in_offsets(jets, good_jets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
 #      btags = ha.sum_in_offsets(jets, bjets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
 #
@@ -143,9 +182,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #      ### 1 top candidate and 1 H candidate, and 1 b jet from the leptonic top
 #      #mask_events &= (ntop_candidates > 0) & (nWH_candidates > 0) & (btags > 0)
 #
-#    ### calculation of all needed variables
-#    var = {}
-#
+########### calculation of all needed variables
+    var = {}
+
 #    var["njets"] = njets
 #    var["btags"] = btags
 #    var["nleps"] = nleps
@@ -155,124 +194,133 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #      var["nfatjets"] = ha.sum_in_offsets(fatjets, good_fatjets, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
 #      var["ntop_candidates"] = ha.sum_in_offsets(fatjets, tops, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
 #
-#    indices = {}    
-#    indices["leading"] = NUMPY_LIB.zeros(nEvents, dtype=NUMPY_LIB.int32)
-#    indices["subleading"] = NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.int32)
 #    if boosted:
-#      indices["higgs_candidate"] = index_in_offsets(getattr(fatjets, parameters["bbtagging algorithm"]), 1, mask_events, higgs_candidates)
-#      indices["W_candidate"] = index_in_offsets(fatjets.tau21, 0, mask_events, W_candidates)
-#      indices["top_candidate"] = index_in_offsets(fatjets.tau32, 0, mask_events, top_candidates)
 #      indices["inds_WHcandidates"] = ha.index_in_offsets(fatjets.btagHbb, fatjets.offsets, 1, mask_events, WH_candidates)
 #
 #
-#    variables = [
+    variables = [
 #        ("jet", jets, good_jets, "leading", ["pt", "eta"]),
 #        ("bjet", jets, bjets, "leading", ["pt", "eta"]),
-#    ]
+    ]
 #
-#    if boosted:
-#        variables += [
+    if boosted:
+        variables += [
 #            ("fatjet", fatjets, good_fatjets, "leading",["pt", "eta", "mass", "msoftdrop", "tau32", "tau21"]),
 #            ("fatjet", fatjets, good_fatjets, "subleading",["pt", "eta", "mass", "msoftdrop", "tau32", "tau21"]),
 #            ("top_candidate", fatjets, top_candidates, "leading", ["pt", "eta", "mass", "msoftdrop", "tau32", "tau21"]),
 #            ("WH_candidate", fatjets, WH_candidates, "inds_WHcandidates", ["pt", "eta", "mass", "msoftdrop", "tau32", "tau21"]),
 #            ("higgs", genparts, higgs, "leading", ["pt", "eta"]),
 #            ("tops", genparts, tops, "leading", ["pt", "eta"])
-#    ]
+            ("", fatjets, higgs_candidates, "best_higgs_candidate", ["pt", "msoftdrop", "tau21", parameters["bbtagging algorithm"]]),
+            ("boosted", fatjets, W_candidates, "best_W_candidate", ["pt", "msoftdrop", "tau21"]),
+            ("boosted", fatjets, top_candidates, "best_top_candidate", ["pt", "msoftdrop", "tau21"]),
+
+    ]
 #
 #    # special role of lepton
 #    var["leading_lepton_pt"] = NUMPY_LIB.maximum(ha.get_in_offsets(muons.pt, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.pt, electrons.offsets, indices["leading"], mask_events, good_electrons))
 #    var["leading_lepton_eta"] = NUMPY_LIB.maximum(ha.get_in_offsets(muons.eta, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.eta, electrons.offsets, indices["leading"], mask_events, good_electrons))
 #
-#    # all other variables
-#    for v in variables:
-#        calculate_variable_features(v, mask_events, indices, var)
-#
-#
-#    # calculate weights for MC samples
-#    weights = {}
-#    weights["nominal"] = NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.float32)
-#
-#    if is_mc:
-#        weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"]
-#
-#        # pu corrections
-#        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
-#        weights["nominal"] = weights["nominal"] * pu_weights
-#
-#        # lepton SF corrections
-#        electron_weights = compute_lepton_weights(electrons, electrons.pt, (electrons.deltaEtaSC + electrons.eta), mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
-#        muon_weights = compute_lepton_weights(muons, muons.pt, NUMPY_LIB.abs(muons.eta), mask_events, good_muons, evaluator, ["mu_triggerSF", "mu_isoSF", "mu_idSF"])
-#        weights["nominal"] = weights["nominal"] * muon_weights * electron_weights
-#
-#        # btag SF corrections
-#        btag_weights = compute_btag_weights(jets, mask_events, good_jets, evaluator)
-#        weights["nominal"] = weights["nominal"] * btag_weights
-#
-#    #in case of data: check if event is in golden lumi file
-#    if not is_mc and not (lumimask is None):
-#        mask_lumi = lumimask(scalars["run"], scalars["luminosityBlock"])
-#        mask_events = mask_events & mask_lumi
+    # all other variables
+    for v in variables:
+      calculate_variable_features(v, mask_events, indices, var)
+    for f in ['pt', 'mass']:
+      var['best_W_candidate_resolved_'+f] = getattr(hadW, f)
+      var['leptonic_W_candidate_'+f] = getattr(lepW, f)
+    var['deltaR_Wlep_Whad_resolved'] = ha.calc_dr(lepW, hadW)
+    var['deltaR_Wlep_Whad_boosted'] = ha.calc_dr(lepW, fatjets[ fatjets.offsets[:-1] + indices["best_W_candidate"] ])
+    var['deltaR_Wlep_H'] = ha.calc_dr(lepW, fatjets[ fatjets.offsets[:-1] + indices["best_higgs_candidate"] ])
+    var['deltaR_H_Whad_boosted'] = ha.calc_dr(fatjets[ fatjets.offsets[:-1] + indices["best_higgs_candidate"] ], fatjets[ fatjets.offsets[:-1] + indices["best_W_candidate"] ])
+
+    # calculate weights for MC samples
+    weights = {}
+    weights["nominal"] = NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.float32)
+
+    if is_mc:
+        weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"]
+
+        # pu corrections
+        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
+        weights["nominal"] = weights["nominal"] * pu_weights
+
+        # lepton SF corrections
+        electron_weights = compute_lepton_weights(electrons, electrons.pt, (electrons.deltaEtaSC + electrons.eta), mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
+        muon_weights = compute_lepton_weights(muons, muons.pt, NUMPY_LIB.abs(muons.eta), mask_events, good_muons, evaluator, ["mu_triggerSF", "mu_isoSF", "mu_idSF"])
+        weights["nominal"] = weights["nominal"] * muon_weights * electron_weights
+
+        # btag SF corrections
+        btag_weights = compute_btag_weights(jets, mask_events, good_jets, evaluator)
+        weights["nominal"] = weights["nominal"] * btag_weights
+
+    #in case of data: check if event is in golden lumi file
+    if not is_mc and not (lumimask is None):
+        mask_lumi = lumimask(scalars["run"], scalars["luminosityBlock"])
+        mask_events = mask_events & mask_lumi
 #
 #    #evaluate DNN
 #    if DNN:
 #        DNN_pred = evaluate_DNN(jets, good_jets, electrons, good_electrons, muons, good_muons, scalars, mask_events, DNN, DNN_model)
 #
-#    # in case of tt+jets -> split in ttbb, tt2b, ttb, ttcc, ttlf
-#    processes = {}
-#    if sample.startswith("TT"):
-#        ttCls = scalars["genTtbarId"]%100
-#        processes["ttbb"] = mask_events & (ttCls >=53) & (ttCls <=56)
-#        processes["tt2b"] = mask_events & (ttCls ==52)
-#        processes["ttb"] = mask_events & (ttCls ==51)
-#        processes["ttcc"] = mask_events & (ttCls >=41) & (ttCls <=45)
-#        ttHF =  ((ttCls >=53) & (ttCls <=56)) | (ttCls ==52) | (ttCls ==51) | ((ttCls >=41) & (ttCls <=45))
-#        processes["ttlf"] = mask_events & NUMPY_LIB.invert(ttHF)
-#    else:
-#        processes["unsplit"] = mask_events
-#
-#    for p in processes.keys():
-#
-#        mask_events_split = processes[p]
-#
-#        # Categories
-#        categories = {}
-#        if not boosted:
-#          categories["sl_jge4_tge2"] = mask_events_split
-#          categories["sl_jge4_tge3"] = mask_events_split & (btags >=3)
-#
-#          categories["sl_j4_tge3"] = mask_events_split & (njets ==4) & (btags >=3)
-#          categories["sl_j5_tge3"] = mask_events_split & (njets ==5) & (btags >=3)
-#          categories["sl_jge6_tge3"] = mask_events_split & (njets >=6) & (btags >=3)
-#
-#          categories["sl_j4_t3"] = mask_events_split & (njets ==4) & (btags ==3)
-#          categories["sl_j4_tge4"] = mask_events_split & (njets ==4) & (btags >=4)
-#          categories["sl_j5_t3"] = mask_events_split & (njets ==5) & (btags ==3)
-#          categories["sl_j5_tge4"] = mask_events_split & (njets ==5) & (btags >=4)
-#          categories["sl_jge6_t3"] = mask_events_split & (njets >=6) & (btags ==3)
-#          categories["sl_jge6_tge4"] = mask_events_split & (njets >=6) & (btags >=4)
-#        
-#        if not isinstance(cat, list):
-#            cat = [cat] 
-#        for c in cat:
-#            cut = categories[c]
-#            cut_name = c
-#
-#            if p=="unsplit":
-#                if "Run" in sample:
-#                    name = "data" + "_" + cut_name
-#                else:
-#                    name = samples_info[sample]["process"] + "_" + cut_name
-#            else:
-#                name = p + "_" + cut_name
-#
-#            # create histograms filled with weighted events
-#            for k in var.keys():
-#                if not k in histogram_settings.keys():
-#                    raise Exception("please add variable {0} to config_analysis.py".format(k))
-#                hist = Histogram(*ha.histogram_from_vector(var[k][cut], weights["nominal"][cut], NUMPY_LIB.linspace(histogram_settings[k][0], histogram_settings[k][1], histogram_settings[k][2])))
-#                ret["hist_{0}_{1}".format(name, k)] = hist
-#
+    # in case of tt+jets -> split in ttbb, tt2b, ttb, ttcc, ttlf
+    processes = {}
+    if sample.startswith("TT"):
+        ttCls = scalars["genTtbarId"]%100
+        processes["ttbb"] = mask_events & (ttCls >=53) & (ttCls <=56)
+        processes["tt2b"] = mask_events & (ttCls ==52)
+        processes["ttb"] = mask_events & (ttCls ==51)
+        processes["ttcc"] = mask_events & (ttCls >=41) & (ttCls <=45)
+        ttHF =  ((ttCls >=53) & (ttCls <=56)) | (ttCls ==52) | (ttCls ==51) | ((ttCls >=41) & (ttCls <=45))
+        processes["ttlf"] = mask_events & NUMPY_LIB.invert(ttHF)
+    else:
+        processes["unsplit"] = mask_events
+
+    for p in processes.keys():
+
+        mask_events_split = processes[p]
+
+        # Categories
+        categories = {}
+        if not boosted:
+          categories["sl_jge4_tge2"] = mask_events_split
+          categories["sl_jge4_tge3"] = mask_events_split & (btags >=3)
+
+          categories["sl_j4_tge3"] = mask_events_split & (njets ==4) & (btags >=3)
+          categories["sl_j5_tge3"] = mask_events_split & (njets ==5) & (btags >=3)
+          categories["sl_jge6_tge3"] = mask_events_split & (njets >=6) & (btags >=3)
+
+          categories["sl_j4_t3"] = mask_events_split & (njets ==4) & (btags ==3)
+          categories["sl_j4_tge4"] = mask_events_split & (njets ==4) & (btags >=4)
+          categories["sl_j5_t3"] = mask_events_split & (njets ==5) & (btags ==3)
+          categories["sl_j5_tge4"] = mask_events_split & (njets ==5) & (btags >=4)
+          categories["sl_jge6_t3"] = mask_events_split & (njets >=6) & (btags ==3)
+          categories["sl_jge6_tge4"] = mask_events_split & (njets >=6) & (btags >=4)
+        else:
+          categories['boosted_higgs_only'] = mask_events_split & (nhiggs>0)
+          categories['boosted_higgs_or_W'] = mask_events_split & (nhiggs>0) & ( (nW>0) | ( (hadW.mass>65) & (hadW.mass<105) ) )
+        
+        if not isinstance(cat, list):
+            cat = [cat] 
+        for c in cat:
+            cut = categories[c]
+            cut_name = c
+
+            if p=="unsplit":
+                if "Run" in sample:
+                    name = "data" + "_" + cut_name
+                elif "process" in samples_info[sample].keys():
+                    name = samples_info[sample]["process"] + "_" + cut_name
+                else:
+                    name = sample.split('_')[0] + "_" + cut_name
+            else:
+                name = p + "_" + cut_name
+
+           # create histograms filled with weighted events
+            for k in var.keys():
+               if not k in histogram_settings.keys():
+                   raise Exception("please add variable {0} to config_analysis.py".format(k))
+               hist = Histogram(*ha.histogram_from_vector(var[k][cut], weights["nominal"][cut], NUMPY_LIB.linspace(histogram_settings[k][0], histogram_settings[k][1], histogram_settings[k][2])))
+               ret["hist_{0}_{1}".format(name, k)] = hist
+
 #            if DNN:
 #                if DNN.endswith("multiclass"):
 #                    class_pred = NUMPY_LIB.argmax(DNN_pred, axis=1)
@@ -355,7 +403,7 @@ if __name__ == "__main__":
     if args.boosted:
       arrays_objects += [
         "GenPart_eta","GenPart_genPartIdxMother","GenPart_mass","GenPart_pdgId","GenPart_phi","GenPart_pt","GenPart_status","GenPart_statusFlags",
-        "FatJet_pt", "FatJet_eta", "FatJet_phi", "FatJet_btagHbb", "FatJet_deepTagMD_HbbvsQCD", "FatJet_deepTagMD_ZHbbvsQCD", "FatJet_deepTagMD_TvsQCD", "FatJet_deepTag_H", "FatJet_deepTag_TvsQCD", "FatJet_jetId", "FatJet_mass", "FatJet_msoftdrop", "FatJet_tau1", "FatJet_tau2", "FatJet_tau3", "FatJet_tau4"]
+        "FatJet_pt", "FatJet_eta", "FatJet_phi", "FatJet_btagHbb", "FatJet_deepTagMD_HbbvsQCD", "FatJet_deepTagMD_ZHbbvsQCD", "FatJet_deepTagMD_TvsQCD", "FatJet_deepTag_H", "FatJet_deepTag_TvsQCD", "FatJet_jetId", "FatJet_mass", "FatJet_msoftdrop", "FatJet_tau1", "FatJet_tau2", "FatJet_tau3", "FatJet_tau4", "FatJet_n2b1"]
 
     #these are variables per event
     arrays_event = [

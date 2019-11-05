@@ -29,4 +29,4 @@ if __name__ == "__main__":
         filenames = args.filenames
 
     genWeight = count_weighted(filenames)
-    print("Number of events (weighted)", genWeight)
+    print("Number of events (weighted)", genWeight, args.filelist[:-4])

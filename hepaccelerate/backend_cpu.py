@@ -224,16 +224,20 @@ def index_in_offsets_kernel(content, offsets, index_to_get, mask_rows, mask_cont
             
         start = offsets[iev]
         end = offsets[iev + 1]
+        if end==start:
+          continue
         event_content = content[start:end]
 
         ind = 0
-        while index_to_get < len(event_content):
-          ind = np.argsort(event_content)[-index_to_get]
+        _index_to_get = index_to_get
+#        while _index_to_get < len(event_content):
+        for i in numba.prange(end-start):
+          ind = np.argsort(event_content)[-_index_to_get]
           if mask_content[start + ind]:
             out[iev] = ind
             break
           else:
-            index_to_get += 1
+            _index_to_get += 1
         
 @numba.njit(parallel=True)
 def min_in_offsets_kernel(content, offsets, mask_rows, mask_content, out):
@@ -513,3 +517,70 @@ def get_lepton_SF(el_pt, el_eta, mu_pt, mu_eta, pdg_id, evaluator, name):
     out = np.zeros(len(pdg_id), dtype=np.float32) 
     get_lepton_SF_kernel(el_pt, el_eta, mu_pt, mu_eta, pdg_id, evaluator, name, out)
     return out
+
+@numba.njit(parallel=True)
+def METzCalculator_kernel(A, B, tmproot, tmpsol1, tmpsol2, pzlep, pznu, mask_rows):
+  for i in numba.prange(len(tmpsol1)):
+    if not mask_rows[i]:
+      continue
+    if tmproot[i]<0: pznu[i] = - B[i]/(2*A[i])
+    else:
+      tmpsol1[i] = (-B[i] + np.sqrt(tmproot[i]))/(2.0*A[i])
+      tmpsol2[i] = (-B[i] - np.sqrt(tmproot[i]))/(2.0*A[i])
+      if (abs(tmpsol2[i]-pzlep[i]) < abs(tmpsol1[i]-pzlep[i])):
+        pznu[i] = tmpsol2[i]
+        #otherSol_ = tmpsol1
+      else:
+        pznu[i] = tmpsol1[i]
+        #otherSol_ = tmpsol2
+        #### if pznu is > 300 pick the most central root
+        if ( pznu[i] > 300. ):
+          if (abs(tmpsol1[i])<abs(tmpsol2[i]) ):
+            pznu[i] = tmpsol1[i]
+            #otherSol_ = tmpsol2
+          else:
+            pznu[i] = tmpsol2[i]
+            #otherSol_ = tmpsol1
+
+def METzCalculator(lepton, MET, mask_rows):
+    np.seterr(invalid='ignore') # to suppress warning from nonsense numbers in masked events
+    M_W = 80.4
+    M_lep = lepton.mass #.1056
+    elep = lepton.E
+    pxlep = lepton.x
+    pylep = lepton.y
+    pzlep = lepton.z
+    pxnu = MET.x
+    pynu = MET.y
+    pznu = 0
+
+    a = M_W*M_W - M_lep*M_lep + 2.0*pxlep*pxnu + 2.0*pylep*pynu
+    A = 4.0*(elep*elep - pzlep*pzlep)
+    #print(elep[np.isnan(A) & mask_rows], pzlep[np.isnan(A) & mask_rows])
+    B = -4.0*a*pzlep
+    C = 4.0*elep*elep*(pxnu*pxnu + pynu*pynu) - a*a
+    #print(a, A, B, C)
+    tmproot = B*B - 4.0*A*C
+
+    tmpsol1 = np.zeros_like(A) #(-B + np.sqrt(tmproot))/(2.0*A)
+    tmpsol2 = np.zeros_like(A) #(-B - np.sqrt(tmproot))/(2.0*A)
+    pznu = np.zeros(len(M_lep), dtype=np.float32)
+    METzCalculator_kernel(A, B, tmproot, tmpsol1, tmpsol2, pzlep, pznu, mask_rows)
+
+    return pznu
+
+@numba.njit(parallel=True)
+def calc_dr_kernel(phi1, eta1, phi2, eta2, out):
+  for iobj in numba.prange(phi1.shape[0]-1):
+    deta = abs(eta1[iobj] - eta2[iobj])
+    dphi = (phi1[iobj] - phi2[iobj] + math.pi) % (2*math.pi) - math.pi
+    out[i] = np.sqrt( deta**2 + dphi**2 )
+
+def calc_dr(objs1, objs2):
+  assert(objs1.phi.shape == objs1.eta.shape)
+  assert(objs2.phi.shape == objs2.eta.shape)
+  assert(objs1.phi.shape == objs2.phi.shape)
+
+  out = np.zeros_like(objs1.phi)
+  calc_dr_kernel(objs1.phi, objs1.eta, objs2.phi, objs2.eta, out)
+  return out

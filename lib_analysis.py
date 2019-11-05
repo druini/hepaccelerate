@@ -8,6 +8,8 @@ import hepaccelerate
 
 from hepaccelerate.utils import Results, NanoAODDataset, Histogram, choose_backend
 
+from uproot_methods import TLorentzVectorArray
+
 NUMPY_LIB = None
 ha = None
 
@@ -205,3 +207,34 @@ def mae0(y_true,y_pred):
 def r2_score0(y_true,y_pred):
     return 1. - K.sum( K.square(y_true[:,0] - y_pred[:,0]) ) / K.sum( K.square(y_true[:,0] - K.mean(y_true[:,0]) ) )
 
+def select_lepton_p4(objs1, mask1, objs2, mask2, indices, mask_rows):
+  selected_obj1 = {}
+  selected_obj2 = {}
+  feats = ['pt','eta','phi','mass']
+  for feat in feats:
+    selected_obj1[feat] = ha.get_in_offsets(getattr(objs1,feat), objs1.offsets, indices, mask_rows, mask1)
+    selected_obj2[feat] = ha.get_in_offsets(getattr(objs2,feat), objs2.offsets, indices, mask_rows, mask2)
+  select_1_or_2 = (selected_obj1['pt'] > selected_obj2['pt'])
+  selected_feats = {}
+  for feat in feats:
+    selected_feats[feat] = NUMPY_LIB.where(select_1_or_2, selected_obj1[feat], selected_obj2[feat])
+  selected_p4 = TLorentzVectorArray.from_ptetaphim(selected_feats['pt'], selected_feats['eta'], selected_feats['phi'], selected_feats['mass'])
+  return selected_p4
+
+def hadronic_W(jets, jets_mask, lepWp4, mask_rows):
+  from itertools import combinations
+  init = -999.*np.zeros(len(jets.offsets) - 1, dtype=np.float32) 
+  hadW = TLorentzVectorArray.from_ptetaphim(init.copy(), init.copy(), init.copy(), init.copy())
+  for iev in range(jets.offsets.shape[0]-1):
+    if not mask_rows[iev]: continue
+    start = jets.offsets[iev]
+    end = jets.offsets[iev + 1]
+    smallestDiffW = 9999.
+    for jpair in combinations(jets.p4[start:end][jets_mask[start:end]], 2):
+      tmphadW = jpair[0] + jpair[1]
+      tmpDiff = abs(lepWp4[iev].mass - tmphadW.mass)
+      if tmpDiff<smallestDiffW:
+        smallestDiffW = tmpDiff
+        for feat in ['pt','eta','phi','mass']:
+          getattr(hadW, feat)[iev] = getattr(tmphadW, feat)
+  return hadW
