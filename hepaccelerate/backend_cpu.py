@@ -574,13 +574,13 @@ def calc_dr_kernel(phi1, eta1, phi2, eta2, out):
   for iobj in numba.prange(phi1.shape[0]-1):
     deta = abs(eta1[iobj] - eta2[iobj])
     dphi = (phi1[iobj] - phi2[iobj] + math.pi) % (2*math.pi) - math.pi
-    out[i] = np.sqrt( deta**2 + dphi**2 )
+    out[iobj] = np.sqrt( deta**2 + dphi**2 )
 
-def calc_dr(objs1, objs2):
-  assert(objs1.phi.shape == objs1.eta.shape)
-  assert(objs2.phi.shape == objs2.eta.shape)
-  assert(objs1.phi.shape == objs2.phi.shape)
+def calc_dr(objs1_phi, objs1_eta, objs2_phi, objs2_eta):
+  assert(objs1_phi.shape == objs1_eta.shape)
+  assert(objs2_phi.shape == objs2_eta.shape)
+  assert(objs1_phi.shape == objs2_phi.shape)
 
-  out = np.zeros_like(objs1.phi)
-  calc_dr_kernel(objs1.phi, objs1.eta, objs2.phi, objs2.eta, out)
+  out = np.zeros_like(objs1_phi)
+  calc_dr_kernel(objs1_phi, objs1_eta, objs2_phi, objs2_eta, out)
   return out

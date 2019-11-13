@@ -77,9 +77,16 @@ eraDependentParameters = {
 #################################### Samples info ##############################################################################
 
 samples_info = {
+    "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8_test": {
+            "process": "ttHTobb",
+            "XS": 0.29533504, #0.2934045,
+            #"ngen_weight": 2410620.0644499995 #reduced file list
+            "ngen_weight": 4216319.315883999
+            },
     "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8": {
             "process": "ttHTobb",
             "XS": 0.29533504, #0.2934045,
+            #"ngen_weight": 2410620.0644499995 #reduced file list
             "ngen_weight": 4216319.315883999
             },
     "TTToSemiLeptonic_TuneCP5_PSweights_13TeV-powheg-pythia8": {
@@ -89,7 +96,8 @@ samples_info = {
     "ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8": {
             "process": "ttHToNonbb",
             "XS": 0.21176496, #0.2150955,
-            "ngen_weight": 3095197.8117420007 #4484065.542378001},
+            #"ngen_weight": 913045.7391360003 #reduced file list 
+            "ngen_weight": 3095197.8117420007 
             },
     "TTTo2L2Nu_TuneCP5_PSweights_13TeV-powheg-pythia8": {
             "XS": 88.341903326,
@@ -102,14 +110,17 @@ samples_info = {
 
     "TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8": {
             "XS": 88.34190333, #88.341903326,
+            #"ngen_weight": 411032366.5312147 #reduced file list
             "ngen_weight": 643135033.87298 #283000430.5968169
             },
     "TTToHadronic_TuneCP5_13TeV-powheg-pythia8": {
             "XS": 377.9607353, #377.9607353256,
+            #"ngen_weight": 6141680.0 #reduced file list
             "ngen_weight": 41084368.0 #1647945788.3386502
             },
     "TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8": {
             "XS": 365.4573613, #365.45736135,
+            #"ngen_weight": 1394703463.7353685 #reduced file list
             "ngen_weight": 10758424549.765732 #720253370.0403845
             },
     "TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8": {
@@ -117,27 +128,36 @@ samples_info = {
       "ngen_weight": 383062.0686438
       },
     "ST_s-channel_4f_leptonDecays_TuneCP5_PSweights_13TeV-amcatnlo-pythia8": {
+      "process": "ST_s-channel",
       "XS": 3.702224,
+      #"ngen_weight": 24856809.513425056 #reduced file list
       "ngen_weight": 36781553.92694208
       },
     "ST_tW_antitop_5f_inclusiveDecays_TuneCP5_PSweights_13TeV-powheg-pythia8": {
+      "process": "ST_tW_antitop",
       "XS": 35.85,
+      #"ngen_weight": 182291193.36093727 #reduced file list
       "ngen_weight": 270762750.1725247
       },
     "ST_tW_top_5f_inclusiveDecays_TuneCP5_PSweights_13TeV-powheg-pythia8": {
+      "process": "ST_tW_top",
       "XS": 35.85,
+      #"ngen_weight": 241590614.9098064 #reduced file list
       "ngen_weight": 277241050.84022224
       },
     "ST_t-channel_top_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8": {
+      "process": "ST_t-channel",
       "XS": 136.02,
       "ngen_weight": 5863722.0
       },
     "THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8": {
       "XS": 0.002879,
+      #"ngen_weight": 2423222.0 #reduced file list
       "ngen_weight": 4714331.0
       },
     "TTGJets_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8": {
       "XS": 3.697,
+      #"ngen_weight": 29351538.669739988 #reduced file list
       "ngen_weight": 52309926.168262
       },
     "TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8": {
@@ -146,6 +166,7 @@ samples_info = {
       },
     "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8": {
       "XS": 61526.7,
+      #"ngen_weight": 6652665.0 #reduced file list
       "ngen_weight": 33043732.0
       },
     "WW_TuneCP5_13TeV-pythia8": {
@@ -196,26 +217,27 @@ histogram_settings = {
     "tau21_WHcandidates": (0,1,31),
 
     "best_higgs_candidate__pt": (200, 500,31),
-    "best_higgs_candidate__msoftdrop": (0, 250,31),
+    "best_higgs_candidate__msoftdrop": (0, 250, 26),
     "best_higgs_candidate__tau21": (-1, 1, 31),
     "best_higgs_candidate__"+eraDependentParameters["2017"]["bbtagging algorithm"]: (-1, 1, 31),
 
     "best_W_candidate_boosted_pt": (200, 500,31),
-    "best_W_candidate_boosted_msoftdrop": (0, 250,31),
+    "best_W_candidate_boosted_msoftdrop": (0, 250, 26),
     "best_W_candidate_boosted_tau21": (-1, 1, 31),
 
     "best_top_candidate_boosted_pt": (200, 500,31),
-    "best_top_candidate_boosted_msoftdrop": (0, 250,31),
+    "best_top_candidate_boosted_msoftdrop": (0, 250, 26),
     "best_top_candidate_boosted_tau21": (-1, 1, 31),
 
-    "best_W_candidate_resolved_pt": (0, 250, 31),
-    "best_W_candidate_resolved_mass": (0, 250, 31),
+    "best_W_candidate_resolved_pt": (0, 250, 26),
+    "best_W_candidate_resolved_mass": (0, 250, 26),
 
-    "leptonic_W_candidate_pt": (0, 250, 31),
-    "leptonic_W_candidate_mass": (0, 250, 31),
+    "leptonic_W_candidate_pt": (0, 250, 26),
+    "leptonic_W_candidate_mass": (0, 250, 26),
 
-    "deltaR_Wlep_Whad_resolved": (0, 5, 31),
-    "deltaR_Wlep_Whad_boosted": (0, 5, 31),
+    "deltaR_Wlep_WhadResolved": (0, 5, 31),
+    "deltaR_Wlep_WhadBoosted": (0, 5, 31),
     "deltaR_Wlep_H": (0, 5, 31),
-    "deltaR_H_Whad_boosted": (0,5, 31),
+    "deltaR_H_WhadBoosted": (0,5, 31),
+    "deltaR_H_WhadResolved": (0,5, 31),
 }
