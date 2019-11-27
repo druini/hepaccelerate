@@ -22,15 +22,6 @@ def choose_backend(use_cuda=False):
         NUMPY_LIB.asnumpy = numpy.array
     return NUMPY_LIB, ha
 
-class Histogram2D:
-    def __init__(self, contents, extent):
-        self.contents = np.array(contents)
-        self.extent = np.array(extent) ## as in matplotlib.pyplot.imshow()
-    
-#    def __add__(self, other):
-#        assert(np.all(self.edges == other.edges))
-#        return Histogram(self.contents +  other.contents, self.contents_w2 +  other.contents_w2, self.edges)
-
 class Histogram:
     def __init__(self, contents, contents_w2, edges):
         self.contents = np.array(contents)
