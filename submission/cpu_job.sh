@@ -11,10 +11,10 @@
 echo "submitting sample $1"
 
 PYTHONPATH=hepaccelerate:coffea:. python3 run_analysis.py \
-  --filelist datasets/algomez/$1.txt \
+  --filelist /afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/algomez/$1.txt \
   --sample $1  \
-  --outdir tests/ \
+  --outdir /afs/cern.ch/work/d/druini/public/hepaccelerate/results/tests \
   --boosted \
-  --categories boosted_higgs_only boosted_higgs_or_W \
-  --cache-location ~/eos/cache/ \
-  --from-cache 
+  --categories all \
+  --cache-location /eos/user/d/druini/cache/ \
+  #--from-cache 

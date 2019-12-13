@@ -33,7 +33,7 @@ parameters = {
                "eta": 2.4,
                "jetId": 2,
                "tau32cut": 0.4,
-               "tau21cut": 0.4,
+               "tau21cut": 0.45,
     },
 }
 
@@ -67,8 +67,8 @@ eraDependentParameters = {
         ],
         "btagging algorithm" : "btagDeepB",
         "btagging WP" : 0.4941, # medium working point for btagDeepB
-        "bbtagging algorithm" : "deepTagMD_HbbvsQCD",
-        "bbtagging WP" : 0.8, # medium 2 working point for DeepDoubleB tagger
+        "bbtagging algorithm" :  "deepTagMD_HbbvsQCD",#"btagDDBvL",
+        "bbtagging WP" : 0.6795 # medium 2 working point for DeepDoubleB tagger
     }
 
 }

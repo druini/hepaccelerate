@@ -11,4 +11,4 @@ output      =  /afs/cern.ch/work/d/druini/public/hepaccelerate/condor_output/$(s
 getenv      =  True
 ####requirements = (OpSysAndVer =?= "SLCern6")
 +JobFlavour = "testmatch"
-queue sample from /afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/algomez/missing.txt
+queue sample from /afs/cern.ch/work/d/druini/public/hepaccelerate/submission/tmpSamples.txt

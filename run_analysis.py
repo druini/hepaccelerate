@@ -34,12 +34,12 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     muons = data["Muon"]
     electrons = data["Electron"]
     scalars = data["eventvars"]
-    #jets = data["Jet"]
-    jets = data["selectedPatJetsAK4PFPuppi"]
-    jets.puId = jets.AK4PFPuppipileupJetIdEvaluator_fullId
-    if is_mc:
-      jets.hadronFlavour = jets.hadronFlavor
-    jets.btagDeepB = jets.pfDeepCSVJetTags_probb + jets.pfDeepCSVJetTags_probbb
+    jets = data["Jet"]
+    #jets = data["selectedPatJetsAK4PFPuppi"]
+    #jets.puId = jets.AK4PFPuppipileupJetIdEvaluator_fullId
+    #if is_mc:
+    #  jets.hadronFlavour = jets.hadronFlavor
+    #jets.btagDeepB = jets.pfDeepCSVJetTags_probb + jets.pfDeepCSVJetTags_probbb
     jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
 
     #met = data["MET"]
@@ -116,7 +116,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #      best_W_candidate[ (fatjets.offsets[:-1] + indices["best_W_candidate"])[NUMPY_LIB.where( fatjets.offsets<len(best_W_candidate) )] ] = True
 #      best_W_candidate[ (fatjets.offsets[:-1] + indices["best_W_candidate"])[NUMPY_LIB.where( fatjets.offsets<len(best_W_candidate) )] ] &= nW.astype(NUMPY_LIB.bool)[NUMPY_LIB.where( fatjets.offsets<len(best_W_candidate) )]
 
-      higgs_candidates = good_fatjets & (getattr(fatjets, parameters["bbtagging algorithm"]) > parameters["bbtagging WP"]) & (fatjets.tau21 < parameters["fatjets"]["tau21cut"]) & (fatjets.pt > 250) # & NUMPY_LIB.invert(best_W_candidate)
+      higgs_candidates = good_fatjets & (getattr(fatjets, parameters["bbtagging algorithm"]) > parameters["bbtagging WP"]) & (fatjets.tau21 < parameters["fatjets"]["tau21cut"]) & (fatjets.pt > 250) # & NUMPY_LIB.invert(best_W_candidate) FIXME:remove bbtag cut from here and move to the end
       nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
       #indices["best_higgs_candidate"] = ha.index_in_offsets(getattr(fatjets, parameters["bbtagging algorithm"]), fatjets.offsets, 1, mask_events, higgs_candidates)
       indices["best_higgs_candidate"] = ha.index_in_offsets(fatjets.pt, fatjets.offsets, 1, mask_events, higgs_candidates)
@@ -253,8 +253,8 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         weights["nominal"] = weights["nominal"] * muon_weights * electron_weights
 
         # btag SF corrections
-        btag_weights = compute_btag_weights(jets, mask_events, good_jets, evaluator)
-        weights["nominal"] = weights["nominal"] * btag_weights
+#        btag_weights = compute_btag_weights(jets, mask_events, good_jets, evaluator)
+#        weights["nominal"] = weights["nominal"] * btag_weights
 
     #in case of data: check if event is in golden lumi file
     if not is_mc and not (lumimask is None):
@@ -432,7 +432,7 @@ if __name__ == "__main__":
     #define arrays to load: these are objects that will be kept together
     arrays_objects = [
         "Jet_pt", "Jet_eta", "Jet_phi", "Jet_btagDeepB", "Jet_jetId", "Jet_puId", "Jet_mass",
-        "selectedPatJetsAK4PFPuppi_pt", "selectedPatJetsAK4PFPuppi_eta", "selectedPatJetsAK4PFPuppi_phi", "selectedPatJetsAK4PFPuppi_pfDeepCSVJetTags_probb", "selectedPatJetsAK4PFPuppi_pfDeepCSVJetTags_probbb", "selectedPatJetsAK4PFPuppi_jetId", "selectedPatJetsAK4PFPuppi_AK4PFPuppipileupJetIdEvaluator_fullId", "selectedPatJetsAK4PFPuppi_mass",
+        #"selectedPatJetsAK4PFPuppi_pt", "selectedPatJetsAK4PFPuppi_eta", "selectedPatJetsAK4PFPuppi_phi", "selectedPatJetsAK4PFPuppi_pfDeepCSVJetTags_probb", "selectedPatJetsAK4PFPuppi_pfDeepCSVJetTags_probbb", "selectedPatJetsAK4PFPuppi_jetId", "selectedPatJetsAK4PFPuppi_AK4PFPuppipileupJetIdEvaluator_fullId", "selectedPatJetsAK4PFPuppi_mass",
         "Muon_pt", "Muon_eta", "Muon_phi", "Muon_mass", "Muon_pfRelIso04_all", "Muon_tightId", "Muon_charge",
         "Electron_pt", "Electron_eta", "Electron_phi", "Electron_mass", "Electron_charge", "Electron_deltaEtaSC", "Electron_cutBased", "Electron_dz", "Electron_dxy",
     ]
@@ -456,8 +456,8 @@ if __name__ == "__main__":
 
     if is_mc:
         arrays_event += ["PV_npvsGood", "Pileup_nTrueInt", "genWeight", "nGenPart"]
-        arrays_objects += [ "Jet_hadronFlavour", "selectedPatJetsAK4PFPuppi_hadronFlavor",
-                          "GenPart_eta","GenPart_genPartIdxMother","GenPart_mass","GenPart_pdgId","GenPart_phi","GenPart_pt","GenPart_status","GenPart_statusFlags"
+        arrays_objects += [ "Jet_hadronFlavour", #"selectedPatJetsAK4PFPuppi_hadronFlavor",
+                          #"GenPart_eta","GenPart_genPartIdxMother","GenPart_mass","GenPart_pdgId","GenPart_phi","GenPart_pt","GenPart_status","GenPart_statusFlags"
                          ]
 
     filenames = None
@@ -478,7 +478,7 @@ if __name__ == "__main__":
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
         #define our dataset
-        structs = ["Jet", "Muon", "Electron", "selectedPatJetsAK4PFPuppi"]
+        structs = ["Jet", "Muon", "Electron"]#, "selectedPatJetsAK4PFPuppi"]
         if args.boosted:
           structs += ["FatJet"]#, "GenPart"]#, "MET"]
 #          if is_mc:
