@@ -39,6 +39,10 @@ def searchsorted_devfunc2D(arr_x, arr_y, val_x, val_y):
 def fill_histogram(data, weights, bins, out_w, out_w2):
     for i in range(len(data)):
         bin_idx = searchsorted_devfunc(bins, data[i])
+        if bin_idx >= len(out_w):
+          bin_idx = len(out_w)-1
+        elif bin_idx == -1:
+          bin_idx = 0
         if bin_idx >=0 and bin_idx < len(out_w):
             out_w[bin_idx] += weights[i]
             out_w2[bin_idx] += weights[i]**2
@@ -406,7 +410,7 @@ def get_lepton_SF_kernel(el_pt, el_eta, mu_pt, mu_eta, pdg_id, evaluator, name, 
             
 
 @numba.njit(parallel=True)
-def mask_deltar_first_kernel(etas1, phis1, mask1, offsets1, etas2, phis2, mask2, offsets2, dr2, mask_out):
+def mask_deltar_first_kernel(etas1, phis1, mask1, offsets1, etas2, phis2, mask2, offsets2, inds2, dr2, mask_out):
     
     for iev in numba.prange(len(offsets1)-1):
         a1 = offsets1[iev]
@@ -414,6 +418,12 @@ def mask_deltar_first_kernel(etas1, phis1, mask1, offsets1, etas2, phis2, mask2,
         
         a2 = offsets2[iev]
         b2 = offsets2[iev+1]
+        if not (inds2 is None):
+          masked = 0
+          for i in mask2[ a2:a2+inds2[iev] ]:
+            if not i:
+              masked += 1
+          a2 += inds2[iev] + masked
         
         for idx1 in range(a1, b1):
             if not mask1[idx1]:
@@ -433,8 +443,10 @@ def mask_deltar_first_kernel(etas1, phis1, mask1, offsets1, etas2, phis2, mask2,
                 #if first object is closer than dr2, mask element will be *disabled*
                 passdr = ((deta**2 + dphi**2) < dr2)
                 mask_out[idx1] = mask_out[idx1] | passdr
+                if not (inds2 is None):
+                  break
                 
-def mask_deltar_first(objs1, mask1, objs2, mask2, drcut):
+def mask_deltar_first(objs1, mask1, objs2, mask2, drcut, inds2=None):
     assert(mask1.shape == objs1.eta.shape)
     assert(mask2.shape == objs2.eta.shape)
     assert(objs1.offsets.shape == objs2.offsets.shape)
@@ -442,7 +454,7 @@ def mask_deltar_first(objs1, mask1, objs2, mask2, drcut):
     mask_out = np.zeros_like(objs1.eta, dtype=np.bool)
     mask_deltar_first_kernel(
         objs1.eta, objs1.phi, mask1, objs1.offsets,
-        objs2.eta, objs2.phi, mask2, objs2.offsets,
+        objs2.eta, objs2.phi, mask2, objs2.offsets, inds2,
         drcut**2, mask_out
     )
     mask_out = np.invert(mask_out)
