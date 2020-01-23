@@ -17,7 +17,7 @@ fi
 PYTHONPATH=hepaccelerate:coffea:. python3 run_analysis.py \
   --filelist /afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/$folder/$1.txt \
   --sample $1  \
-  --outdir /afs/cern.ch/work/d/druini/public/hepaccelerate/results/DAK8_mistag5 \
+  --outdir /afs/cern.ch/work/d/druini/public/hepaccelerate/results/tests/more_fixes \
   --boosted \
   --categories all \
   --cache-location /eos/user/d/druini/cache/ \

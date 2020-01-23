@@ -29,11 +29,11 @@ parameters = {
     "fatjets": {
                "type": "fatjet",
                "dr": 0.8,
-               "pt": 200,
+               "pt": 250,
                "eta": 2.4,
                "jetId": 2,
                "tau32cut": 0.4,
-               "tau21cut": 0.45,
+               "tau21cut": 0.35,
     },
 }
 
@@ -65,10 +65,10 @@ eraDependentParameters = {
             "mu_idSF NUM_TightID_DEN_genTracks_pt_abseta ./data/RunBCDEF_SF_ID.histo.root",
             "BTagSF * ./data/deepCSV_sfs_v2.btag.csv"
         ],
-        "btagging algorithm" : "btagDeepB",
-        "btagging WP" : 0.4941, # medium working point for btagDeepB
-        "bbtagging algorithm" :  "deepTagMD_HbbvsQCD",#"btagDDBvL",
-        "bbtagging WP" : 0.6795 # medium 2 working point for DeepDoubleB tagger
+        "btagging algorithm" : "btagDeepFlavB",#"btagDeepB",
+        "btagging WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
+        "bbtagging algorithm" : "deepTagMD_ZHbbvsQCD", # "deepTagMD_HbbvsQCD",#"btagDDBvL",
+        "bbtagging WP" : 0.8945 #0.6795 # medium 2 working point for DeepDoubleB tagger
     }
 
 }

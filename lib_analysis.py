@@ -61,7 +61,7 @@ def jet_selection(jets, leps, mask_leps, cuts):
     jets.masks["pass_dr"] = jets_pass_dr
     good_jets = (jets.pt > cuts["pt"]) & (NUMPY_LIB.abs(jets.eta) < cuts["eta"]) & (jets.jetId >= cuts["jetId"]) & jets_pass_dr
     if cuts["type"] == "jet":
-      good_jets &= (jets.puId>=cuts["puId"]) 
+      good_jets &= ((jets.pt<50) & (jets.puId>=cuts["puId"]) ) | (jets.pt>=50) 
 
     return good_jets
 
@@ -77,7 +77,15 @@ def compute_pu_weights(pu_corrections_target, weights, mc_nvtx, reco_nvtx):
     src_pu_hist.contents = src_pu_hist.contents/norm
     src_pu_hist.contents_w2 = src_pu_hist.contents_w2/norm
 
+#    fi = uproot.open('/afs/cern.ch/user/a/algomez/public/forDaniele/mcPileup2017.root')
+#    h = fi['pu_mc']
+#    mc_edges = np.array(h.edges)
+#    mc_values = np.array(h.values)
+#    mc_values /= np.sum(mc_values)
+#    mc_values = np.append(mc_values, 1)
+
     ratio = values_nom / src_pu_hist.contents
+#    ratio = values_nom / mc_values
     remove_inf_nan(ratio)
     pu_weights = NUMPY_LIB.zeros_like(weights)
     ha.get_bin_contents(reco_nvtx, NUMPY_LIB.array(pu_edges), NUMPY_LIB.array(ratio), pu_weights)
@@ -110,7 +118,10 @@ def compute_lepton_weights(leps, lepton_x, lepton_y, mask_rows, mask_content, ev
     weights = NUMPY_LIB.ones(len(lepton_x))
 
     for SF in SF_list:
-        weights *= evaluator[SF](lepton_x, lepton_y)
+        if SF == "el_triggerSF":
+            weights *= evaluator[SF](lepton_y, lepton_x)
+        else:
+            weights *= evaluator[SF](lepton_x, lepton_y)
     
     per_event_weights = ha.multiply_in_offsets(leps, weights, mask_rows, mask_content)
     return per_event_weights
