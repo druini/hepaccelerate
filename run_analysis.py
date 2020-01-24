@@ -58,7 +58,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     if args.year.startswith('2016'):
         trigger = (scalars["HLT_Ele27_WPTight_Gsf"] | scalars["HLT_IsoMu24"]  | scalars["HLT_IsoTkMu24"])
     else:
-        trigger = (scalars["HLT_Ele32_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu27"] | scalars["HLT_IsoMu24_eta2p1"])
+        trigger = (scalars["HLT_Ele35_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu27"] | scalars["HLT_IsoMu24_eta2p1"]) #FIXME for different runs
     mask_events = mask_events & trigger
     mask_events = mask_events & (scalars["PV_npvsGood"]>0)
 
@@ -102,7 +102,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     weights["nominal"] = NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.float32)
 
     if is_mc:
-#        weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"]
+        weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"]
 
         # pu corrections
         pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
@@ -160,17 +160,44 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
 ############# histograms
     vars_to_plot = {
+      'nleps'          : nleps,
       'njets'          : njets,
       'nfatjets'       : nfatjets,
+      'met'            : scalars['MET_pt'],
       'leadAK8JetMass' : leading_fatjet_SDmass,
+      'leadAK8JetPt'   : leading_fatjet_pt,
+      'leadAK8JetEta'  : leading_fatjet_eta,
+      'leadAK8JetHbb'  : leading_fatjet_Hbb,
+      'leadAK8JetTau21': leading_fatjet_tau21,
+      'lepton_pt'      : leading_lepton_pt,
+      'lepton_eta'     : leading_lepton_eta,
+      'hadWPt'         : hadW.pt,
+      'hadWEta'        : hadW.eta,
+      'hadWMass'       : hadW.mass,
+      'lepWPt'         : lepW.pt,
+      'lepWEta'        : lepW.eta,
+      'lepWMass'       : lepW.mass,
+      'deltaRlepWHiggs': deltaRlepWHiggs,
+      'deltaRhadWHiggs': deltaRhadWHiggs,
       'PV_npvsGood'    : scalars['PV_npvsGood'],
-      'pu_weights'     : weights['nominal']
     }
+    if is_mc:
+      vars_to_plot['pu_weights'] = pu_weights
 
-    weight_names = {'' : 'nominal', '_NoWeights' : 'ones' }
+    weight_names = {'' : 'nominal', '_NoWeights' : 'ones'}
     for weight_name, w in weight_names.items():
       for mask_name, mask in mask_events.items():
+        ### tentative histogram of all jets in an event #FIXME
+#        jet_feats = {'pt'  : NUMPY_LIB.array([]), 'eta' : NUMPY_LIB.array([])}
+#        for evt_idx in NUMPY_LIB.where(mask)[0]:
+#          start = jets.offsets[evt_idx]
+#          stop  = jets.offsets[evt_idx+1]
+#          for feat in ['pt','eta']:
+#            jet_feats[feat] = NUMPY_LIB.append(jet_feats[feats], getattr(jets, feat)[start:stop][nonbjets[start:stop]])
+#        for feat in ['pt','eta']:
+#          ret[f'hist_jets_{feat}_{mask_name+weight_name}'] = get_histogram( jet_feats[feat], 
         for var_name, var in vars_to_plot.items():
+          if (not is_mc) and (mask_name=='2J2WdeltaRTau21_Pass') and (var_name=='leadAK8JetMass') : continue
           try:
             ret[f'hist_{var_name}_{mask_name+weight_name}'] = get_histogram( var[mask], weights[w][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
           except KeyError:
@@ -448,7 +475,10 @@ if __name__ == "__main__":
     ]
 
     if args.year.startswith('2016'): arrays_event += [ "HLT_Ele27_WPTight_Gsf", "HLT_IsoMu24", "HLT_IsoTkMu24" ]
-    else: arrays_event += [ "HLT_Ele32_WPTight_Gsf", "HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_IsoMu27", "HLT_IsoMu24_eta2p1" ]
+    else:
+      arrays_event += [ "HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_IsoMu27", "HLT_IsoMu24_eta2p1" ]
+      if not (args.sample.endswith('2017B') or args.sample.endswith('2017C')):
+        arrays_event += ["HLT_Ele32_WPTight_Gsf"] #FIXME
 
     if args.sample.startswith("TT"):
         arrays_event.append("genTtbarId")
