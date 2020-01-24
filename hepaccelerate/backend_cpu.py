@@ -582,17 +582,20 @@ def METzCalculator(lepton, MET, mask_rows):
     return pznu
 
 @numba.njit(parallel=True)
-def calc_dr_kernel(phi1, eta1, phi2, eta2, out):
+def calc_dr_kernel(phi1, eta1, phi2, eta2, mask, out):
   for iobj in numba.prange(phi1.shape[0]-1):
+    if not mask[iobj]:
+      continue
     deta = abs(eta1[iobj] - eta2[iobj])
     dphi = (phi1[iobj] - phi2[iobj] + math.pi) % (2*math.pi) - math.pi
     out[iobj] = np.sqrt( deta**2 + dphi**2 )
 
-def calc_dr(objs1_phi, objs1_eta, objs2_phi, objs2_eta):
+def calc_dr(objs1_phi, objs1_eta, objs2_phi, objs2_eta, mask):
   assert(objs1_phi.shape == objs1_eta.shape)
   assert(objs2_phi.shape == objs2_eta.shape)
   assert(objs1_phi.shape == objs2_phi.shape)
+  assert(objs1_phi.shape == mask.shape)
 
   out = np.zeros_like(objs1_phi)
-  calc_dr_kernel(objs1_phi, objs1_eta, objs2_phi, objs2_eta, out)
+  calc_dr_kernel(objs1_phi, objs1_eta, objs2_phi, objs2_eta, mask, out)
   return out
