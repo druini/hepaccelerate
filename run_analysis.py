@@ -105,7 +105,8 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"]
 
         # pu corrections
-        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
+#        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
+        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["Pileup_nTrueInt"])
         weights["nominal"] = weights["nominal"] * pu_weights
 
         # lepton SF corrections
@@ -187,6 +188,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     weight_names = {'' : 'nominal', '_NoWeights' : 'ones'}
     for weight_name, w in weight_names.items():
       for mask_name, mask in mask_events.items():
+        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/tests/events_pass_selection_{sample}_{mask_name}.txt','a+') as f:
+          for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
+            f.write(f'{nevt}, {run}, {lumiBlock}\n')
         ### tentative histogram of all jets in an event #FIXME
 #        jet_feats = {'pt'  : NUMPY_LIB.array([]), 'eta' : NUMPY_LIB.array([])}
 #        for evt_idx in NUMPY_LIB.where(mask)[0]:
@@ -506,6 +510,8 @@ if __name__ == "__main__":
 
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
+      try:
+        print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
         #define our dataset
         structs = ["Jet", "Muon", "Electron"]#, "selectedPatJetsAK4PFPuppi"]
         if args.boosted:
@@ -529,8 +535,8 @@ if __name__ == "__main__":
 
         #Optionally, load the dataset from an uncompressed format
         else:
-            print("loading dataset from cache")
-            dataset.from_cache(verbose=True, nthreads=args.nthreads)
+          print("loading dataset from cache")
+          dataset.from_cache(verbose=True, nthreads=args.nthreads)
 
         if is_mc:
 
@@ -543,7 +549,6 @@ if __name__ == "__main__":
             ext.finalize()
             evaluator = ext.make_evaluator()
 
-
         if ibatch == 0:
             print(dataset.printout())
 
@@ -555,7 +560,15 @@ if __name__ == "__main__":
         print(args.categories)
         #### this is where the magic happens: run the main analysis
         results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
-
+      except:
+        print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
+        if is_mc:
+          folder = 'RunIIFall17NanoAODv5'
+        else:
+          folder = 'Nano25Oct2019'
+        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
+          f.write(files_in_batch[0]+'\n')
+          continue
 
     print(results)
 
