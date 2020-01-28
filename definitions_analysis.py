@@ -77,59 +77,50 @@ eraDependentParameters = {
 #################################### Samples info ##############################################################################
 
 samples_info = {
-    "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8_test": {
-            "process": "ttHTobb",
-            "XS": 0.29533504, #0.2934045,
-            #"ngen_weight": 2410620.0644499995 #reduced file list
-            "ngen_weight": 4216319.315883999
-            },
     "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8": {
             "process": "ttHTobb",
-            "XS": 0.29533504, #0.2934045,
+            "XS": 0.2953,
             #"ngen_weight": 2410620.0644499995 #reduced file list
             "ngen_weight": 4216319.315883999
             },
     "TTToSemiLeptonic_TuneCP5_PSweights_13TeV-powheg-pythia8": {
-            "XS": 365.45736135,
+            "XS": 365.4574,
             "ngen_weight": 720253370.0403845
             },
     "ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8": {
             "process": "ttHToNonbb",
-            "XS": 0.21176496, #0.2150955,
+            "XS": 0.2118,
             #"ngen_weight": 913045.7391360003 #reduced file list 
             "ngen_weight": 3095197.8117420007 
             },
     "TTTo2L2Nu_TuneCP5_PSweights_13TeV-powheg-pythia8": {
-            "XS": 88.341903326,
+            "XS": 88.3419,
             "ngen_weight": 283000430.5968169
             },
     "TTToHadronic_TuneCP5_PSweights_13TeV-powheg-pythia8": {
-            "XS": 377.9607353256,
+            "XS": 377.9607,
             "ngen_weight": 1647945788.3386502
             },
 
     "TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8": {
-            "XS": 88.34190333, #88.341903326,
-            #"ngen_weight": 411032366.5312147 #reduced file list
+            "XS": 88.3419,
             "ngen_weight": 643135033.87298 #283000430.5968169
             },
     "TTToHadronic_TuneCP5_13TeV-powheg-pythia8": {
-            "XS": 377.9607353, #377.9607353256,
-            #"ngen_weight": 6141680.0 #reduced file list
+            "XS": 377.9607,
             "ngen_weight": 41084368.0 #1647945788.3386502
             },
     "TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8": {
-            "XS": 365.4573613, #365.45736135,
-            #"ngen_weight": 1394703463.7353685 #reduced file list
+            "XS": 365.4574,
             "ngen_weight": 10758424549.765732 #720253370.0403845
             },
     "TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8": {
-      "XS": 0.5297,
+      "XS": 0.6012,# 0.5297,
       "ngen_weight": 383062.0686438
       },
     "ST_s-channel_4f_leptonDecays_TuneCP5_PSweights_13TeV-amcatnlo-pythia8": {
       "process": "ST_s-channel",
-      "XS": 3.702224,
+      "XS": 3.36,#3.702224,
       #"ngen_weight": 24856809.513425056 #reduced file list
       "ngen_weight": 36781553.92694208
       },
@@ -145,33 +136,43 @@ samples_info = {
       #"ngen_weight": 241590614.9098064 #reduced file list
       "ngen_weight": 277241050.84022224
       },
+    "ST_t-channel_antitop_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8": {
+      "process": "ST_t-channel_antitop",
+      "XS": 80.95,
+      "ngen_weight": 3675910.0
+      },
     "ST_t-channel_top_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8": {
-      "process": "ST_t-channel",
+      "process": "ST_t-channel_top",
       "XS": 136.02,
       "ngen_weight": 5863722.0
       },
     "THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8": {
-      "XS": 0.002879,
-      #"ngen_weight": 2423222.0 #reduced file list
+      "XS":  0.01517,#0.002879,
       "ngen_weight": 4714331.0
       },
     "TTGJets_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8": {
       "XS": 3.697,
-      #"ngen_weight": 29351538.669739988 #reduced file list
       "ngen_weight": 52309926.168262
       },
     "TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8": {
-      "XS": 0.4062,
+      "XS": 0.3708, #0.4062,
       "ngen_weight": 560315.13342
       },
     "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8": {
       "XS": 61526.7,
-      #"ngen_weight": 6652665.0 #reduced file list
       "ngen_weight": 33043732.0
       },
     "WW_TuneCP5_13TeV-pythia8": {
       "XS": 118.7,
       "ngen_weight": 7791560.886900296
+      },
+    "WZ_TuneCP5_13TeV-pythia8": {
+      "XS": 65.5443,
+      "ngen_weight": 3928630.0
+      },
+    "ZZ_TuneCP5_13TeV-pythia8": {
+      "XS": 15.8274,
+      "ngen_weight": 1949768.0
       },
 }
 
