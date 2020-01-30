@@ -39,6 +39,10 @@ def searchsorted_devfunc2D(arr_x, arr_y, val_x, val_y):
 def fill_histogram(data, weights, bins, out_w, out_w2):
     for i in range(len(data)):
         bin_idx = searchsorted_devfunc(bins, data[i])
+        if bin_idx >= len(out_w):
+          bin_idx = len(out_w)-1
+        elif bin_idx == -1:
+          bin_idx = 0
         if bin_idx >=0 and bin_idx < len(out_w):
             out_w[bin_idx] += weights[i]
             out_w2[bin_idx] += weights[i]**2
@@ -212,6 +216,32 @@ def get_in_offsets_kernel(content, offsets, indices, mask_rows, mask_content, ou
                     break
                 else:
                     index_to_get += 1
+
+'''
+Function to get the index of the index_to_get-th highest element of content. Combined with the get_in_offsets function it allows e.g. to access the jet with the 1st or 2nd highest btag score
+'''
+@numba.njit(parallel=True)
+def index_in_offsets_kernel(content, offsets, index_to_get, mask_rows, mask_content, out):
+    for iev in numba.prange(offsets.shape[0]-1):
+        if not mask_rows[iev]:
+            continue
+            
+        start = offsets[iev]
+        end = offsets[iev + 1]
+        if end==start:
+          continue
+        event_content = content[start:end]
+
+        ind = 0
+        _index_to_get = index_to_get
+#        while _index_to_get < len(event_content):
+        for i in numba.prange(end-start):
+          ind = np.argsort(event_content)[-_index_to_get]
+          if mask_content[start + ind]:
+            out[iev] = ind
+            break
+          else:
+            _index_to_get += 1
         
 @numba.njit(parallel=True)
 def min_in_offsets_kernel(content, offsets, mask_rows, mask_content, out):
@@ -271,6 +301,11 @@ def get_in_offsets(content, offsets, indices, mask_rows, mask_content):
     #out = np.zeros(len(offsets) - 1, dtype=content.dtype)
     out = -999.*np.ones(len(offsets) - 1, dtype=content.dtype) #to avoid histos being filled with 0 for non-existing objects, i.e. in events with no fat jets
     get_in_offsets_kernel(content, offsets, indices, mask_rows, mask_content, out)
+    return out
+
+def index_in_offsets(content, offsets, index_to_get, mask_rows, mask_content):
+    out = np.zeros(len(offsets) - 1, dtype=offsets.dtype)
+    index_in_offsets_kernel(content, offsets, index_to_get, mask_rows, mask_content, out)
     return out
 
 def calc_px(content_pt, content_phi):
@@ -375,7 +410,58 @@ def get_lepton_SF_kernel(el_pt, el_eta, mu_pt, mu_eta, pdg_id, evaluator, name, 
             
 
 @numba.njit(parallel=True)
-def mask_deltar_first_kernel(etas1, phis1, mask1, offsets1, etas2, phis2, mask2, offsets2, dr2, mask_out):
+def mask_deltar_first_kernel(etas1, phis1, mask1, offsets1, etas2, phis2, mask2, offsets2, inds2, dr2, mask_out):
+    
+    for iev in numba.prange(len(offsets1)-1):
+        a1 = offsets1[iev]
+        b1 = offsets1[iev+1]
+        
+        a2 = offsets2[iev]
+        b2 = offsets2[iev+1]
+        if not (inds2 is None):
+          masked = 0
+          for i in mask2[ a2:a2+inds2[iev] ]:
+            if not i:
+              masked += 1
+          a2 += inds2[iev] + masked
+        
+        for idx1 in range(a1, b1):
+            if not mask1[idx1]:
+                continue
+                
+            eta1 = etas1[idx1]
+            phi1 = phis1[idx1]
+            for idx2 in range(a2, b2):
+                if not mask2[idx2]:
+                    continue
+                eta2 = etas2[idx2]
+                phi2 = phis2[idx2]
+                
+                deta = abs(eta1 - eta2)
+                dphi = (phi1 - phi2 + math.pi) % (2*math.pi) - math.pi
+                
+                #if first object is closer than dr2, mask element will be *disabled*
+                passdr = ((deta**2 + dphi**2) < dr2)
+                mask_out[idx1] = mask_out[idx1] | passdr
+                if not (inds2 is None):
+                  break
+                
+def mask_deltar_first(objs1, mask1, objs2, mask2, drcut, inds2=None):
+    assert(mask1.shape == objs1.eta.shape)
+    assert(mask2.shape == objs2.eta.shape)
+    assert(objs1.offsets.shape == objs2.offsets.shape)
+    
+    mask_out = np.zeros_like(objs1.eta, dtype=np.bool)
+    mask_deltar_first_kernel(
+        objs1.eta, objs1.phi, mask1, objs1.offsets,
+        objs2.eta, objs2.phi, mask2, objs2.offsets, inds2,
+        drcut**2, mask_out
+    )
+    mask_out = np.invert(mask_out)
+    return mask_out
+
+@numba.njit(parallel=True)
+def mask_overlappingAK4_kernel(etas1, phis1, mask1, offsets1, etas2, phis2, mask2, offsets2, tau32, tau21, dr2, tau32cut, tau21cut, mask_out):
     
     for iev in numba.prange(len(offsets1)-1):
         a1 = offsets1[iev]
@@ -401,18 +487,21 @@ def mask_deltar_first_kernel(etas1, phis1, mask1, offsets1, etas2, phis2, mask2,
                 
                 #if first object is closer than dr2, mask element will be *disabled*
                 passdr = ((deta**2 + dphi**2) < dr2)
-                mask_out[idx1] = mask_out[idx1] | passdr
-                
-def mask_deltar_first(objs1, mask1, objs2, mask2, drcut):
+                if passdr:
+                  passtau32 = (tau32[idx2] < tau32cut)
+                  passtau21 = (tau21[idx2] < tau21cut)
+                  mask_out[idx1] = (passtau32 or passtau21)
+
+def mask_overlappingAK4(objs1, mask1, objs2, mask2, drcut, tau32cut, tau21cut):
     assert(mask1.shape == objs1.eta.shape)
     assert(mask2.shape == objs2.eta.shape)
     assert(objs1.offsets.shape == objs2.offsets.shape)
     
     mask_out = np.zeros_like(objs1.eta, dtype=np.bool)
-    mask_deltar_first_kernel(
+    mask_overlappingAK4_kernel(
         objs1.eta, objs1.phi, mask1, objs1.offsets,
-        objs2.eta, objs2.phi, mask2, objs2.offsets,
-        drcut**2, mask_out
+        objs2.eta, objs2.phi, mask2, objs2.offsets, objs2.tau32, objs2.tau21,
+        drcut**2, tau32cut, tau21cut, mask_out
     )
     mask_out = np.invert(mask_out)
     return mask_out
@@ -440,3 +529,73 @@ def get_lepton_SF(el_pt, el_eta, mu_pt, mu_eta, pdg_id, evaluator, name):
     out = np.zeros(len(pdg_id), dtype=np.float32) 
     get_lepton_SF_kernel(el_pt, el_eta, mu_pt, mu_eta, pdg_id, evaluator, name, out)
     return out
+
+@numba.njit(parallel=True)
+def METzCalculator_kernel(A, B, tmproot, tmpsol1, tmpsol2, pzlep, pznu, mask_rows):
+  for i in numba.prange(len(tmpsol1)):
+    if not mask_rows[i]:
+      continue
+    if tmproot[i]<0: pznu[i] = - B[i]/(2*A[i])
+    else:
+      tmpsol1[i] = (-B[i] + np.sqrt(tmproot[i]))/(2.0*A[i])
+      tmpsol2[i] = (-B[i] - np.sqrt(tmproot[i]))/(2.0*A[i])
+      if (abs(tmpsol2[i]-pzlep[i]) < abs(tmpsol1[i]-pzlep[i])):
+        pznu[i] = tmpsol2[i]
+        #otherSol_ = tmpsol1
+      else:
+        pznu[i] = tmpsol1[i]
+        #otherSol_ = tmpsol2
+        #### if pznu is > 300 pick the most central root
+        if ( pznu[i] > 300. ):
+          if (abs(tmpsol1[i])<abs(tmpsol2[i]) ):
+            pznu[i] = tmpsol1[i]
+            #otherSol_ = tmpsol2
+          else:
+            pznu[i] = tmpsol2[i]
+            #otherSol_ = tmpsol1
+
+def METzCalculator(lepton, MET, mask_rows):
+    np.seterr(invalid='ignore') # to suppress warning from nonsense numbers in masked events
+    M_W = 80.4
+    M_lep = lepton.mass #.1056
+    elep = lepton.E
+    pxlep = lepton.x
+    pylep = lepton.y
+    pzlep = lepton.z
+    pxnu = MET.x
+    pynu = MET.y
+    pznu = 0
+
+    a = M_W*M_W - M_lep*M_lep + 2.0*pxlep*pxnu + 2.0*pylep*pynu
+    A = 4.0*(elep*elep - pzlep*pzlep)
+    #print(elep[np.isnan(A) & mask_rows], pzlep[np.isnan(A) & mask_rows])
+    B = -4.0*a*pzlep
+    C = 4.0*elep*elep*(pxnu*pxnu + pynu*pynu) - a*a
+    #print(a, A, B, C)
+    tmproot = B*B - 4.0*A*C
+
+    tmpsol1 = np.zeros_like(A) #(-B + np.sqrt(tmproot))/(2.0*A)
+    tmpsol2 = np.zeros_like(A) #(-B - np.sqrt(tmproot))/(2.0*A)
+    pznu = np.zeros(len(M_lep), dtype=np.float32)
+    METzCalculator_kernel(A, B, tmproot, tmpsol1, tmpsol2, pzlep, pznu, mask_rows)
+
+    return pznu
+
+@numba.njit(parallel=True)
+def calc_dr_kernel(phi1, eta1, phi2, eta2, mask, out):
+  for iobj in numba.prange(phi1.shape[0]-1):
+    if not mask[iobj]:
+      continue
+    deta = abs(eta1[iobj] - eta2[iobj])
+    dphi = (phi1[iobj] - phi2[iobj] + math.pi) % (2*math.pi) - math.pi
+    out[iobj] = np.sqrt( deta**2 + dphi**2 )
+
+def calc_dr(objs1_phi, objs1_eta, objs2_phi, objs2_eta, mask):
+  assert(objs1_phi.shape == objs1_eta.shape)
+  assert(objs2_phi.shape == objs2_eta.shape)
+  assert(objs1_phi.shape == objs2_phi.shape)
+  assert(objs1_phi.shape == mask.shape)
+
+  out = np.zeros_like(objs1_phi)
+  calc_dr_kernel(objs1_phi, objs1_eta, objs2_phi, objs2_eta, mask, out)
+  return out
