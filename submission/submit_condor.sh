@@ -17,9 +17,9 @@ fi
 PYTHONPATH=hepaccelerate:coffea:. python3 run_analysis.py \
   --filelist /afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/$folder/$1.txt \
   --sample $1  \
-  --outdir /afs/cern.ch/work/d/druini/public/hepaccelerate/results/tests/more_fixes \
+  --outdir /afs/cern.ch/work/d/druini/public/hepaccelerate/results/tau21_045 \
   --boosted \
   --categories all \
   --cache-location /eos/user/d/druini/cache/ \
-  #--from-cache 
+  --from-cache 
   #--filelist /afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/algomez/$1.txt \

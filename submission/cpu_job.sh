@@ -10,11 +10,18 @@
 
 echo "submitting sample $1"
 
+if [[ $1 == *"Run"* ]]; then
+  folder=Nano25Oct2019
+else
+  folder=RunIIFall17NanoAODv5
+fi
+
 PYTHONPATH=hepaccelerate:coffea:. python3 run_analysis.py \
-  --filelist /afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/RunIIFall17NanoAODv5/$1.txt \
+  --filelist /afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/$folder/$1.txt \
   --sample $1  \
-  --outdir /afs/cern.ch/work/d/druini/public/hepaccelerate/results/tests/oneFileOnly \
+  --outdir /afs/cern.ch/work/d/druini/public/hepaccelerate/results/tests/trash \
   --boosted \
   --categories all \
-  --cache-location /eos/user/d/druini/cache/ \
-  --from-cache 
+  --cache-location /afs/cern.ch/work/d/druini/public/hepaccelerate/cache/ \
+  #--cache-location /eos/user/d/druini/cache/ \
+  #--from-cache
