@@ -560,7 +560,10 @@ if __name__ == "__main__":
         print(args.categories)
         #### this is where the magic happens: run the main analysis
         results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
-      except:
+      except Exception as ex:
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        message = template.format(type(ex).__name__, ex.args)
+        print(message)
         print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
         if is_mc:
           folder = 'RunIIFall17NanoAODv5'
