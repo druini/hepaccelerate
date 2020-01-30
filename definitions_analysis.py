@@ -33,7 +33,7 @@ parameters = {
                "eta": 2.4,
                "jetId": 2,
                "tau32cut": 0.4,
-               "tau21cut": 0.35,
+               "tau21cut": 0.45,
     },
 }
 
@@ -77,6 +77,14 @@ eraDependentParameters = {
 #################################### Samples info ##############################################################################
 
 samples_info = {
+    "Run_dummy": {
+            "XS": 1,
+            "ngen_weight": 1
+            },
+    "mc_dummy": {
+            "XS": 1,
+            "ngen_weight": 1
+            },
     "ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8": {
             "process": "ttHTobb",
             "XS": 0.2953,
