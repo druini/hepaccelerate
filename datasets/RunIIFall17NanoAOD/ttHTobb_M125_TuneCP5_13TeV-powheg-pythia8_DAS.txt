@@ -1,0 +1,10 @@
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/A0BF520F-4569-E811-9D3E-001E67F8F727.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/D4C16C51-116A-E811-B3B1-001E6739A011.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/42A2B06C-226A-E811-A8B7-000101000938.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/E26592E4-2D6A-E811-A4AC-001E6739D281.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/FCD2A176-3C6A-E811-B186-000101000927.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/92C633D6-486A-E811-B232-00010100096B.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/B22F3461-526A-E811-9C4C-001E67FA4113.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/762932A4-6C6A-E811-BC60-00010100097E.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/1888D3C8-A56A-E811-85E1-000101000970.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_new_pmx_94X_mc2017_realistic_v14-v1/60000/F045004F-B76A-E811-BE12-000101000920.root

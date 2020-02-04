@@ -1,0 +1,15 @@
+Number of events (weighted) 3095197.8117420007  ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8
+Number of events (weighted) 643135033.87298     TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8
+Number of events (weighted) 383062.0686438      TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8
+Number of events (weighted) 36781553.92694208   ST_s-channel_4f_leptonDecays_TuneCP5_PSweights_13TeV-amcatnlo-pythia8
+Number of events (weighted) 270762750.1725247   ST_tW_antitop_5f_inclusiveDecays_TuneCP5_PSweights_13TeV-powheg-pythia8
+Number of events (weighted) 277241050.84022224  ST_tW_top_5f_inclusiveDecays_TuneCP5_PSweights_13TeV-powheg-pythia8
+Number of events (weighted) 5863722.0           ST_t-channel_top_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8
+Number of events (weighted) 4714331.0           THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8
+Number of events (weighted) 52309926.168262     TTGJets_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8
+Number of events (weighted) 560315.13342        TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8
+Number of events (weighted) 33043732.0          WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8
+Number of events (weighted) 7791560.886900296   WW_TuneCP5_13TeV-pythia8
+Number of events (weighted) 4216319.315883996 ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8
+Number of events (weighted) 10758424549.765732 TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8
+Number of events (weighted) 41084368.0 TTToHadronic_TuneCP5_13TeV-powheg-pythia8

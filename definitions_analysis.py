@@ -54,7 +54,11 @@ eraDependentParameters = {
             "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta data/RunBCDEF_SF_ISO.histo.root",
             "mu_idSF NUM_TightID_DEN_genTracks_pt_abseta data/RunBCDEF_SF_ID.histo.root",
             "BTagSF * data/DeepCSV_Moriond17_B_H.csv"
-        ]
+        ],
+        "btagging algorithm" : "btagDeepFlavB",#"btagDeepB",
+        "btagging WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
+        "bbtagging algorithm" :  "deepTagMD_ZHbbvsQCD",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
+        "bbtagging WP" : 0.8945 #0.6795 ##0.9805 # medium 2 working point for DeepDoubleB tagger
     },
     "2017" : {
         "lumi":  41529.0,
@@ -73,7 +77,25 @@ eraDependentParameters = {
         "btagging WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
         "bbtagging algorithm" :  "deepTagMD_ZHbbvsQCD",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
         "bbtagging WP" : 0.8945 #0.6795 ##0.9805 # medium 2 working point for DeepDoubleB tagger
-    }
+    },
+    "2018" : {
+        "lumi":  35922.0,
+        "lumimask": "data/Cert_271036-284044_13TeV_23Sep2016ReReco_Collisions16_JSON.txt",
+        "pu_corrections_file" : "data/puData2017_withVar.root",
+        "corrections" : [
+            "el_triggerSF Ele27_WPTight_Gsf data/TriggerSF_Run2016All_v1.root",
+            "el_recoSF EGamma_SF2D data/egammaEffi.txt_EGM2D.root",
+            "el_idSF EGamma_SF2D data/egammaEffi.txt_EGM2D.root",
+            "mu_triggerSF IsoMu27_PtEtaBins/pt_abseta_ratio data/EfficienciesAndSF_RunBtoF_Nov17Nov2017.histo.root",
+            "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta data/RunBCDEF_SF_ISO.histo.root",
+            "mu_idSF NUM_TightID_DEN_genTracks_pt_abseta data/RunBCDEF_SF_ID.histo.root",
+            "BTagSF * data/DeepCSV_Moriond17_B_H.csv"
+        ],
+        "btagging algorithm" : "btagDeepFlavB",#"btagDeepB",
+        "btagging WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
+        "bbtagging algorithm" :  "deepTagMD_ZHbbvsQCD",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
+        "bbtagging WP" : 0.8945 #0.6795 ##0.9805 # medium 2 working point for DeepDoubleB tagger
+    },
 
 }
 
@@ -102,8 +124,8 @@ samples_info = {
     "ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8": {
             "process": "ttHToNonbb",
             "XS": 0.2118,
-            #"ngen_weight": 913045.7391360003 #reduced file list 
-            "ngen_weight": 3095197.8117420007 
+            #"ngen_weight": 913045.7391360003 #reduced file list
+            "ngen_weight": 3095197.8117420007
             },
     "TTTo2L2Nu_TuneCP5_PSweights_13TeV-powheg-pythia8": {
             "XS": 88.3419,

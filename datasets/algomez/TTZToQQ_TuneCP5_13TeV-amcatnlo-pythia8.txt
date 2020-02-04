@@ -1,0 +1,16 @@
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_10.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_1.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_5.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_11.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_14.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_4.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_16.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_6.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_9.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_3.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_12.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_2.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_8.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_13.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_15.root
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8/NANOAOD_v02/190723_084242/0000/modifiedNanoAOD_MC_2017_7.root
