@@ -119,11 +119,13 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #        weights["nominal"] = weights["nominal"] * btag_weights
 
 ############# calculate basic variables
+    leading_jet_pt        = ha.get_in_offsets(jets.pt, jets.offsets, indices['leading'], mask_events, nonbjets)
+    leading_jet_eta       = ha.get_in_offsets(jets.eta, jets.offsets, indices['leading'], mask_events, nonbjets)
     leading_fatjet_SDmass = ha.get_in_offsets(fatjets.msoftdrop, fatjets.offsets, indices['leading'], mask_events, good_fatjets)
-    leading_fatjet_pt = ha.get_in_offsets(fatjets.pt, fatjets.offsets, indices['leading'], mask_events, good_fatjets)
-    leading_fatjet_eta = ha.get_in_offsets(fatjets.eta, fatjets.offsets, indices['leading'], mask_events, good_fatjets)
-    leading_lepton_pt = NUMPY_LIB.maximum(ha.get_in_offsets(muons.pt, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.pt, electrons.offsets, indices["leading"], mask_events, good_electrons))
-    leading_lepton_eta = NUMPY_LIB.maximum(ha.get_in_offsets(muons.eta, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.eta, electrons.offsets, indices["leading"], mask_events, good_electrons))
+    leading_fatjet_pt     = ha.get_in_offsets(fatjets.pt, fatjets.offsets, indices['leading'], mask_events, good_fatjets)
+    leading_fatjet_eta    = ha.get_in_offsets(fatjets.eta, fatjets.offsets, indices['leading'], mask_events, good_fatjets)
+    leading_lepton_pt     = NUMPY_LIB.maximum(ha.get_in_offsets(muons.pt, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.pt, electrons.offsets, indices["leading"], mask_events, good_electrons))
+    leading_lepton_eta    = NUMPY_LIB.maximum(ha.get_in_offsets(muons.eta, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.eta, electrons.offsets, indices["leading"], mask_events, good_electrons))
 
 ############# masks for different selections
     mask_events = {
@@ -140,14 +142,14 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     hadW = hadronic_W(jets, nonbjets, lepW, mask_events['2J'])
 
-    mask_events['2J2W'] = mask_events['2J'] & (hadW.mass>65) & (hadW.mass<105) & (lepW.mass>65) & (lepW.mass<105)
+    mask_events['2J2W'] = mask_events['2J'] & (hadW.mass>parameters['W']['min_mass']) & (hadW.mass<parameters['W']['max_mass']) & (lepW.mass>parameters['W']['min_mass']) & (lepW.mass<parameters['W']['max_mass'])
 
     #deltaR between objects
     leading_fatjet_phi = ha.get_in_offsets(fatjets.phi, fatjets.offsets, indices['leading'], mask_events['2J2W'], good_fatjets)
     deltaRlepWHiggs = ha.calc_dr(lepW.phi, lepW.eta, leading_fatjet_phi, leading_fatjet_eta, mask_events['2J2W'])
     deltaRhadWHiggs = ha.calc_dr(hadW.phi, hadW.eta, leading_fatjet_phi, leading_fatjet_eta, mask_events['2J2W'])
 
-    mask_events['2J2WdeltaR'] = mask_events['2J2W'] & (deltaRlepWHiggs>1) & (deltaRhadWHiggs>1)
+    mask_events['2J2WdeltaR'] = mask_events['2J2W'] & (deltaRlepWHiggs>1) & (deltaRhadWHiggs>1)# & (deltaRlepWHiggs<4) & (deltaRhadWHiggs<4)
 
     #boosted Higgs
     leading_fatjet_tau1 = ha.get_in_offsets(fatjets.tau1, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
@@ -161,26 +163,28 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
 ############# histograms
     vars_to_plot = {
-      'nleps'          : nleps,
-      'njets'          : njets,
-      'nfatjets'       : nfatjets,
-      'met'            : scalars['MET_pt'],
-      'leadAK8JetMass' : leading_fatjet_SDmass,
-      'leadAK8JetPt'   : leading_fatjet_pt,
-      'leadAK8JetEta'  : leading_fatjet_eta,
-      'leadAK8JetHbb'  : leading_fatjet_Hbb,
-      'leadAK8JetTau21': leading_fatjet_tau21,
-      'lepton_pt'      : leading_lepton_pt,
-      'lepton_eta'     : leading_lepton_eta,
-      'hadWPt'         : hadW.pt,
-      'hadWEta'        : hadW.eta,
-      'hadWMass'       : hadW.mass,
-      'lepWPt'         : lepW.pt,
-      'lepWEta'        : lepW.eta,
-      'lepWMass'       : lepW.mass,
-      'deltaRlepWHiggs': deltaRlepWHiggs,
-      'deltaRhadWHiggs': deltaRhadWHiggs,
-      'PV_npvsGood'    : scalars['PV_npvsGood'],
+      'nleps'           : nleps,
+      'njets'           : njets,
+      'nfatjets'        : nfatjets,
+      'met'             : scalars['MET_pt'],
+      'leading_jet_pt'  : leading_jet_pt,
+      'leading_jet_eta' : leading_jet_eta,
+      'leadAK8JetMass'  : leading_fatjet_SDmass,
+      'leadAK8JetPt'    : leading_fatjet_pt,
+      'leadAK8JetEta'   : leading_fatjet_eta,
+      'leadAK8JetHbb'   : leading_fatjet_Hbb,
+      'leadAK8JetTau21' : leading_fatjet_tau21,
+      'lepton_pt'       : leading_lepton_pt,
+      'lepton_eta'      : leading_lepton_eta,
+      'hadWPt'          : hadW.pt,
+      'hadWEta'         : hadW.eta,
+      'hadWMass'        : hadW.mass,
+      'lepWPt'          : lepW.pt,
+      'lepWEta'         : lepW.eta,
+      'lepWMass'        : lepW.mass,
+      'deltaRlepWHiggs' : deltaRlepWHiggs,
+      'deltaRhadWHiggs' : deltaRhadWHiggs,
+      'PV_npvsGood'     : scalars['PV_npvsGood'],
     }
     if is_mc:
       vars_to_plot['pu_weights'] = pu_weights
@@ -188,9 +192,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     weight_names = {'' : 'nominal', '_NoWeights' : 'ones'}
     for weight_name, w in weight_names.items():
       for mask_name, mask in mask_events.items():
-        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/tests/events_pass_selection_{sample}_{mask_name}.txt','a+') as f:
-          for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
-            f.write(f'{nevt}, {run}, {lumiBlock}\n')
+#        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/tests/events_pass_selection_{sample}_{mask_name}.txt','a+') as f:
+#          for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
+#            f.write(f'{nevt}, {run}, {lumiBlock}\n')
         ### tentative histogram of all jets in an event #FIXME
 #        jet_feats = {'pt'  : NUMPY_LIB.array([]), 'eta' : NUMPY_LIB.array([])}
 #        for evt_idx in NUMPY_LIB.where(mask)[0]:
@@ -449,7 +453,10 @@ if __name__ == "__main__":
     outdir = args.outdir
     if not os.path.exists(outdir):
         print(os.getcwd())
-        os.makedirs(outdir)
+        try:
+          os.makedirs(outdir)
+        except Exception as ex:
+          print("An exception of type {0} occurred. Arguments:\n{1!r}".format(type(ex).__name__, ex.args))
 
     if "Run" in args.sample:
         is_mc = False
