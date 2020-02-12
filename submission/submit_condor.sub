@@ -1,9 +1,10 @@
+year        =  2018
 universe    =  vanilla
-arguments   =  $(sample)
+arguments   =  $(sample) $(year)
 executable  =  $ENV(PWD)/submission/submit_condor.sh
-log         =  $ENV(PWD)/condor_output/$(sample).log
-error       =  $ENV(PWD)/condor_output/$(sample).err
-output      =  $ENV(PWD)/condor_output/$(sample).out
+log         =  $ENV(PWD)/condor_output/$(sample)_$(ClusterId)_$(ProcId)_$(year).log
+error       =  $ENV(PWD)/condor_output/$(sample)_$(ClusterId)_$(ProcId)_$(year).err
+output      =  $ENV(PWD)/condor_output/$(sample)_$(ClusterId)_$(ProcId)_$(year).out
 getenv      =  True
-+JobFlavour = "testmatch"
-queue sample from $ENV(PWD)/submission/test.txt
++JobFlavour =  "testmatch"
+queue sample from $ENV(PWD)/submission/allSamples_$(year).txt

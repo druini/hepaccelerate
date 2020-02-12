@@ -104,7 +104,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     weights["nominal"] = NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.float32)
 
     if is_mc:
-        weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"]
+        weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"][args.year]
 
         # pu corrections
 #        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
@@ -450,7 +450,6 @@ if __name__ == "__main__":
     # load definitions
     from definitions_analysis import parameters, eraDependentParameters, samples_info
     parameters.update(eraDependentParameters[args.year])
-    print(parameters)
 
     outdir = args.outdir
     if not os.path.exists(outdir):
@@ -477,7 +476,7 @@ if __name__ == "__main__":
     ]
     if args.boosted:
       arrays_objects += [
-        "FatJet_pt", "FatJet_eta", "FatJet_phi", "FatJet_btagHbb", "FatJet_deepTagMD_HbbvsQCD", "FatJet_deepTagMD_ZHbbvsQCD", "FatJet_deepTagMD_TvsQCD", "FatJet_deepTag_H", "FatJet_btagDDBvL", "FatJet_deepTag_TvsQCD", "FatJet_jetId", "FatJet_mass", "FatJet_msoftdrop", "FatJet_tau1", "FatJet_tau2", "FatJet_tau3", "FatJet_tau4", "FatJet_n2b1"]
+        "FatJet_pt", "FatJet_eta", "FatJet_phi", "FatJet_btagHbb", "FatJet_deepTagMD_bbvsLight", "FatJet_deepTagMD_HbbvsQCD", "FatJet_deepTagMD_ZHbbvsQCD", "FatJet_deepTagMD_TvsQCD", "FatJet_deepTag_H", "FatJet_btagDDBvL", "FatJet_deepTag_TvsQCD", "FatJet_jetId", "FatJet_mass", "FatJet_msoftdrop", "FatJet_tau1", "FatJet_tau2", "FatJet_tau3", "FatJet_tau4", "FatJet_n2b1"]
 
     #these are variables per event
     arrays_event = [
@@ -554,6 +553,7 @@ if __name__ == "__main__":
             parameters["pu_corrections_target"] = load_puhist_target(parameters["pu_corrections_file"])
 
             ext = extractor()
+            print(parameters["corrections"])
             for corr in parameters["corrections"]:
                 ext.add_weight_sets([corr])
             ext.finalize()
@@ -575,12 +575,13 @@ if __name__ == "__main__":
         message = template.format(type(ex).__name__, ex.args)
         print(message)
         print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
-        if is_mc:
-          folder = 'RunIIFall17NanoAODv5'
-        else:
-          folder = 'Nano25Oct2019'
-        with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
+        #if is_mc:
+        #  folder = 'RunIIFall17NanoAODv5'
+        #else:
+        #  folder = 'Nano25Oct2019'
+        #with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
         #with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
+        with open(args.filelist, 'a+') as f:
           f.write(files_in_batch[0]+'\n')
           continue
 
