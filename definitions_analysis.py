@@ -42,18 +42,18 @@ parameters = {
 }
 
 eraDependentParameters = {
-    "2016" : {  ###### NOT UPDATED!!!!
+    "2016" : {
         "lumi":  36773.0,
         "lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/Final/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt",
-        "pu_corrections_file" : "data/pileup_profile_Summer16.root",
+        "pu_corrections_file" : "./data/PileupData_GoldenJSON_Full2016.root",
         "corrections" : [
-            "el_triggerSF Ele27_WPTight_Gsf data/TriggerSF_Run2016All_v1.root",
-            "el_recoSF EGamma_SF2D data/EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.root",
-            "el_idSF EGamma_SF2D data/2016LegacyReReco_ElectronTight_Fall17V2.root",
-            "mu_triggerSF IsoMu24_OR_IsoTkMu24_PtEtaBins/pt_abseta_ratio data/EfficienciesAndSF_RunBtoF.root",
-            "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_eta_pt data/MuonID_2016_RunBCDEF_SF_ISO.root",
-            "mu_idSF NUM_TightID_DEN_genTracks_eta_pt data/MuonID_2016_RunBCDEF_SF_ID.root",
-            "BTagSF * data/DeepCSV_Moriond17_B_H.csv"
+            "el_triggerSF Ele27_WPTight_Gsf ./data/TriggerSF_Run2016All_v1.root",
+            "el_recoSF EGamma_SF2D ./data/EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.root",
+            "el_idSF EGamma_SF2D ./data/2016LegacyReReco_ElectronTight_Fall17V2.root",
+            "mu_triggerSF IsoMu24_OR_IsoTkMu24_PtEtaBins/pt_abseta_ratio ./data/EfficienciesAndSF_RunBtoF.root",
+            "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_eta_pt ./data/MuonID_2016_RunBCDEF_SF_ISO.root",
+            "mu_idSF NUM_TightID_DEN_genTracks_eta_pt ./data/MuonID_2016_RunBCDEF_SF_ID.root",
+            "BTagSF * ./data/DeepCSV_Moriond17_B_H.csv"
         ],
         "btagging algorithm" : "btagDeepFlavB",#"btagDeepB",
         "btagging WP" : 0.3093,
@@ -167,7 +167,7 @@ samples_info = {
     "TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8": {
             "XS": 88.3419,
             "ngen_weight": {
-                '2016' : 1,
+                '2016' : 4746866164.44,
                 '2017' : 643135033.87298, #283000430.5968169
                 '2018' : 4635769336.53,
                 },
@@ -175,7 +175,7 @@ samples_info = {
     "TTToHadronic_TuneCP5_13TeV-powheg-pythia8": {
             "XS": 377.9607,
             "ngen_weight": {
-                '2016' : 1,
+                '2016' : 21500086465.24,
                 '2017' : 41084368.0, #1647945788.338650
                 '2018' : 41941959327.80,
                 },
@@ -183,7 +183,7 @@ samples_info = {
     "TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8": {
             "XS": 365.4574,
             "ngen_weight": {
-                '2016' : 1,
+                '2016' : 32276798335.029,
                 '2017' : 10758424549.765732, #720253370.0403845
                 '2018' : 30545238400.06,
                 },
@@ -191,17 +191,9 @@ samples_info = {
     "TTZToQQ_TuneCP5_13TeV-amcatnlo-pythia8": {
       "XS": 0.6012,# 0.5297,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 396340.93,
                 '2017' : 383062.0686438,
                 '2018' : 381537.24,
-                },
-      },
-    "TTZToQQ_TuneCUETP8M1_13TeV-amcatnlo-pythia8": {
-      "XS": 0.6012,# 0.5297,
-            "ngen_weight": {
-                '2016' : 396340.93,
-                '2017' : 1,
-                '2018' : 1.,
                 },
       },
     "ST_s-channel_4f_leptonDecays_TuneCP5_PSweights_13TeV-amcatnlo-pythia8": {
@@ -211,15 +203,6 @@ samples_info = {
             "ngen_weight": {
                 '2016' : 36768937.25,
                 '2017' : 36781553.92694208,
-                '2018' : 1.,
-                },
-      },
-    "ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-madgraph-pythia8": {
-      "process": "ST_s-channel",
-      "XS": 3.36,#3.702224,
-            "ngen_weight": {
-                '2016' : 1.,
-                '2017' : 1.,
                 '2018' : 74634736.73,
                 },
       },
@@ -230,15 +213,6 @@ samples_info = {
             "ngen_weight": {
                 '2016' : 174109580.67,
                 '2017' : 270762750.1725247,
-                '2018' : 1.,
-                },
-      },
-    "ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8": {
-      "process": "ST_tW_antitop",
-      "XS": 35.85,
-            "ngen_weight": {
-                '2016' : 1.,
-                '2017' : 1.,
                 '2018' : 266470421.96,
                 },
       },
@@ -249,15 +223,6 @@ samples_info = {
             "ngen_weight": {
                 '2016' : 173908712.95,
                 '2017' : 277241050.84022224,
-                '2018' : 1.,
-                },
-      },
-    "ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8": {
-      "process": "ST_tW_top",
-      "XS": 35.85,
-            "ngen_weight": {
-                '2016' : 1.,
-                '2017' : 1.,
                 '2018' : 334874722.208,
                 },
       },
@@ -265,148 +230,74 @@ samples_info = {
       "process": "ST_t-channel_antitop",
       "XS": 80.95,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 17771478.65,
                 '2017' : 3675910.0,
                 '2018' : 5125996535.38,
-                },
-      },
-    "ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_PSweights_13TeV-powheg-pythia8": {
-      "process": "ST_t-channel_antitop",
-      "XS": 80.95,
-            "ngen_weight": {
-                '2016' : 17771478.65,
-                '2017' : 1.,
-                '2018' : 1.,
                 },
       },
     "ST_t-channel_top_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8": {
       "process": "ST_t-channel_top",
       "XS": 136.02,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 67917907.24,
                 '2017' : 5863722.0,
                 '2018' : 16603455266.97,
-                },
-      },
-    "ST_t-channel_top_4f_inclusiveDecays_13TeV_PSweights-powhegV2-madspin": {
-      "process": "ST_t-channel_top",
-      "XS": 136.02,
-            "ngen_weight": {
-                '2016' : 67917907.24,
-                '2017' : 1.,
-                '2018' : 1.,
                 },
       },
     "THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8": {
       "XS":  0.01517,#0.002879,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 4989133.867,
                 '2017' : 4714331.0,
                 '2018' : 14971606.149,
-                },
-      },
-    "THW_ctcvcp_HIncl_M125_TuneCP5_13TeV-madgraph-pythia8": {
-      "XS":  0.01517,#0.002879,
-            "ngen_weight": {
-                '2016' : 4989133.867,
-                '2017' : 1.,
-                '2018' : 1.,
                 },
       },
     "TTGJets_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8": {
       "XS": 3.697,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 33378088.32,
                 '2017' : 52309926.168262,
                 '2018' : 5046714.41,
-                },
-      },
-    "TTGJets_TuneCUETP8M1_13TeV-amcatnloFXFX-madspin-pythia8": {
-      "XS": 3.697,
-            "ngen_weight": {
-                '2016' : 33378088.32,
-                '2017' : 1.,
-                '2018' : 1.,
                 },
       },
     "TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8": {
       "XS": 0.3708, #0.4062,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 569424.145,
                 '2017' : 560315.1334,
                 '2018' : 580758.845,
-                },
-      },
-    "TTWJetsToQQ_TuneCUETP8M1_13TeV-amcatnloFXFX-madspin-pythia8": {
-      "XS": 0.3708, #0.4062,
-            "ngen_weight": {
-                '2016' : 569424.145,
-                '2017' : 1.,
-                '2018' : 1.,
                 },
       },
     "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8": {
       "XS": 61526.7,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 3481160029752.16,
                 '2017' : 33043732.0,
                 '2018' : 70962105.741,
-                },
-      },
-    "WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8": {
-      "XS": 61526.7,
-            "ngen_weight": {
-                '2016' : 3481160029752.16,
-                '2017' : 1.,
-                '2018' : 1.,
                 },
       },
     "WW_TuneCP5_13TeV-pythia8": {
       "XS": 118.7,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 994032.181,
                 '2017' : 7791560.886900296,
                 '2018' : 7811153.439,
-                },
-      },
-    "WW_TuneCUETP8M1_13TeV-pythia8": {
-      "XS": 118.7,
-            "ngen_weight": {
-                '2016' : 994032.181,
-                '2017' : 1,
-                '2018' : 1.,
                 },
       },
     "WZ_TuneCP5_13TeV-pythia8": {
       "XS": 65.5443,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 1000000.0,
                 '2017' : 3928630.0,
                 '2018' : 3884167.004,
-                },
-      },
-    "WZ_TuneCUETP8M1_13TeV-pythia8": {
-      "XS": 65.5443,
-            "ngen_weight": {
-                '2016' : 1000000.0,
-                '2017' : 1.,
-                '2018' : 1.,
                 },
       },
     "ZZ_TuneCP5_13TeV-pythia8": {
       "XS": 15.8274,
             "ngen_weight": {
-                '2016' : 0,
+                '2016' : 990064.0,
                 '2017' : 1949768.0,
                 '2018' : 1978776.751,
-                },
-      },
-    "ZZ_TuneCUETP8M1_13TeV-pythia8": {
-      "XS": 15.8274,
-            "ngen_weight": {
-                '2016' : 990064.0,
-                '2017' : 1.,
-                '2018' : 1.,
                 },
       },
 }

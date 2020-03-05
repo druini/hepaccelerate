@@ -29,4 +29,10 @@ root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-
 root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/06519C95-448D-B349-BA82-EF013F6007C3.root
 root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/EA854763-F913-F848-9E64-F19BD4CAAD97.root
 root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/F05205D3-2921-EC41-AA50-A297160DF306.root
-root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/DA366C57-FA2D-4E4B-8383-7E17E12229C8.root
+root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/DA366C57-FA2D-4E4B-8383-7E17E12229C8.rootroot://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/B0DC3732-DFBD-8542-A8CC-855A292CCDE5.root
+root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/04F1FCBB-0E6C-174B-AECD-512E8CDCBC1A.root
+root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/F14C7E37-A51B-5148-8E0E-E6FA1020A6C5.root
+root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/B0FFA9CF-3455-174B-BC55-C35F43879CCF.root
+root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/663F7973-C99F-4C4B-9A35-900E2CD63E91.root
+root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/06519C95-448D-B349-BA82-EF013F6007C3.root
+root://xrootd-cms.infn.it//store/data/Run2016C/SingleMuon/NANOAOD/Nano1June2019-v1/30000/EA854763-F913-F848-9E64-F19BD4CAAD97.root
