@@ -36,7 +36,7 @@ parameters = {
     "tau21cut": 0.35,
   },
   "W": {
-    'min_mass': 60,
+    'min_mass': 65,
     'max_mass': 105
   }
 }
@@ -71,8 +71,8 @@ eraDependentParameters = {
         ],
         "btagging algorithm" : "btagDeepFlavB",#"btagDeepB",
         "btagging WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
-        "bbtagging algorithm" :  "deepTagMD_ZHbbvsQCD",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
-        "bbtagging WP" : 0.8945 #0.6795 ##0.9805 # medium 2 working point for DeepDoubleB tagger
+        "bbtagging algorithm" :  "deepTagMD_bbvsLight", #"deepTagMD_ZHbbvsQCD",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
+        "bbtagging WP" : 0.8695 #0.5845 #0.9795 # medium 2 working point for DeepDoubleB tagger
     }
 
 }
@@ -192,29 +192,31 @@ samples_info = {
 ############################################################### Histograms ########################################################
 
 histogram_settings = {
-  'nleps'           : (0,5,6),
-  'njets'           : (0,25,26),
-  'nfatjets'        : (0,10,11),
-  'met'             : (0,2000,201),
-  'leading_jet_pt'  : (0,1500,151),
-  'leading_jet_eta' : (-4,4,81),
-  'leadAK8JetMass'  : (0,300,61),
-  'leadAK8JetPt'    : (0,1500,151),
-  'leadAK8JetEta'   : (-4,4,81),
-  'leadAK8JetHbb'   : (0,1,41),
-  'leadAK8JetTau21' : (0,1,41),
-  'lepton_pt'       : (0,2000,201),
-  'lepton_eta'      : (-4,4,81),
-  'hadWPt'          : (0,300,61),
-  'hadWEta'         : (-4,4,81),
-  'hadWMass'        : (0,300,61),
-  'lepWPt'          : (0,300,61),
-  'lepWEta'         : (-4,4,81),
-  'lepWMass'        : (0,300,61),
-  'deltaRlepWHiggs' : (0,5,31),
-  'deltaRhadWHiggs' : (0,5,31),
-  'PV_npvsGood'     : (0,101,102),
-  'pu_weights'      : (0,2,21),
+  'nleps'             : (0,5,6),
+  'njets'             : (0,25,26),
+  'btags'             : (0,20,21),
+  'nfatjets'          : (0,10,11),
+  'met'               : (0,2000,201),
+  'leading_jet_pt'    : (0,1500,151),
+  'leading_jet_eta'   : (-4,4,81),
+  'leadAK8JetMass'    : (0,300,61),
+  'leadAK8JetPt'      : (0,1500,151),
+  'leadAK8JetEta'     : (-4,4,81),
+  'leadAK8JetHbb'     : (0,1,41),
+  'leadAK8JetTau21'   : (0,1,41),
+  'lepton_pt'         : (0,2000,201),
+  'lepton_eta'        : (-4,4,81),
+  'hadWPt'            : (0,300,61),
+  'hadWEta'           : (-4,4,81),
+  'hadWMass'          : (0,300,61),
+  'lepWPt'            : (0,300,61),
+  'lepWEta'           : (-4,4,81),
+  'lepWMass'          : (0,300,61),
+  'deltaRlepWHiggs'   : (0,5,31),
+  'deltaRhadWHiggs'   : (0,5,31),
+  'deltaRHiggsLepton' : (0,5,31),
+  'PV_npvsGood'       : (0,101,102),
+  'pu_weights'        : (0,2,21),
 #    "nleps" : (0,10,11),
 #    "btags" : (0,8,9),
 #    "leading_jet_pt" : (0,500,31),
