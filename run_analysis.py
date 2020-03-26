@@ -57,8 +57,10 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         mask_events = mask_events & scalars[flag]
     if args.year.startswith('2016'):
         trigger = (scalars["HLT_Ele27_WPTight_Gsf"] | scalars["HLT_IsoMu24"]  | scalars["HLT_IsoTkMu24"])
-    else:
+    elif args.year.startswith('2017'):
         trigger = (scalars["HLT_Ele35_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu27"] | scalars["HLT_IsoMu24_eta2p1"]) #FIXME for different runs
+    elif args.year.startswith('2018'):
+        trigger = (scalars["HLT_Ele32_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu24"] )
     mask_events = mask_events & trigger
     mask_events = mask_events & (scalars["PV_npvsGood"]>0)
 
@@ -91,10 +93,10 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     #nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
 
     # apply basic event selection
-    #mask_events_higgs = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0) 
-    mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nfatjets > 0) #& (btags >=1)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0) 
+    #mask_events_higgs = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
+    mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nfatjets > 0) #& (btags >=1)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
     # for reference, this is the selection for the resolved analysis
-    # mask_events = mask_events & (nleps == 1) & (lepton_veto == 0) & (njets >= 4) & (btags >=2) & met 
+    # mask_events = mask_events & (nleps == 1) & (lepton_veto == 0) & (njets >= 4) & (btags >=2) & met
 
 ############# calculate weights for MC samples
     weights = {}
@@ -102,7 +104,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     weights["nominal"] = NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.float32)
 
     if is_mc:
-        weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"]
+        weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"][args.year]
 
         # pu corrections
 #        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
@@ -158,7 +160,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     leading_fatjet_tau2 = ha.get_in_offsets(fatjets.tau2, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
     leading_fatjet_tau21 = NUMPY_LIB.divide(leading_fatjet_tau2, leading_fatjet_tau1)
     mask_events['2J2WdeltaRTau21'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"])
-    
+
     leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaRTau21'], good_fatjets)
     mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging WP'])
     mask_events['2J2WdeltaRTau21_Fail'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb<=parameters['bbtagging WP'])
@@ -188,7 +190,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
       'lepWMass'          : lepW.mass,
       'deltaRlepWHiggs'   : deltaRlepWHiggs,
       'deltaRhadWHiggs'   : deltaRhadWHiggs,
-      'deltaRHiggsLepton' : deltaRHiggsLepton, 
+      'deltaRHiggsLepton' : deltaRHiggsLepton,
       'PV_npvsGood'       : scalars['PV_npvsGood'],
     }
     if is_mc:
@@ -216,7 +218,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #          for feat in ['pt','eta']:
 #            jet_feats[feat] = NUMPY_LIB.append(jet_feats[feats], getattr(jets, feat)[start:stop][nonbjets[start:stop]])
 #        for feat in ['pt','eta']:
-#          ret[f'hist_jets_{feat}_{mask_name+weight_name}'] = get_histogram( jet_feats[feat], 
+#          ret[f'hist_jets_{feat}_{mask_name+weight_name}'] = get_histogram( jet_feats[feat],
         for var_name, var in vars_to_plot.items():
           if (not is_mc) and (mask_name=='2J2WdeltaRTau21_Pass') and (var_name=='leadAK8JetMass') : continue
           try:
@@ -355,7 +357,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #          categories["sl_jge6_tge4"] = mask_events_split & (njets >=6) & (btags >=4)
 #        else:
 ##          categories['boosted_higgs_only'] = mask_events_split & (nhiggs>0)
-#          categories['boosted_HandW'] = mask_events_split & (nhiggs>0) & ( ( (hadW.mass>65) & (hadW.mass<105) ) ) # (nW>0) | 
+#          categories['boosted_HandW'] = mask_events_split & (nhiggs>0) & ( ( (hadW.mass>65) & (hadW.mass<105) ) ) # (nW>0) |
 #          for objlist in [['Wlep','H','WhadResolved']]:#, ['Wlep','H','WhadBoosted']]:
 #            for obj in itertools.combinations(objlist,2):
 #              categories['boosted_HandW_deltaRcut_{}_{}'.format(obj[0],obj[1])] = categories['boosted_HandW'] & (var['deltaR_{}_{}'.format(obj[0],obj[1])] > 1.5)
@@ -382,11 +384,11 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #                                                        )
 #              ret['hist2d_deltaR_{}_{}'.format(obj[0][0]+obj[0][1], obj[1][0]+obj[1][1])] =\
 #                Histogram( hist, hist, (binsx[0],binsx[-1], binsy[0],binsy[-1]) )
-#        
+#
 #        if 'all' in cat:
 #          cat=categories.keys()
 ##        elif not isinstance(cat, list):
-##            cat = [cat] 
+##            cat = [cat]
 #        for c in cat:
 #            cut = categories[c]
 #            cut_name = c
@@ -461,7 +463,6 @@ if __name__ == "__main__":
     # load definitions
     from definitions_analysis import parameters, eraDependentParameters, samples_info
     parameters.update(eraDependentParameters[args.year])
-    print(parameters)
 
     outdir = args.outdir
     if not os.path.exists(outdir):
@@ -499,10 +500,11 @@ if __name__ == "__main__":
     ]
 
     if args.year.startswith('2016'): arrays_event += [ "HLT_Ele27_WPTight_Gsf", "HLT_IsoMu24", "HLT_IsoTkMu24" ]
-    else:
+    elif args.year.startswith('2017'):
       arrays_event += [ "HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_IsoMu27", "HLT_IsoMu24_eta2p1" ]
       if not (args.sample.endswith('2017B') or args.sample.endswith('2017C')):
         arrays_event += ["HLT_Ele32_WPTight_Gsf"] #FIXME
+    elif args.year.startswith('2018'): arrays_event += [ "HLT_Ele32_WPTight_Gsf", 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150', "HLT_IsoMu24" ]
 
     if args.sample.startswith("TT"):
         arrays_event.append("genTtbarId")
@@ -548,9 +550,9 @@ if __name__ == "__main__":
             #prepare the object arrays on the host or device
             dataset.make_objects()
 
-            print("preparing dataset cache")
+            #print("preparing dataset cache")
             #save arrays for future use in cache
-            dataset.to_cache(verbose=True, nthreads=args.nthreads)
+            #dataset.to_cache(verbose=True, nthreads=args.nthreads)  ###ALE: comment to run without cache
 
 
         #Optionally, load the dataset from an uncompressed format
@@ -564,6 +566,7 @@ if __name__ == "__main__":
             parameters["pu_corrections_target"] = load_puhist_target(parameters["pu_corrections_file"])
 
             ext = extractor()
+            print(parameters["corrections"])
             for corr in parameters["corrections"]:
                 ext.add_weight_sets([corr])
             ext.finalize()
@@ -585,11 +588,13 @@ if __name__ == "__main__":
         message = template.format(type(ex).__name__, ex.args)
         print(message)
         print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
-        if is_mc:
-          folder = 'RunIIFall17NanoAODv5'
-        else:
-          folder = 'Nano25Oct2019'
-        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
+        #if is_mc:
+        #  folder = 'RunIIFall17NanoAODv5'
+        #else:
+        #  folder = 'Nano25Oct2019'
+        #with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
+        #with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
+        with open(args.filelist, 'a+') as f:
           f.write(files_in_batch[0]+'\n')
           continue
 

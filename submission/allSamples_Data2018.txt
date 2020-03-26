@@ -1,0 +1,8 @@
+SingleElectron_Run2018A
+SingleElectron_Run2018B
+SingleElectron_Run2018C
+SingleElectron_Run2018D
+SingleMuon_Run2018A
+SingleMuon_Run2018B
+SingleMuon_Run2018C
+SingleMuon_Run2018D

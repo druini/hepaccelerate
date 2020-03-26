@@ -1,14 +1,10 @@
+year        =  2018
 universe    =  vanilla
-arguments   =  $(sample)
-executable  =  /afs/cern.ch/work/d/druini/public/hepaccelerate/submission/submit_condor.sh
-log         =  /afs/cern.ch/work/d/druini/public/hepaccelerate/condor_output/$(sample).log
-error       =  /afs/cern.ch/work/d/druini/public/hepaccelerate/condor_output/$(sample).err
-output      =  /afs/cern.ch/work/d/druini/public/hepaccelerate/condor_output/$(sample).out
-#####initialdir  = /eos/home-a/algomez/tmpFiles/hepaccelerate//2017_TTTo2L2Nu_TuneCP5_PSweights_13TeV-powheg-pythia8
-#####should_transfer_files = YES
-####when_to_transfer_output = ON_EXIT
-#####transfer_input_files = out_TTTo2L2Nu_TuneCP5_PSweights_13TeV-powheg-pythia8.json
+arguments   =  $(sample) $(year)
+executable  =  $ENV(PWD)/submission/submit_condor.sh
+log         =  $ENV(PWD)/condor_output/$(sample)_$(ClusterId)_$(ProcId)_$(year).log
+error       =  $ENV(PWD)/condor_output/$(sample)_$(ClusterId)_$(ProcId)_$(year).err
+output      =  $ENV(PWD)/condor_output/$(sample)_$(ClusterId)_$(ProcId)_$(year).out
 getenv      =  True
-####requirements = (OpSysAndVer =?= "SLCern6")
-+JobFlavour = "testmatch"
-queue sample from /afs/cern.ch/work/d/druini/public/hepaccelerate/submission/allSamples.txt
++JobFlavour =  "testmatch"
+queue sample from $ENV(PWD)/submission/allSamples_$(year).txt

@@ -1,0 +1,1 @@
+root://xrootd-cms.infn.it//store/user/algomez/ttH/nanoAOD/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAOD_v02/190901_212040/0000/modifiedNanoAOD_MC_2017_130.root

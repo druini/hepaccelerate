@@ -1,0 +1,11 @@
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/2EEC080E-1A43-E811-8C40-0025901AC0F8.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/EE47F302-2943-E811-81DD-00259048A860.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/90CA79D1-3143-E811-AC8A-00259048AC9A.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/9AA9EFE5-5943-E811-B61D-0CC47A0AD668.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/40000/166CD90C-7042-E811-B52E-0CC47AD24D32.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/40000/D081D798-8942-E811-B70A-0CC47A0AD63E.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/40000/009C8B4B-9C42-E811-B2DE-002590D9D8AA.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/40000/0C54C280-AD42-E811-ACF2-002590D9D8AA.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/40000/8CBA83ED-C042-E811-B17D-00259029ED22.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/40000/EA1174E1-E042-E811-86E5-0CC47A57CC26.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAOD/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/C67AD702-5843-E811-92C4-0CC47A78A436.root
