@@ -374,6 +374,8 @@ samples_info = {
 
 histogram_settings = {
   'nleps'             : (0,5,6),
+  'nelectrons'        : (0,5,6),
+  'nmuons'            : (0,5,6),
   'njets'             : (0,25,26),
   'btags'             : (0,20,21),
   'nfatjets'          : (0,10,11),

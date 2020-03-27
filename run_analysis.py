@@ -85,7 +85,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     nonbjets = good_jets_nohiggs & (getattr(jets, parameters["btagging algorithm"]) < parameters["btagging WP"])
 
     # apply basic event selection -> individual categories cut later
-    nleps =  NUMPY_LIB.add(ha.sum_in_offsets(muons, good_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, good_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
+    nmuons     = ha.sum_in_offsets(muons, good_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8)
+    nelectrons = ha.sum_in_offsets(electrons, good_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8)
+    nleps      = NUMPY_LIB.add(nmuons, nelectrons)
 #    lepton_veto = NUMPY_LIB.add(ha.sum_in_offsets(muons, veto_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, veto_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
     njets = ha.sum_in_offsets(jets, nonbjets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
     btags = ha.sum_in_offsets(jets, bjets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
@@ -94,7 +96,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     # apply basic event selection
     #mask_events_higgs = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
-    mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nfatjets > 0) #& (btags >=1)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
+    mask_events = mask_events & (scalars["MET_pt"] > 20) & (nfatjets > 0) #& (btags >=1)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
     # for reference, this is the selection for the resolved analysis
     # mask_events = mask_events & (nleps == 1) & (lepton_veto == 0) & (njets >= 4) & (btags >=2) & met
 
@@ -110,6 +112,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
         pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["Pileup_nTrueInt"])
         weights["nominal"] = weights["nominal"] * pu_weights
+        weights['no_lep']  = weights['nominal']
 
         # lepton SF corrections
         electron_weights = compute_lepton_weights(electrons, electrons.pt, (electrons.deltaEtaSC + electrons.eta), mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
@@ -134,41 +137,44 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     deltaRHiggsLepton  = ha.calc_dr(lead_lep_p4.phi, lead_lep_p4.eta, leading_fatjet_phi, leading_fatjet_eta, mask_events)
 
 ############# masks for different selections
-    mask_events = {
-      'basic' : mask_events
-    }
-    mask_events['2J']   = mask_events['basic'] & (njets>1)
+    mask_events_initial = mask_events
+    mask_events = {}
+    for lep, nlep in zip(['elec','muon'],[nelectrons,nmuons]):
+      mask_events[f'{lep}_basic'] = mask_events_initial & (nleps == 1)
 
-    #Ws reconstruction
-    pznu = ha.METzCalculator(lead_lep_p4, METp4, mask_events['2J'])
-    neutrinop4 = TLorentzVectorArray.from_cartesian(METp4.x, METp4.y, pznu, NUMPY_LIB.sqrt( METp4.x**2 + METp4.y**2 + pznu**2 ))
-    lepW = lead_lep_p4 + neutrinop4
+      mask_events[f'{lep}_2J']   = mask_events[f'{lep}_basic'] & (njets>1)
 
-    hadW = hadronic_W(jets, nonbjets, lepW, mask_events['2J'])
+      #Ws reconstruction
+      pznu = ha.METzCalculator(lead_lep_p4, METp4, mask_events[f'{lep}_2J'])
+      neutrinop4 = TLorentzVectorArray.from_cartesian(METp4.x, METp4.y, pznu, NUMPY_LIB.sqrt( METp4.x**2 + METp4.y**2 + pznu**2 ))
+      lepW = lead_lep_p4 + neutrinop4
 
-    mask_events['2J2W'] = mask_events['2J'] & (hadW.mass>parameters['W']['min_mass']) & (hadW.mass<parameters['W']['max_mass']) & (lepW.mass>parameters['W']['min_mass']) & (lepW.mass<parameters['W']['max_mass'])
+      hadW = hadronic_W(jets, nonbjets, lepW, mask_events[f'{lep}_2J'])
 
-    #deltaR between objects
-    deltaRlepWHiggs = ha.calc_dr(lepW.phi, lepW.eta, leading_fatjet_phi, leading_fatjet_eta, mask_events['2J2W'])
-    deltaRhadWHiggs = ha.calc_dr(hadW.phi, hadW.eta, leading_fatjet_phi, leading_fatjet_eta, mask_events['2J2W'])
+      mask_events[f'{lep}_2J2W'] = mask_events[f'{lep}_2J'] & (hadW.mass>parameters['W']['min_mass']) & (hadW.mass<parameters['W']['max_mass']) & (lepW.mass>parameters['W']['min_mass']) & (lepW.mass<parameters['W']['max_mass'])
 
-#    mask_events['2J2WdeltaR'] = mask_events['2J2W'] & (deltaRlepWHiggs>1.5) & (deltaRhadWHiggs>1.5) & (deltaRlepWHiggs<4) & (deltaRhadWHiggs<4)
-    mask_events['2J2WdeltaR'] = mask_events['2J2W'] & (deltaRlepWHiggs>1) & (deltaRhadWHiggs>1)# & (deltaRlepWHiggs<4) & (deltaRhadWHiggs<4)
+      #deltaR between objects
+      deltaRlepWHiggs = ha.calc_dr(lepW.phi, lepW.eta, leading_fatjet_phi, leading_fatjet_eta, mask_events[f'{lep}_2J2W'])
+      deltaRhadWHiggs = ha.calc_dr(hadW.phi, hadW.eta, leading_fatjet_phi, leading_fatjet_eta, mask_events[f'{lep}_2J2W'])
 
-    #boosted Higgs
-    leading_fatjet_tau1 = ha.get_in_offsets(fatjets.tau1, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
-    leading_fatjet_tau2 = ha.get_in_offsets(fatjets.tau2, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
-    leading_fatjet_tau21 = NUMPY_LIB.divide(leading_fatjet_tau2, leading_fatjet_tau1)
-    mask_events['2J2WdeltaRTau21'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"])
+  #    mask_events['2J2WdeltaR'] = mask_events['2J2W'] & (deltaRlepWHiggs>1.5) & (deltaRhadWHiggs>1.5) & (deltaRlepWHiggs<4) & (deltaRhadWHiggs<4)
+      mask_events[f'{lep}_2J2WdeltaR'] = mask_events[f'{lep}_2J2W'] & (deltaRlepWHiggs>1) & (deltaRhadWHiggs>1)# & (deltaRlepWHiggs<4) & (deltaRhadWHiggs<4)
 
-    leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaRTau21'], good_fatjets)
-    mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging WP'])
-    mask_events['2J2WdeltaRTau21_Fail'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb<=parameters['bbtagging WP'])
+      #boosted Higgs
+      leading_fatjet_tau1 = ha.get_in_offsets(fatjets.tau1, fatjets.offsets, indices['leading'], mask_events[f'{lep}_2J2WdeltaR'], good_fatjets)
+      leading_fatjet_tau2 = ha.get_in_offsets(fatjets.tau2, fatjets.offsets, indices['leading'], mask_events[f'{lep}_2J2WdeltaR'], good_fatjets)
+      leading_fatjet_tau21 = NUMPY_LIB.divide(leading_fatjet_tau2, leading_fatjet_tau1)
+      mask_events[f'{lep}_2J2WdeltaRTau21'] = mask_events[f'{lep}_2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"][args.year])
 
+      leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging algorithm"]), fatjets.offsets, indices['leading'], mask_events[f'{lep}_2J2WdeltaRTau21'], good_fatjets)
+      mask_events[f'{lep}_2J2WdeltaRTau21_Pass'] = mask_events[f'{lep}_2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging WP'])
+      mask_events[f'{lep}_2J2WdeltaRTau21_Fail'] = mask_events[f'{lep}_2J2WdeltaRTau21'] & (leading_fatjet_Hbb<=parameters['bbtagging WP'])
 
 ############# histograms
     vars_to_plot = {
       'nleps'             : nleps,
+      'nelectrons'        : nelectrons,
+      'nmuons'            : nmuons,
       'njets'             : njets,
       'btags'             : btags,
       'nfatjets'          : nfatjets,
@@ -199,12 +205,13 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     var_name, var = 'leadAK8JetMass', leading_fatjet_SDmass
     ptbins = NUMPY_LIB.append( NUMPY_LIB.arange(250,600,50), [600, 675, 800, 1200] )
     for ipt in range( len(ptbins)-1 ):
-      for mask_name in ['2J2WdeltaRTau21_Pass', '2J2WdeltaRTau21_Fail']:
-        mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
-        ret[f'hist_leadAK8JetMass_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( leading_fatjet_SDmass[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
-        ret[f'hist_{var_name}_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( var[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
+      for lep in ['elec','muon']:
+        for mask_name in [f'{lep}_2J2WdeltaRTau21_Pass', f'{lep}_2J2WdeltaRTau21_Fail']:
+          mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
+          ret[f'hist_leadAK8JetMass_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( leading_fatjet_SDmass[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
+          ret[f'hist_{var_name}_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( var[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
 
-    weight_names = {'' : 'nominal', '_NoWeights' : 'ones'}
+    weight_names = {'' : 'nominal', '_NoWeights' : 'ones', '_NoLepWeights' : 'no_lep'}
     for weight_name, w in weight_names.items():
       for mask_name, mask in mask_events.items():
 #        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/tests/events_pass_selection_{sample}_{mask_name}.txt','a+') as f:
@@ -220,7 +227,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #        for feat in ['pt','eta']:
 #          ret[f'hist_jets_{feat}_{mask_name+weight_name}'] = get_histogram( jet_feats[feat],
         for var_name, var in vars_to_plot.items():
-          if (not is_mc) and (mask_name=='2J2WdeltaRTau21_Pass') and (var_name=='leadAK8JetMass') : continue
+          if (not is_mc) and ('2J2WdeltaRTau21_Pass' in mask_name) and ('leadAK8JetMass' in var_name) : continue
           try:
             ret[f'hist_{var_name}_{mask_name+weight_name}'] = get_histogram( var[mask], weights[w][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
           except KeyError:
@@ -532,7 +539,7 @@ if __name__ == "__main__":
 
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
-      try:
+#      try:
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
         #define our dataset
         structs = ["Jet", "Muon", "Electron"]#, "selectedPatJetsAK4PFPuppi"]
@@ -583,20 +590,20 @@ if __name__ == "__main__":
         print(args.categories)
         #### this is where the magic happens: run the main analysis
         results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
-      except Exception as ex:
-        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-        message = template.format(type(ex).__name__, ex.args)
-        print(message)
-        print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
-        #if is_mc:
-        #  folder = 'RunIIFall17NanoAODv5'
-        #else:
-        #  folder = 'Nano25Oct2019'
-        #with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
-        #with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
-        with open(args.filelist, 'a+') as f:
-          f.write(files_in_batch[0]+'\n')
-          continue
+#      except Exception as ex:
+#        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+#        message = template.format(type(ex).__name__, ex.args)
+#        print(message)
+#        print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
+#        #if is_mc:
+#        #  folder = 'RunIIFall17NanoAODv5'
+#        #else:
+#        #  folder = 'Nano25Oct2019'
+#        #with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
+#        #with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
+#        with open(args.filelist, 'a+') as f:
+#          f.write(files_in_batch[0]+'\n')
+#          continue
 
     print(results)
 
