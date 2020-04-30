@@ -42,7 +42,8 @@ parameters = {
   "W": {
     'min_mass': 65,
     'max_mass': 105
-  }
+  },
+  "met" : 20
 }
 
 eraDependentParameters = {

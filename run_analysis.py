@@ -94,7 +94,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     # apply basic event selection
     #mask_events_higgs = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
-    mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nfatjets > 0) #& (btags >=1)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
+    mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > parameters['met']) & (nfatjets > 0) #& (btags >=1)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
     # for reference, this is the selection for the resolved analysis
     # mask_events = mask_events & (nleps == 1) & (lepton_veto == 0) & (njets >= 4) & (btags >=2) & met
 
