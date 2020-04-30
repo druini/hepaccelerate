@@ -1,0 +1,12 @@
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/54BBF45B-AB5F-1748-A405-6EB222353D00.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/B02FB732-9278-B741-B72C-3E710DDD4D23.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/8F38C0F2-E7A7-C846-BBF5-0C040E6BA839.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/A4A4A6C6-0ECA-BA4E-B3E2-1E416AF26C0B.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/BE9E1B7F-FAE1-094F-B078-4ED2FFEC10C3.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/3DF15AC2-DA27-2A41-8338-90B2882ECE51.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/1CA14FD5-5E6D-CB46-9004-95C271E1AD9B.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/CEBDE77B-34AF-F24E-8C5A-49300014DCFC.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/E5D48CB5-28CD-8648-960C-6B03C875410E.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/7F6D79AF-2171-C448-9D72-1CD028E894C8.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/9D54A43B-3859-1144-9D1B-9887D9306094.root
+root://xrootd-cms.infn.it//store/mc/RunIIAutumn18NanoAODv6/ttHToNonbb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/Nano25Oct2019_102X_upgrade2018_realistic_v20-v1/230000/4DD2CCAC-2878-FC43-8C5F-9A4091AEEE0E.root
