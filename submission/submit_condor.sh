@@ -34,7 +34,7 @@ time PYTHONPATH=hepaccelerate:coffea:. python3 run_analysis.py \
   --year $2 \
   --outdir ${PWD}/results/$2/ \
   --boosted \
-  --categories all
-  #--cache-location /eos/user/d/druini/cache/ \
-  #--from-cache
+  --categories all \
+  --cache-location /eos/user/d/druini/cache/ \
+  --from-cache
   #--filelist /afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/algomez/$1.txt \
