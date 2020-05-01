@@ -20,11 +20,11 @@ if [[ $1 == *"Run"* ]]; then
   folder=Nano25Oct2019
 else
     if [[ $2 == *"2016"* ]]; then
-        folder=RunIISummer16NanoAODv5
+        folder=RunIISummer16NanoAODv6
     elif [[ $2 == *"2017"* ]]; then
-        folder=RunIIFall17NanoAODv5
+        folder=RunIIFall17NanoAODv6
     else
-        folder=RunIIAutumn18NanoAODv5
+        folder=RunIIAutumn18NanoAODv6
     fi
 fi
 

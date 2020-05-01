@@ -159,7 +159,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     leading_fatjet_tau1 = ha.get_in_offsets(fatjets.tau1, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
     leading_fatjet_tau2 = ha.get_in_offsets(fatjets.tau2, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
     leading_fatjet_tau21 = NUMPY_LIB.divide(leading_fatjet_tau2, leading_fatjet_tau1)
-    mask_events['2J2WdeltaRTau21'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"])
+    mask_events['2J2WdeltaRTau21'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"][args.year])
 
     leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaRTau21'], good_fatjets)
     mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging WP'])
@@ -532,7 +532,7 @@ if __name__ == "__main__":
 
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
-      try:
+      #try:
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
         #define our dataset
         structs = ["Jet", "Muon", "Electron"]#, "selectedPatJetsAK4PFPuppi"]
@@ -550,9 +550,9 @@ if __name__ == "__main__":
             #prepare the object arrays on the host or device
             dataset.make_objects()
 
-            #print("preparing dataset cache")
+            print("preparing dataset cache")
             #save arrays for future use in cache
-            #dataset.to_cache(verbose=True, nthreads=args.nthreads)  ###ALE: comment to run without cache
+            dataset.to_cache(verbose=True, nthreads=args.nthreads)  ###ALE: comment to run without cache
 
 
         #Optionally, load the dataset from an uncompressed format
@@ -583,20 +583,20 @@ if __name__ == "__main__":
         print(args.categories)
         #### this is where the magic happens: run the main analysis
         results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
-      except Exception as ex:
-        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-        message = template.format(type(ex).__name__, ex.args)
-        print(message)
-        print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
-        #if is_mc:
-        #  folder = 'RunIIFall17NanoAODv5'
-        #else:
-        #  folder = 'Nano25Oct2019'
-        #with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
-        #with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
-        with open(args.filelist, 'a+') as f:
-          f.write(files_in_batch[0]+'\n')
-          continue
+#      except Exception as ex:
+#        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+#        message = template.format(type(ex).__name__, ex.args)
+#        print(message)
+#        print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
+#        #if is_mc:
+#        #  folder = 'RunIIFall17NanoAODv5'
+#        #else:
+#        #  folder = 'Nano25Oct2019'
+#        #with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
+#        #with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
+#        with open(f'{args.filelist}_failed.txt', 'a+') as f:
+#          f.write(files_in_batch[0]+'\n')
+#          continue
 
     print(results)
 
