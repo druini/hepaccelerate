@@ -436,6 +436,8 @@ if __name__ == "__main__":
     parser.add_argument('--files-per-batch', action='store', help='Number of files to process per batch', type=int, default=1, required=False)
     parser.add_argument('--cache-location', action='store', help='Path prefix for the cache, must be writable', type=str, default=os.path.join(os.getcwd(), 'cache'))
     parser.add_argument('--outdir', action='store', help='directory to store outputs', type=str, default=os.getcwd())
+    parser.add_argument('--outtag', action='store', help='outtag added to output file', type=str, default="")
+    parser.add_argument('--version', action='store', help='tag added to the output directory', type=str, default='')
     parser.add_argument('--filelist', action='store', help='List of files to load', type=str, default=None, required=False)
     parser.add_argument('--sample', action='store', help='sample name', type=str, default=None, required=True)
     parser.add_argument('--DNN', action='store', choices=['save-arrays','cmb_binary', 'cmb_multiclass', 'ffwd_binary', 'ffwd_multiclass',False], help='options for DNN evaluation / preparation', default=False)
@@ -464,7 +466,7 @@ if __name__ == "__main__":
     from definitions_analysis import parameters, eraDependentParameters, samples_info
     parameters.update(eraDependentParameters[args.year])
 
-    outdir = args.outdir
+    outdir = args.outdir if args.version=='' else f'{args.outdir}_{args.version}'
     if not os.path.exists(outdir):
         print(os.getcwd())
         try:
@@ -583,24 +585,24 @@ if __name__ == "__main__":
         print(args.categories)
         #### this is where the magic happens: run the main analysis
         results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
-#      except Exception as ex:
-#        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-#        message = template.format(type(ex).__name__, ex.args)
-#        print(message)
-#        print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
-#        #if is_mc:
-#        #  folder = 'RunIIFall17NanoAODv5'
-#        #else:
-#        #  folder = 'Nano25Oct2019'
-#        #with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
-#        #with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
-#        with open(f'{args.filelist}_failed.txt', 'a+') as f:
-#          f.write(files_in_batch[0]+'\n')
-#          continue
+      #except Exception as ex:
+      #  template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+      #  message = template.format(type(ex).__name__, ex.args)
+      #  print(message)
+      #  print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
+      #  #if is_mc:
+      #  #  folder = 'RunIIFall17NanoAODv5'
+      #  #else:
+      #  #  folder = 'Nano25Oct2019'
+      #  #with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
+      #  #with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
+      #  with open(args.filelist, 'a+') as f:
+      #    f.write(files_in_batch[0]+'\n')
+      #    continue
 
     print(results)
 
     #Save the results
     if not os.path.isdir(args.outdir):
       os.makedirs(args.outdir)
-    results.save_json(os.path.join(outdir,"out_{}.json".format(args.sample)))
+    results.save_json(os.path.join(outdir,f"out_{args.sample}{args.outtag}.json"))
