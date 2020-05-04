@@ -60,10 +60,10 @@ eraDependentParameters = {
             "mu_idSF NUM_TightID_DEN_genTracks_eta_pt data/MuonID_2016_RunBCDEF_SF_ID.root",
             "BTagSF * data/DeepCSV_Moriond17_B_H.csv"
         ],
-        "btagging algorithm" : "btagDeepFlavB",#"btagDeepB",
-        "btagging WP" : 0.3093,
-        "bbtagging algorithm" :  "deepTagMD_bbvsLight",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
-        "bbtagging WP" : 0.8945,
+        "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
+        "btagging_WP" : 0.3093,
+        "bbtagging_algorithm" :  "deepTagMD_bbvsLight",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
+        "bbtagging_WP" : 0.8945,
     },
     "2017" : {
         "lumi":  41529.0,
@@ -78,10 +78,10 @@ eraDependentParameters = {
             "mu_idSF NUM_TightID_DEN_genTracks_pt_abseta data/RunBCDEF_SF_ID_histo.root",
             "BTagSF * data/deepCSV_sfs_v2_btag.csv"
         ],
-        "btagging algorithm" : "btagDeepFlavB",#"btagDeepB",
-        "btagging WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
-        "bbtagging algorithm" :  "deepTagMD_bbvsLight",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
-        "bbtagging WP" : 0.8695, ### https://indico.cern.ch/event/853828/contributions/3723593/attachments/1977626/3292045/lg-btv-deepak8v2-sf-20200127.pdf
+        "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
+        "btagging_WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
+        "bbtagging_algorithm" :  "deepTagMD_bbvsLight",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
+        "bbtagging_WP" : 0.8695, ### https://indico.cern.ch/event/853828/contributions/3723593/attachments/1977626/3292045/lg-btv-deepak8v2-sf-20200127.pdf
     },
     "2018" : {
         "lumi":  58830.0,
@@ -96,10 +96,10 @@ eraDependentParameters = {
             "mu_idSF NUM_TightID_DEN_TrackerMuons_pt_abseta data/MuonID_2018_RunABCD_SF_ID.root",
             "BTagSF * data/DeepCSV_Moriond17_B_H.csv"
         ],
-        "btagging algorithm" : "btagDeepFlavB",#"btagDeepB",
-        "btagging WP" : 0.2770, # medium working point for btagDeepB
-        "bbtagging algorithm" :  "deepTagMD_bbvsLight",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
-        "bbtagging WP" : 0.8365,
+        "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
+        "btagging_WP" : 0.2770, # medium working point for btagDeepB
+        "bbtagging_algorithm" :  "deepTagMD_bbvsLight",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
+        "bbtagging_WP" : 0.8365,
     },
 
 }
@@ -586,7 +586,7 @@ histogram_settings = {
 #    "best_higgs_candidate__pt": (200, 500,31),
 #    "best_higgs_candidate__msoftdrop": (0, 250, 26),
 #    "best_higgs_candidate__tau21": (-1, 1, 31),
-#    "best_higgs_candidate__"+eraDependentParameters["2017"]["bbtagging algorithm"]: (-1, 1, 31),
+#    "best_higgs_candidate__"+eraDependentParameters["2017"]["bbtagging_algorithm"]: (-1, 1, 31),
 #
 #    "best_W_candidate_boosted_pt": (200, 500,31),
 #    "best_W_candidate_boosted_msoftdrop": (0, 250, 26),

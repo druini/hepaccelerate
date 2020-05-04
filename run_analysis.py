@@ -69,7 +69,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     good_electrons, veto_electrons = lepton_selection(electrons, parameters["electrons"])
     good_jets = jet_selection(jets, muons, good_muons, parameters["jets"]) & jet_selection(jets, electrons, good_electrons, parameters["jets"])
 #    good_jets = jet_selection(jets, muons, (veto_muons | good_muons), parameters["jets"]) & jet_selection(jets, electrons, (veto_electrons | good_electrons) , parameters["jets"])
-#    bjets = good_jets & (getattr(jets, parameters["btagging algorithm"]) > parameters["btagging WP"])
+#    bjets = good_jets & (getattr(jets, parameters["btagging_algorithm"]) > parameters["btagging_WP"])
     good_fatjets = jet_selection(fatjets, muons, good_muons, parameters["fatjets"]) & jet_selection(fatjets, electrons, good_electrons, parameters["fatjets"])
 #    good_fatjets = jet_selection(fatjets, muons, (veto_muons | good_muons), parameters["fatjets"]) & jet_selection(fatjets, electrons, (veto_electrons | good_electrons), parameters["fatjets"]) #FIXME remove vet_leptons
 
@@ -81,8 +81,8 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #    best_higgs_candidate[ (fatjets.offsets[:-1] + indices["best_higgs_candidate"])[NUMPY_LIB.where( fatjets.offsets<len(best_higgs_candidate) )] ] &= nhiggs.astype(NUMPY_LIB.bool)[NUMPY_LIB.where( fatjets.offsets<len(best_higgs_candidate) )] # to avoid removing the leading fatjet in events with no higgs candidate
 
     good_jets_nohiggs = good_jets & ha.mask_deltar_first(jets, good_jets, fatjets, good_fatjets, 1.2, indices['leading'])
-    bjets = good_jets_nohiggs & (getattr(jets, parameters["btagging algorithm"]) > parameters["btagging WP"])
-    nonbjets = good_jets_nohiggs & (getattr(jets, parameters["btagging algorithm"]) < parameters["btagging WP"])
+    bjets = good_jets_nohiggs & (getattr(jets, parameters["btagging_algorithm"]) > parameters["btagging_WP"])
+    nonbjets = good_jets_nohiggs & (getattr(jets, parameters["btagging_algorithm"]) < parameters["btagging_WP"])
 
     # apply basic event selection -> individual categories cut later
     nleps =  NUMPY_LIB.add(ha.sum_in_offsets(muons, good_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, good_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
@@ -161,9 +161,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     leading_fatjet_tau21 = NUMPY_LIB.divide(leading_fatjet_tau2, leading_fatjet_tau1)
     mask_events['2J2WdeltaRTau21'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"][args.year])
 
-    leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaRTau21'], good_fatjets)
-    mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging WP'])
-    mask_events['2J2WdeltaRTau21_Fail'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb<=parameters['bbtagging WP'])
+    leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging_algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaRTau21'], good_fatjets)
+    mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging_WP'])
+    mask_events['2J2WdeltaRTau21_Fail'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb<=parameters['bbtagging_WP'])
 
 
 ############# histograms
@@ -258,7 +258,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #      print('jets mask', nonbjets[start:stop])
 #      print('jets pt', jets.pt[start:stop])
 #      print('jets eta', jets.eta[start:stop])
-#      print('jets btag', getattr(jets, parameters["btagging algorithm"])[start:stop])
+#      print('jets btag', getattr(jets, parameters["btagging_algorithm"])[start:stop])
 #      print('jet Id', jets.jetId[start:stop]),
 #      print('jet puId', jets.puId[start:stop])
 #    with open('events_pass_selection.txt','w+') as f:
@@ -281,7 +281,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 ##            ("WH_candidate", fatjets, WH_candidates, "inds_WHcandidates", ["pt", "eta", "mass", "msoftdrop", "tau32", "tau21"]),
 ##            ("higgs", genparts, higgs, "leading", ["pt", "eta"]),
 ##            ("tops", genparts, tops, "leading", ["pt", "eta"])
-#            ("", fatjets, higgs_candidates, "best_higgs_candidate", ["pt", "msoftdrop", "tau21", parameters["bbtagging algorithm"]]),
+#            ("", fatjets, higgs_candidates, "best_higgs_candidate", ["pt", "msoftdrop", "tau21", parameters["bbtagging_algorithm"]]),
 ##            ("boosted", fatjets, W_candidates, "best_W_candidate", ["pt", "msoftdrop", "tau21"]),
 ##            ("boosted", fatjets, top_candidates, "best_top_candidate", ["pt", "msoftdrop", "tau21"]),
 #
@@ -445,6 +445,7 @@ if __name__ == "__main__":
     parser.add_argument('--boosted', action='store_true', help='Flag to include boosted objects', default=False)
     parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
     parser.add_argument('--dir-for-fails', action='store', help='directory to store a list of files which could not be processed', type=str, default=os.getcwd())
+    parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
     parser.add_argument('filenames', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
@@ -465,6 +466,12 @@ if __name__ == "__main__":
     # load definitions
     from definitions_analysis import parameters, eraDependentParameters, samples_info
     parameters.update(eraDependentParameters[args.year])
+    if args.parameters is not None:
+      if len(args.parameters)%2 is not 0:
+        raise Exception: print('incomplete parameters specified, quitting.')
+      for p,v in zip(args.parameters[::2], args.parameters[1::2]):
+        try: parameters[p] = type(parameters[p])(v) #convert the string v to the type of the parameter already in the dictionary
+        except Exception: print(f'invalid parameter specified: {p} {v}')
 
     outdir = args.outdir if args.version=='' else f'{args.outdir}_{args.version}'
     if not os.path.exists(outdir):

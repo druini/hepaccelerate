@@ -9,7 +9,9 @@ parser.add_argument('--datasets', help='directory with list of inputs', type=str
 parser.add_argument('--samples', nargs='+', help='List of samples to process', type=str, default=None)
 parser.add_argument('--files-per-job', action='store', help='Number of files to process per job', type=int, default=5)
 parser.add_argument('--rerun-failed-from', help='Search a submission directory for a list of failed .root files and reruns those files', default=None)
+parser.add_argument('--condor-job-flavour', choices=['espresso','microcentury','longlunch','workday','tomorrow','testmatch','nextweek'], help='condor queue flavour as in https://twiki.cern.ch/twiki/bin/view/ABPComputing/LxbatchHTCondor#Queue_Flavours', default='tomorrow')
 
+parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
 parser.add_argument('--from-cache', action='store_true', help='Load from cache (otherwise create it)')
 parser.add_argument('--files-per-batch', action='store', help='Number of files to process per batch', type=int, default=1, required=False)
 parser.add_argument('--nthreads', action='store', help='Number of CPU threads to use', type=int, default=4, required=False)
@@ -84,8 +86,7 @@ for s in samples:
       sf.write(f'error = {os.path.join(sample_directory, f"{condor_outname}.err")}\n')
       sf.write(f'output = {os.path.join(sample_directory, f"{condor_outname}.out")}\n')
       sf.write('getenv = True\n')
-      #sf.write('+JobFlavour = "espresso"\n')
-      sf.write('+JobFlavour = "tomorrow"\n')
+      sf.write(f'+JobFlavour = {args.condor_job_flavour}\n')
       sf.write(f'queue script matching files ({os.path.join(sample_directory,f"*{suffix}.sh")})')
 
     if args.rerun_failed_from==None:
@@ -130,6 +131,8 @@ for s in samples:
             fh.write(f"time PYTHONPATH=hepaccelerate:coffea:. python {os.getcwd()}/run_analysis.py ")
             fh.write("--categories ")
             fh.write(' '.join(map(str, categories)))
+            if args.parameters is not None:
+              fh.write(f' --parameters {*args.parameters} ')
             fh.write(f" --boosted --sample {s} --files-per-batch {args.files_per_batch} --nthread {args.nthreads}  --outdir {os.path.join(args.outdir,args.year)} --year {args.year} --outtag _{njob}{suffix} --dir-for-fails {sample_directory} --version {args.version} ")
             if args.DNN:
                 fh.write(f"--DNN {args.DNN} ")
