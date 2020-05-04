@@ -40,7 +40,8 @@ def partitionFileList(filelist, chunkSize=1):
 if args.rerun_failed_from==None:
   import time
   timestr = time.strftime("%Y%m%d-%H%M%S")
-  job_directory = os.path.join(os.getcwd(),f'logs_submission_{timestr}')
+  ver = '' if args.version=='' else f'_{args.version}'
+  job_directory = os.path.join(os.getcwd(),f'logs_submission{ver}_{timestr}')
 
   # Make top level directories
   mkdir_p(job_directory)
@@ -86,7 +87,7 @@ for s in samples:
       sf.write(f'error = {os.path.join(sample_directory, f"{condor_outname}.err")}\n')
       sf.write(f'output = {os.path.join(sample_directory, f"{condor_outname}.out")}\n')
       sf.write('getenv = True\n')
-      sf.write(f'+JobFlavour = {args.condor_job_flavour}\n')
+      sf.write(f'+JobFlavour = \"{args.condor_job_flavour}\"\n')
       sf.write(f'queue script matching files ({os.path.join(sample_directory,f"*{suffix}.sh")})')
 
     if args.rerun_failed_from==None:
@@ -132,7 +133,8 @@ for s in samples:
             fh.write("--categories ")
             fh.write(' '.join(map(str, categories)))
             if args.parameters is not None:
-              fh.write(f' --parameters {*args.parameters} ')
+              fh.write(f' --parameters ')
+              fh.write(' '.join(map(str, args.parameters)))
             fh.write(f" --boosted --sample {s} --files-per-batch {args.files_per_batch} --nthread {args.nthreads}  --outdir {os.path.join(args.outdir,args.year)} --year {args.year} --outtag _{njob}{suffix} --dir-for-fails {sample_directory} --version {args.version} ")
             if args.DNN:
                 fh.write(f"--DNN {args.DNN} ")

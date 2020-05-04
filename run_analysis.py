@@ -468,10 +468,10 @@ if __name__ == "__main__":
     parameters.update(eraDependentParameters[args.year])
     if args.parameters is not None:
       if len(args.parameters)%2 is not 0:
-        raise Exception: print('incomplete parameters specified, quitting.')
+        raise Exception('incomplete parameters specified, quitting.')
       for p,v in zip(args.parameters[::2], args.parameters[1::2]):
         try: parameters[p] = type(parameters[p])(v) #convert the string v to the type of the parameter already in the dictionary
-        except Exception: print(f'invalid parameter specified: {p} {v}')
+        except: print(f'invalid parameter specified: {p} {v}')
 
     outdir = args.outdir if args.version=='' else f'{args.outdir}_{args.version}'
     if not os.path.exists(outdir):
@@ -498,7 +498,7 @@ if __name__ == "__main__":
     ]
     if args.boosted:
       arrays_objects += [
-        "FatJet_pt", "FatJet_eta", "FatJet_phi", "FatJet_deepTagMD_bbvsLight", "FatJet_btagHbb", "FatJet_deepTagMD_HbbvsQCD", "FatJet_deepTagMD_ZHbbvsQCD", "FatJet_deepTagMD_TvsQCD", "FatJet_deepTag_H", "FatJet_btagDDBvL", "FatJet_deepTag_TvsQCD", "FatJet_jetId", "FatJet_mass", "FatJet_msoftdrop", "FatJet_tau1", "FatJet_tau2", "FatJet_tau3", "FatJet_tau4", "FatJet_n2b1"]
+        "FatJet_pt", "FatJet_eta", "FatJet_phi", "FatJet_deepTagMD_bbvsLight", "FatJet_btagHbb", "FatJet_deepTagMD_HbbvsQCD", "FatJet_deepTagMD_ZHbbvsQCD", "FatJet_deepTagMD_TvsQCD", "FatJet_deepTag_H", "FatJet_btagDDBvL", "FatJet_btagDDBvL_noMD", "FatJet_deepTag_TvsQCD", "FatJet_jetId", "FatJet_mass", "FatJet_msoftdrop", "FatJet_tau1", "FatJet_tau2", "FatJet_tau3", "FatJet_tau4", "FatJet_n2b1"]
 
     #these are variables per event
     arrays_event = [
@@ -589,7 +589,7 @@ if __name__ == "__main__":
         if args.DNN:
             model = load_model(args.path_to_model, custom_objects=dict(itertools=itertools, mse0=mse0, mae0=mae0, r2_score0=r2_score0))
 
-        print(args.categories)
+        print(parameters)
         #### this is where the magic happens: run the main analysis
         results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
       except Exception as ex:
@@ -606,6 +606,4 @@ if __name__ == "__main__":
     print(results)
 
     #Save the results
-    if not os.path.isdir(args.outdir):
-      os.makedirs(args.outdir)
     results.save_json(os.path.join(outdir,f"out_{args.sample}{args.outtag}.json"))
