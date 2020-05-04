@@ -1,0 +1,6 @@
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/ZJetsToNuNu_HT-1200To2500_13TeV-madgraph/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_new_pmx_102X_mc2017_realistic_v7-v1/270000/5328A49D-78B0-A544-AFA7-EE8DD77B938B.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/ZJetsToNuNu_HT-1200To2500_13TeV-madgraph/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_new_pmx_102X_mc2017_realistic_v7-v1/260000/2EB9AADE-4E22-A54E-BEF4-DA5DF1048D4D.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/ZJetsToNuNu_HT-1200To2500_13TeV-madgraph/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_new_pmx_102X_mc2017_realistic_v7-v1/270000/E9476876-323B-1C41-930B-95461EAC10E9.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/ZJetsToNuNu_HT-1200To2500_13TeV-madgraph/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_new_pmx_102X_mc2017_realistic_v7-v1/270000/5328A49D-78B0-A544-AFA7-EE8DD77B938B.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/ZJetsToNuNu_HT-1200To2500_13TeV-madgraph/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_new_pmx_102X_mc2017_realistic_v7-v1/260000/2EB9AADE-4E22-A54E-BEF4-DA5DF1048D4D.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/ZJetsToNuNu_HT-1200To2500_13TeV-madgraph/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_new_pmx_102X_mc2017_realistic_v7-v1/270000/E9476876-323B-1C41-930B-95461EAC10E9.root
