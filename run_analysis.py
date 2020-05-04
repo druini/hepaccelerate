@@ -552,7 +552,7 @@ if __name__ == "__main__":
             #prepare the object arrays on the host or device
             dataset.make_objects()
 
-            print("preparing dataset cache")
+            #print("preparing dataset cache")
             #save arrays for future use in cache
             #dataset.to_cache(verbose=True, nthreads=args.nthreads)  ###ALE: comment to run without cache
 
@@ -590,7 +590,9 @@ if __name__ == "__main__":
         message = template.format(type(ex).__name__, ex.args)
         print(message)
         print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
-        with open(os.path.join(args.dir_for_fails, f'failedFiles_{args.sample}.txt'), 'a+') as f:
+        num_files = len(glob.glob(os.path.join(args.dir_for_fails, 'failed*txt'))) #to avoid overwriting
+        num_files = '' if num_files==0 else f'_{num_files}'
+        with open(os.path.join(args.dir_for_fails, f'failedFiles_{args.sample}{num_files}.txt'), 'a+') as f:
           f.write(files_in_batch[0]+'\n')
         continue
 

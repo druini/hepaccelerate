@@ -7,8 +7,8 @@ import numpy as np
 parser = argparse.ArgumentParser(description='Runs a simple array-based analysis')
 parser.add_argument('--datasets', help='directory with list of inputs', type=str, default='datasets')
 parser.add_argument('--samples', nargs='+', help='List of samples to process', type=str, default=None)
-parser.add_argument('--files-per-job', action='store', help='Number of files to process per job', type=int, default=5, required=False)
-parser.add_argument('--rerun-failed-from', dest='rerun_failed', action='store_true', help='Search a submission directory for a list of failed .root files and reruns those files')
+parser.add_argument('--files-per-job', action='store', help='Number of files to process per job', type=int, default=5)
+parser.add_argument('--rerun-failed-from', help='Search a submission directory for a list of failed .root files and reruns those files', default=None)
 
 parser.add_argument('--from-cache', action='store_true', help='Load from cache (otherwise create it)')
 parser.add_argument('--files-per-batch', action='store', help='Number of files to process per batch', type=int, default=1, required=False)
@@ -23,7 +23,7 @@ parser.add_argument('--version', action='store', help='tag added to the output d
 parser.add_argument('--dryrun', action='store_true', help='Option to only create job files, without submitting them')
 args = parser.parse_args()
 
-if not args.rerun_failed and args.samples==None:
+if args.rerun_failed_from==None and args.samples==None:
   raise Exception('Must provide sample list')
 
 def mkdir_p(dir):
@@ -35,17 +35,30 @@ def partitionFileList(filelist, chunkSize=1):
     sampleFileList = np.loadtxt(filelist, dtype=str)
     return [sampleFileList[i:i+chunkSize] for i in range(0, len(sampleFileList), chunkSize)]   
 
-import time
-timestr = time.strftime("%Y%m%d-%H%M%S")
-job_directory = os.path.join(os.getcwd(),f'logs_submission_{timestr}')
+if args.rerun_failed_from==None:
+  import time
+  timestr = time.strftime("%Y%m%d-%H%M%S")
+  job_directory = os.path.join(os.getcwd(),f'logs_submission_{timestr}')
 
-# Make top level directories
-mkdir_p(job_directory)
+  # Make top level directories
+  mkdir_p(job_directory)
 
-if len(args.samples)==1 and args.samples[0].endswith('.txt'):
-  samples = [l.strip() for l in open(args.samples[0]).readlines()]
+  if len(args.samples)==1 and args.samples[0].endswith('.txt'):
+    samples = [l.strip() for l in open(args.samples[0]).readlines()]
+  else:
+    samples = args.samples
 else:
-  samples = args.samples
+  from glob import glob
+  files_to_rerun = glob( os.path.join(args.rerun_failed_from,'**','*fail*'), recursive=True)
+  samples = {} # dictionary with entries (sample name, filelist of failed files). The following lines are to select the more recent file, if multiple are present
+  for f in files_to_rerun:
+    s = os.path.basename(os.path.dirname(f))
+    if not s in samples:
+      samples[s] = f
+    else:
+      if os.path.getmtime(f) > os.path.getmtime(samples[s]): #choose the more recent file for each sample
+        samples[s] = f
+
 
 if not type(args.categories)==list:
     categories = [args.categories]
@@ -53,9 +66,16 @@ else:
     categories = args.categories
 
 for s in samples:
-    sample_directory = os.path.join(job_directory,s)
-    mkdir_p(sample_directory)
-    submission_file = os.path.join(sample_directory, f'{s}_condor.sub')
+    if args.rerun_failed_from==None:
+      sample_directory = os.path.join(job_directory,s)
+      mkdir_p(sample_directory)
+      suffix = ''
+    else:
+      sample_directory = os.path.join(args.rerun_failed_from,s)
+      num_files = len(glob(os.path.join(sample_directory, 'failed*txt'))) #to avoid overwriting
+      num_files = '' if num_files==0 else f'_{num_files}'
+      suffix = f'_rerunFail{num_files}'
+    submission_file = os.path.join(sample_directory, f'{s}{suffix}_condor.sub')
     with open(submission_file, 'w') as sf:
       sf.write('universe = vanilla\n')
       sf.write(f'executable = {os.path.join(sample_directory,"$Fnx(script)")}\n')
@@ -66,22 +86,26 @@ for s in samples:
       sf.write('getenv = True\n')
       #sf.write('+JobFlavour = "espresso"\n')
       sf.write('+JobFlavour = "tomorrow"\n')
-      sf.write(f'queue script matching files ({os.path.join(sample_directory,"*.sh")})')
+      sf.write(f'queue script matching files ({os.path.join(sample_directory,f"*{suffix}.sh")})')
 
-    if 'Run' in s:
-      subdir = 'Nano25Oct2019'
-    else:
-      if args.year=='2016':
-        subdir = 'RunIISummer16NanoAODv6'
-      elif args.year=='2017':
-        subdir = 'RunIIFall17NanoAODv6'
+    if args.rerun_failed_from==None:
+      if 'Run' in s:
+        subdir = 'Nano25Oct2019'
       else:
-        subdir = 'RunIIAutumn18NanoAODv6'
-    par_files = partitionFileList(os.path.join(args.datasets,subdir,f'{s}.txt'), args.files_per_job * args.files_per_batch)
+        if args.year=='2016':
+          subdir = 'RunIISummer16NanoAODv6'
+        elif args.year=='2017':
+          subdir = 'RunIIFall17NanoAODv6'
+        else:
+          subdir = 'RunIIAutumn18NanoAODv6'
+      filelist = os.path.join(args.datasets,subdir,f'{s}.txt')
+    else:
+      filelist = samples[s] 
+    par_files = partitionFileList(filelist, args.files_per_job * args.files_per_batch)
 
     for njob,f in enumerate(par_files): 
 
-        job_file = os.path.join(sample_directory,f'{njob}.sh')
+        job_file = os.path.join(sample_directory,f'{njob}{suffix}.sh')
 
         with open(job_file, "w") as fh:
             fh.write("#!/bin/bash\n")
@@ -106,7 +130,7 @@ for s in samples:
             fh.write(f"time PYTHONPATH=hepaccelerate:coffea:. python {os.getcwd()}/run_analysis.py ")
             fh.write("--categories ")
             fh.write(' '.join(map(str, categories)))
-            fh.write(f" --boosted --sample {s} --files-per-batch {args.files_per_batch} --nthread {args.nthreads}  --outdir {os.path.join(args.outdir,args.year)} --year {args.year} --outtag _{njob} --dir-for-fails {sample_directory} --version {args.version} ")
+            fh.write(f" --boosted --sample {s} --files-per-batch {args.files_per_batch} --nthread {args.nthreads}  --outdir {os.path.join(args.outdir,args.year)} --year {args.year} --outtag _{njob}{suffix} --dir-for-fails {sample_directory} --version {args.version} ")
             if args.DNN:
                 fh.write(f"--DNN {args.DNN} ")
             if args.from_cache:
