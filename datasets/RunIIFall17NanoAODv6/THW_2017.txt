@@ -1,9 +1,0 @@
-root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_102X_mc2017_realistic_v7-v1/100000/2FB11BCA-900A-EE40-B176-283DF64E72F6.root
-root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_102X_mc2017_realistic_v7-v1/100000/4666C8C8-6CAE-3245-91D6-2237E5DA7B81.root
-root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_102X_mc2017_realistic_v7-v1/100000/79E0821A-274B-744F-B920-80A2261817E6.root
-root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_102X_mc2017_realistic_v7-v1/100000/8BF2334C-7D6D-7B4D-9458-11DEFD16CB93.root
-root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_102X_mc2017_realistic_v7-v1/270000/16D8B9DF-CC3A-934E-AFD4-FDE0455F07F5.root
-root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_102X_mc2017_realistic_v7-v1/270000/22D28712-E74D-3741-9BF8-AC397DBF5070.root
-root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_102X_mc2017_realistic_v7-v1/270000/67681D99-AB00-EB46-9A8F-48D37A41ED1E.root
-root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_102X_mc2017_realistic_v7-v1/270000/61893346-A916-A94E-B7AC-461888B2C226.root
-root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv6/THW_ctcvcp_5f_Hincl_13TeV_madgraph_pythia8/NANOAODSIM/PU2017_12Apr2018_Nano25Oct2019_102X_mc2017_realistic_v7-v1/270000/ACD1F4B0-5949-4A47-B616-7AAC412A7E30.root
