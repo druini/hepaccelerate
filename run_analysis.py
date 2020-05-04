@@ -442,9 +442,9 @@ if __name__ == "__main__":
     parser.add_argument('--sample', action='store', help='sample name', type=str, default=None, required=True)
     parser.add_argument('--DNN', action='store', choices=['save-arrays','cmb_binary', 'cmb_multiclass', 'ffwd_binary', 'ffwd_multiclass',False], help='options for DNN evaluation / preparation', default=False)
     parser.add_argument('--categories', nargs='+', help='categories to be processed (default: sl_jge4_tge2)', default="sl_jge4_tge2")
-    parser.add_argument('--path-to-model', action='store', help='path to DNN model', type=str, default=None, required=False)
     parser.add_argument('--boosted', action='store_true', help='Flag to include boosted objects', default=False)
     parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
+    parser.add_argument('--dir-for-fails', action='store', help='directory to store a list of files which could not be processed', type=str, default=os.getcwd())
     parser.add_argument('filenames', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
@@ -534,7 +534,7 @@ if __name__ == "__main__":
 
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
-      #try:
+      try:
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
         #define our dataset
         structs = ["Jet", "Muon", "Electron"]#, "selectedPatJetsAK4PFPuppi"]
@@ -554,7 +554,7 @@ if __name__ == "__main__":
 
             print("preparing dataset cache")
             #save arrays for future use in cache
-            dataset.to_cache(verbose=True, nthreads=args.nthreads)  ###ALE: comment to run without cache
+            #dataset.to_cache(verbose=True, nthreads=args.nthreads)  ###ALE: comment to run without cache
 
 
         #Optionally, load the dataset from an uncompressed format
@@ -585,20 +585,14 @@ if __name__ == "__main__":
         print(args.categories)
         #### this is where the magic happens: run the main analysis
         results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
-      #except Exception as ex:
-      #  template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-      #  message = template.format(type(ex).__name__, ex.args)
-      #  print(message)
-      #  print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
-      #  #if is_mc:
-      #  #  folder = 'RunIIFall17NanoAODv5'
-      #  #else:
-      #  #  folder = 'Nano25Oct2019'
-      #  #with open(os.getcwd()+'/datasets/{folder}/{args.sample}.txt', 'a+') as f:
-      #  #with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/datasets/{folder}/{args.sample}_fail.txt', 'a+') as f:
-      #  with open(args.filelist, 'a+') as f:
-      #    f.write(files_in_batch[0]+'\n')
-      #    continue
+      except Exception as ex:
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        message = template.format(type(ex).__name__, ex.args)
+        print(message)
+        print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
+        with open(os.path.join(args.dir_for_fails, f'failedFiles_{args.sample}.txt'), 'a+') as f:
+          f.write(files_in_batch[0]+'\n')
+        continue
 
     print(results)
 
