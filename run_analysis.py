@@ -473,14 +473,6 @@ if __name__ == "__main__":
         try: parameters[p] = type(parameters[p])(v) #convert the string v to the type of the parameter already in the dictionary
         except: print(f'invalid parameter specified: {p} {v}')
 
-    outdir = args.outdir if args.version=='' else f'{args.outdir}_{args.version}'
-    if not os.path.exists(outdir):
-        print(os.getcwd())
-        try:
-          os.makedirs(outdir)
-        except Exception as ex:
-          print("An exception of type {0} occurred. Arguments:\n{1!r}".format(type(ex).__name__, ex.args))
-
     if "Run" in args.sample:
         is_mc = False
         lumimask = LumiMask(parameters["lumimask"])
@@ -537,11 +529,13 @@ if __name__ == "__main__":
             print(fn)
             raise Exception("Must supply ROOT filename, but got {0}".format(fn))
 
-    results = Results()
+    #results = Results()
+    results = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : Results() for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
+    pars    = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
 
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
-      try:
+      #try:
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
         #define our dataset
         structs = ["Jet", "Muon", "Electron"]#, "selectedPatJetsAK4PFPuppi"]
@@ -589,21 +583,33 @@ if __name__ == "__main__":
         if args.DNN:
             model = load_model(args.path_to_model, custom_objects=dict(itertools=itertools, mse0=mse0, mae0=mae0, r2_score0=r2_score0))
 
-        print(parameters)
+        for p in pars:
+          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p]
         #### this is where the magic happens: run the main analysis
-        results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
-      except Exception as ex:
-        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-        message = template.format(type(ex).__name__, ex.args)
-        print(message)
-        print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
-        num_files = len(glob.glob(os.path.join(args.dir_for_fails, 'failed*txt'))) #to avoid overwriting
-        num_files = '' if num_files==0 else f'_{num_files}'
-        with open(os.path.join(args.dir_for_fails, f'failedFiles_{args.sample}{num_files}.txt'), 'a+') as f:
-          f.write(files_in_batch[0]+'\n')
-        continue
+          results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
+      #except Exception as ex:
+      #  template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+      #  message = template.format(type(ex).__name__, ex.args)
+      #  print(message)
+      #  print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
+      #  num_files = 0#len(glob.glob(os.path.join(args.dir_for_fails, 'failed*txt'))) #to avoid overwriting
+      #  num_files = '' if num_files==0 else f'_{num_files}'
+      #  with open(os.path.join(args.dir_for_fails, f'failedFiles_{args.sample}{num_files}.txt'), 'a+') as f:
+      #    f.write(files_in_batch[0]+'\n')
+      #  continue
 
-    print(results)
+    #print(results)
 
     #Save the results
-    results.save_json(os.path.join(outdir,f"out_{args.sample}{args.outtag}.json"))
+    for r in results:
+      outdir = f'{args.outdir}_{r}'
+      if args.version!='':
+        outdir = f'{outdir}_{args.version}'
+      if not os.path.exists(outdir):
+          print(os.getcwd())
+          try:
+            os.makedirs(outdir)
+          except Exception as ex:
+            print("An exception of type {0} occurred. Arguments:\n{1!r}".format(type(ex).__name__, ex.args))
+
+      results[r].save_json(os.path.join(outdir,f"out_{args.sample}{args.outtag}.json"))
