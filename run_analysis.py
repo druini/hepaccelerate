@@ -1,7 +1,4 @@
 import os, glob
-#os.environ["NUMBAPRO_NVVM"] = "/usr/local/cuda/nvvm/lib64/libnvvm.so"
-#os.environ["NUMBAPRO_LIBDEVICE"] = "/usr/local/cuda/nvvm/libdevice/"
-os.environ['KERAS_BACKEND'] = "tensorflow"
 import argparse
 import json
 import numpy as np
@@ -11,22 +8,17 @@ from uproot_methods import TLorentzVectorArray
 #import hepaccelerate
 from hepaccelerate.utils import Results, NanoAODDataset, Histogram, choose_backend
 
-#import tensorflow as tf
-#from keras.models import load_model
 import itertools
 #from lib_analysis import mse0,mae0,r2_score0
 
 from definitions_analysis import histogram_settings
 
 import lib_analysis
-from lib_analysis import vertex_selection, lepton_selection, jet_selection, load_puhist_target, compute_pu_weights, compute_lepton_weights, compute_btag_weights, chunks, evaluate_DNN, calculate_variable_features, select_lepton_p4, hadronic_W, get_histogram
+from lib_analysis import vertex_selection, lepton_selection, jet_selection, load_puhist_target, compute_pu_weights, compute_lepton_weights, compute_btag_weights, chunks, calculate_variable_features, select_lepton_p4, hadronic_W, get_histogram
 
-#config = tf.ConfigProto()
-#config.gpu_options.allow_growth=True
-#sess = tf.Session(config=config)
 
 #This function will be called for every file in the dataset
-def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, DNN=False, DNN_model=None):
+def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False):
     #Output structure that will be returned and added up among the files.
     #Should be relatively small.
     ret = Results()
@@ -112,9 +104,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         weights["nominal"] = weights["nominal"] * pu_weights
 
         # lepton SF corrections
-        electron_weights = compute_lepton_weights(electrons, electrons.pt, (electrons.deltaEtaSC + electrons.eta), mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
-        muon_weights = compute_lepton_weights(muons, muons.pt, NUMPY_LIB.abs(muons.eta), mask_events, good_muons, evaluator, ["mu_triggerSF", "mu_isoSF", "mu_idSF"])
-        weights["nominal"] = weights["nominal"] * muon_weights * electron_weights
+        #electron_weights = compute_lepton_weights(electrons, electrons.pt, (electrons.deltaEtaSC + electrons.eta), mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
+        #muon_weights = compute_lepton_weights(muons, muons.pt, NUMPY_LIB.abs(muons.eta), mask_events, good_muons, evaluator, ["mu_triggerSF", "mu_isoSF", "mu_idSF"])
+        #weights["nominal"] = weights["nominal"] * muon_weights * electron_weights
 
         # btag SF corrections
 #        btag_weights = compute_btag_weights(jets, mask_events, good_jets, evaluator)
@@ -159,7 +151,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     leading_fatjet_tau1 = ha.get_in_offsets(fatjets.tau1, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
     leading_fatjet_tau2 = ha.get_in_offsets(fatjets.tau2, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
     leading_fatjet_tau21 = NUMPY_LIB.divide(leading_fatjet_tau2, leading_fatjet_tau1)
-    mask_events['2J2WdeltaRTau21'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"])
+    mask_events['2J2WdeltaRTau21'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"][args.year])
 
     leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaRTau21'], good_fatjets)
     mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging WP'])
@@ -197,7 +189,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
       vars_to_plot['pu_weights'] = pu_weights
 
     var_name, var = 'leadAK8JetMass', leading_fatjet_SDmass
-    ptbins = NUMPY_LIB.append( NUMPY_LIB.arange(250,600,50), [600, 675, 800, 1200] )
+    ptbins = NUMPY_LIB.append( NUMPY_LIB.arange(250,600,50), [600, 1000, 5000] )
     for ipt in range( len(ptbins)-1 ):
       for mask_name in ['2J2WdeltaRTau21_Pass', '2J2WdeltaRTau21_Fail']:
         mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
@@ -318,10 +310,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #        mask_lumi = lumimask(scalars["run"], scalars["luminosityBlock"])
 #        mask_events = mask_events & mask_lumi
 ##
-##    #evaluate DNN
-##    if DNN:
-##        DNN_pred = evaluate_DNN(jets, good_jets, electrons, good_electrons, muons, good_muons, scalars, mask_events, DNN, DNN_model)
-##
 #    # in case of tt+jets -> split in ttbb, tt2b, ttb, ttcc, ttlf
 #    processes = {}
 #    if sample.startswith("TT"):
@@ -406,26 +394,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #
 #
 #
-##            if DNN:
-##                if DNN.endswith("multiclass"):
-##                    class_pred = NUMPY_LIB.argmax(DNN_pred, axis=1)
-##                    for n, n_name in zip([0,1,2,3,4,5], ["ttH", "ttbb", "tt2b", "ttb", "ttcc", "ttlf"]):
-##                        node = (class_pred == n)
-##                        DNN_node = DNN_pred[:,n]
-##                        hist_DNN = Histogram(*ha.histogram_from_vector(DNN_node[(cut & node)], weights["nominal"][(cut & node)], NUMPY_LIB.linspace(0.,1.,16)))
-##                        ret["hist_{0}_DNN_{1}".format(name, n_name)] = hist_DNN
-##                        hist_DNN_ROC = Histogram(*ha.histogram_from_vector(DNN_node[(cut & node)], weights["nominal"][(cut & node)], NUMPY_LIB.linspace(0.,1.,1000)))
-##                        ret["hist_{0}_DNN_ROC_{1}".format(name, n_name)] = hist_DNN_ROC
-##
-##                else:
-##                    hist_DNN = Histogram(*ha.histogram_from_vector(DNN_pred[cut], weights["nominal"][cut], NUMPY_LIB.linspace(0.,1.,16)))
-##                    ret["hist_{0}_DNN".format(name)] = hist_DNN
-##                    hist_DNN_ROC = Histogram(*ha.histogram_from_vector(DNN_pred[cut], weights["nominal"][cut], NUMPY_LIB.linspace(0.,1.,1000)))
-##                    ret["hist_{0}_DNN_ROC".format(name)] = hist_DNN_ROC
-##
-##
-##    #TODO: implement JECs
-##
     return ret
 
 if __name__ == "__main__":
@@ -438,9 +406,7 @@ if __name__ == "__main__":
     parser.add_argument('--outdir', action='store', help='directory to store outputs', type=str, default=os.getcwd())
     parser.add_argument('--filelist', action='store', help='List of files to load', type=str, default=None, required=False)
     parser.add_argument('--sample', action='store', help='sample name', type=str, default=None, required=True)
-    parser.add_argument('--DNN', action='store', choices=['save-arrays','cmb_binary', 'cmb_multiclass', 'ffwd_binary', 'ffwd_multiclass',False], help='options for DNN evaluation / preparation', default=False)
     parser.add_argument('--categories', nargs='+', help='categories to be processed (default: sl_jge4_tge2)', default="sl_jge4_tge2")
-    parser.add_argument('--path-to-model', action='store', help='path to DNN model', type=str, default=None, required=False)
     parser.add_argument('--boosted', action='store_true', help='Flag to include boosted objects', default=False)
     parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
     parser.add_argument('filenames', nargs=argparse.REMAINDER)
@@ -575,14 +541,9 @@ if __name__ == "__main__":
         if ibatch == 0:
             print(dataset.printout())
 
-        # in case of DNN evaluation: load model
-        model = None
-        if args.DNN:
-            model = load_model(args.path_to_model, custom_objects=dict(itertools=itertools, mse0=mse0, mae0=mae0, r2_score0=r2_score0))
-
         print(args.categories)
         #### this is where the magic happens: run the main analysis
-        results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
+        results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
       except Exception as ex:
         template = "An exception of type {0} occurred. Arguments:\n{1!r}"
         message = template.format(type(ex).__name__, ex.args)
