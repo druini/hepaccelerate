@@ -6,5 +6,5 @@ log         =  $ENV(PWD)/condor_output/$(sample)_$(ClusterId)_$(ProcId)_$(year).
 error       =  $ENV(PWD)/condor_output/$(sample)_$(ClusterId)_$(ProcId)_$(year).err
 output      =  $ENV(PWD)/condor_output/$(sample)_$(ClusterId)_$(ProcId)_$(year).out
 getenv      =  True
-+JobFlavour =  "testmatch"
-queue sample from $ENV(PWD)/submission/allSamples_2017.txt
++JobFlavour =  "nextweek"
+queue sample from $ENV(PWD)/submission/allSamples_$(year).txt
