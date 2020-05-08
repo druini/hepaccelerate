@@ -202,15 +202,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/tests/events_pass_selection_{sample}_{mask_name}.txt','a+') as f:
 #          for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
 #            f.write(f'{nevt}, {run}, {lumiBlock}\n')
-        ### tentative histogram of all jets in an event #FIXME
-#        jet_feats = {'pt'  : NUMPY_LIB.array([]), 'eta' : NUMPY_LIB.array([])}
-#        for evt_idx in NUMPY_LIB.where(mask)[0]:
-#          start = jets.offsets[evt_idx]
-#          stop  = jets.offsets[evt_idx+1]
-#          for feat in ['pt','eta']:
-#            jet_feats[feat] = NUMPY_LIB.append(jet_feats[feats], getattr(jets, feat)[start:stop][nonbjets[start:stop]])
-#        for feat in ['pt','eta']:
-#          ret[f'hist_jets_{feat}_{mask_name+weight_name}'] = get_histogram( jet_feats[feat],
         for var_name, var in vars_to_plot.items():
           if (not is_mc) and (mask_name=='2J2WdeltaRTau21_Pass') and (var_name=='leadAK8JetMass') : continue
           try:
@@ -548,7 +539,7 @@ if __name__ == "__main__":
         for p in pars:
           parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p]
         #### this is where the magic happens: run the main analysis
-          results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, DNN=args.DNN, DNN_model=model)
+          results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
       #except Exception as ex:
       #  template = "An exception of type {0} occurred. Arguments:\n{1!r}"
       #  message = template.format(type(ex).__name__, ex.args)
