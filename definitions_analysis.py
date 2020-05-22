@@ -38,12 +38,18 @@ parameters = {
         '2017' : 0.45,
         '2018' : 0.45,
         },
+    "tau21DDTcut": {
+        '2016' : 0.43,
+        '2017' : 0.43,
+        '2018' : 0.43,
+        },
   },
   "W": {
     'min_mass': 65,
     'max_mass': 105
   },
-  "met" : 20
+  "met"   : 20,
+  'btags' : 0
 }
 
 eraDependentParameters = {

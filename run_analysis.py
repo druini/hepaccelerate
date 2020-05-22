@@ -86,7 +86,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     # apply basic event selection
     #mask_events_higgs = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
-    mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > parameters['met']) & (nfatjets > 0) #& (btags >=1)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
+    mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags'])# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
     # for reference, this is the selection for the resolved analysis
     # mask_events = mask_events & (nleps == 1) & (lepton_veto == 0) & (njets >= 4) & (btags >=2) & met
 
@@ -148,14 +148,27 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     mask_events['2J2WdeltaR'] = mask_events['2J2W'] & (deltaRlepWHiggs>1) & (deltaRhadWHiggs>1)# & (deltaRlepWHiggs<4) & (deltaRhadWHiggs<4)
 
     #boosted Higgs
-    leading_fatjet_tau1 = ha.get_in_offsets(fatjets.tau1, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
-    leading_fatjet_tau2 = ha.get_in_offsets(fatjets.tau2, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
-    leading_fatjet_tau21 = NUMPY_LIB.divide(leading_fatjet_tau2, leading_fatjet_tau1)
-    mask_events['2J2WdeltaRTau21'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"][args.year])
+    leading_fatjet_tau1     = ha.get_in_offsets(fatjets.tau1, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
+    leading_fatjet_tau2     = ha.get_in_offsets(fatjets.tau2, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
+    leading_fatjet_tau21    = NUMPY_LIB.divide(leading_fatjet_tau2, leading_fatjet_tau1)
+    ### tau21DDT defined as in https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetWtagging#tau21DDT_0_43_HP_0_43_tau21DDT_0
+    leading_fatjet_tau21DDT = NUMPY_LIB.zeros_like(leading_fatjet_tau21)
+    if args.year=='2016':
+        leading_fatjet_tau21DDT[mask_events['2J2WdeltaR']] = leading_fatjet_tau21[mask_events['2J2WdeltaR']] * 0.063 * NUMPY_LIB.log(leading_fatjet_SDmass[mask_events['2J2WdeltaR']]**2 / leading_fatjet_pt[mask_events['2J2WdeltaR']])
+    elif args.year=='2017':
+        leading_fatjet_tau21DDT[mask_events['2J2WdeltaR']] = leading_fatjet_tau21[mask_events['2J2WdeltaR']] * 0.080 * NUMPY_LIB.log(leading_fatjet_SDmass[mask_events['2J2WdeltaR']]**2 / leading_fatjet_pt[mask_events['2J2WdeltaR']])
+    else:
+        leading_fatjet_tau21DDT[mask_events['2J2WdeltaR']] = leading_fatjet_tau21[mask_events['2J2WdeltaR']] * 0.082 * NUMPY_LIB.log(leading_fatjet_SDmass[mask_events['2J2WdeltaR']]**2 / leading_fatjet_pt[mask_events['2J2WdeltaR']])
+
+    mask_events['2J2WdeltaRTau21']    = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"][args.year])
+    mask_events['2J2WdeltaRTau21DDT'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21DDTcut"][args.year])
 
     leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging_algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaRTau21'], good_fatjets)
-    mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging_WP'])
-    mask_events['2J2WdeltaRTau21_Fail'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb<=parameters['bbtagging_WP'])
+    #mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging_WP'])
+    #mask_events['2J2WdeltaRTau21_Fail'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb<=parameters['bbtagging_WP'])
+    for m in ['2J2WdeltaR', '2J2WdeltaRTau21', '2J2WdeltaRTau21DDT']:
+        mask_events[f'{m}_Pass'] = mask_events[m] & (leading_fatjet_Hbb>parameters['bbtagging_WP'])
+        mask_events[f'{m}_Fail'] = mask_events[m] & (leading_fatjet_Hbb<=parameters['bbtagging_WP'])
 
 
 ############# histograms
@@ -191,10 +204,12 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     var_name, var = 'leadAK8JetMass', leading_fatjet_SDmass
     ptbins = NUMPY_LIB.append( NUMPY_LIB.arange(250,600,50), [600, 1000, 5000] )
     for ipt in range( len(ptbins)-1 ):
-      for mask_name in ['2J2WdeltaRTau21_Pass', '2J2WdeltaRTau21_Fail']:
-        mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
-        ret[f'hist_leadAK8JetMass_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( leading_fatjet_SDmass[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
-        ret[f'hist_{var_name}_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( var[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
+      for m in ['2J2WdeltaR', '2J2WdeltaRTau21', '2J2WdeltaRTau21DDT']:
+        for r in ['Pass','Fail']:
+          mask_name = f'{m}_{r}'
+          mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
+          #ret[f'hist_leadAK8JetMass_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( leading_fatjet_SDmass[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
+          ret[f'hist_{var_name}_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( var[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
 
     weight_names = {'' : 'nominal', '_NoWeights' : 'ones'}
     for weight_name, w in weight_names.items():
@@ -402,7 +417,6 @@ if __name__ == "__main__":
     parser.add_argument('--categories', nargs='+', help='categories to be processed (default: sl_jge4_tge2)', default="sl_jge4_tge2")
     parser.add_argument('--boosted', action='store_true', help='Flag to include boosted objects', default=False)
     parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
-    parser.add_argument('--dir-for-fails', action='store', help='directory to store a list of files which could not be processed', type=str, default=os.getcwd())
     parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
     parser.add_argument('filenames', nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -488,12 +502,20 @@ if __name__ == "__main__":
             raise Exception("Must supply ROOT filename, but got {0}".format(fn))
 
     #results = Results()
-    results = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : Results() for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
-    pars    = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
+    WPs_DAK8 = [0.5845, 0.8695, 0.9795]
+    WPs_DDB  = [0.7, 0.86, 0.89, 0.91, 0.92]
+    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
+    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20,30,40] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
+    for p in pars.copy():
+        pars[f'{p}_1btag'] = pars[p] + (1,)
+        pars[p]            = pars[p] + (0,)
 
+    results  = {p : Results() for p in pars}
+
+    #results = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : Results() for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
+    #pars    = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
-      #try:
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
         #define our dataset
         structs = ["Jet", "Muon", "Electron"]#, "selectedPatJetsAK4PFPuppi"]
@@ -537,27 +559,18 @@ if __name__ == "__main__":
             print(dataset.printout())
 
         for p in pars:
-          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p]
+          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p]
         #### this is where the magic happens: run the main analysis
           results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
-      #except Exception as ex:
-      #  template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-      #  message = template.format(type(ex).__name__, ex.args)
-      #  print(message)
-      #  print(f'!!!!!!!!!!!!!!! failed on {files_in_batch}')
-      #  num_files = 0#len(glob.glob(os.path.join(args.dir_for_fails, 'failed*txt'))) #to avoid overwriting
-      #  num_files = '' if num_files==0 else f'_{num_files}'
-      #  with open(os.path.join(args.dir_for_fails, f'failedFiles_{args.sample}{num_files}.txt'), 'a+') as f:
-      #    f.write(files_in_batch[0]+'\n')
-      #  continue
 
     #print(results)
 
     #Save the results
     for r in results:
-      outdir = f'{args.outdir}_{r}'
+      outdir = args.outdir
       if args.version!='':
-        outdir = f'{outdir}_{args.version}'
+        outdir = os.path.join(outdir,args.version)
+      outdir = os.path.join(outdir,r)
       if not os.path.exists(outdir):
         os.makedirs(outdir)
 
