@@ -169,7 +169,8 @@ def TF_params(xparlist, xparnames=None, nrho=None, npt=None):
     else:
         rhodeg, ptdeg = nrho, npt
 
-    TF_cf_map = np.array(xparlist).reshape(rhodeg + 1, ptdeg + 1)
+    TF_cf_map = np.array(xparlist).reshape(ptdeg + 1, rhodeg + 1)
+    #TF_cf_map = np.array(xparlist).reshape(rhodeg + 1, ptdeg + 1)
 
     return TF_cf_map, rhodeg, ptdeg
 
@@ -313,7 +314,7 @@ if __name__ == '__main__':
             map(int, list(map(_get, list(map(methodcaller("split", 'rho_par'),
                                              par_names)))))))
 
-    parmap = np.array(hmp).reshape(rhodeg+1, ptdeg+1)
+    #parmap = np.array(hmp).reshape(rhodeg+1, ptdeg+1)
     if len(MCTF) > 0:
         MCTF_map = np.array(MCTF).reshape(rhodeg+1, ptdeg+1)\
 
