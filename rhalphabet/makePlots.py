@@ -116,8 +116,10 @@ def plotRhalphaShapes(rootFilePath, nptbins):
           'sigPlusBkg' : plot.getCurve(f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]')
         }
 
-        xmin = RooObj['data'].GetXaxis().GetXmin()+8
-        xmax = RooObj['data'].GetXaxis().GetXmax()-8
+        rmin = RooObj['data'].GetXaxis().GetXmin()
+        rmax = RooObj['data'].GetXaxis().GetXmax()
+        xmin = (rmax+rmin)/2 - (rmax-rmin)/2.4
+        xmax = (rmax+rmin)/2 + (rmax-rmin)/2.4
         RooObj['errs'].GetYaxis().SetTitle( f'Events / {RooObj["data"].getNominalBinWidth()} GeV' )
         #RooObj['errs'].GetYaxis().SetTitleOffset( 0.5 )
         #RooObj['errs'].GetYaxis().SetLabelSize(0.12)
@@ -149,7 +151,7 @@ def plotRhalphaShapes(rootFilePath, nptbins):
         pad2.SetGrid()
         pad2.SetTopMargin(0)
         pad2.SetBottomMargin(0.3)
-        tmpPad2= pad2.DrawFrame(90, 0.5, 170,1.5)
+        tmpPad2= pad2.DrawFrame(xmin, 0.5, xmax,1.5)
         tmpPad2.GetXaxis().SetTitle( 'softdrop mass [GeV]' )
         tmpPad2.GetYaxis().SetTitle( "Data/Bkg" )
         tmpPad2.GetYaxis().SetTitleOffset( 0.5 )
@@ -179,7 +181,7 @@ if __name__ == '__main__':
     sys.exit(0)
 
   plotRhalphaShapes(args.rootfile, args.nptbins)
-  #for f in glob('ttH_v04/*/shapes*root'):
+  #for f in glob('output/201*/v05/*/mc_msd100to150*/fitDiagnostics.root'):
   #  try:
   #    plotRhalphaShapes(f, args.nptbins)
   #  except:
