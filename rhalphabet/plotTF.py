@@ -136,7 +136,8 @@ def plotTFsmooth(TF, msd, pt, mask=None, MC=False, raw=False, rhodeg=2, ptdeg=2,
     import mplhep as hep
     hep.cms.cmslabel(loc=2, data=not raw, rlabel="", ax=ax)
     if out is not None:
-        fig.savefig('{}.png'.format(out))#, bbox_inches="tight")
+      for ext in ['png','pdf']:
+        fig.savefig(os.path.join(out,f'TF.{ext}'))#, bbox_inches="tight")
     else:
         return fig
 
@@ -249,11 +250,11 @@ if __name__ == '__main__':
                         help="fitDiagnostics file, example: RhalphabetResults/fitDiagnostics.root")
 
     parser.add_argument("-o", "--output-folder",
-                        default='plots',
+                        default=None,
                         dest='output_folder',
                         help="Folder to store plots - will be created ? doesn't exist.")
 
-    parser.add_argument("--year",
+    parser.add_argument("-y", "--year",
                         default="2017",
                         type=str,
                         help="year label")
@@ -263,6 +264,19 @@ if __name__ == '__main__':
     parser.add_argument('--msd_stop', default=170, type=int, help='stop of the mass range')
 
     args = parser.parse_args()
+
+    if not args.fit.endswith('.root'):
+      raise Exception(f'Must supply ROOT filename, but got {args.fit}')
+    if args.output_folder is None:
+      if not (os.path.sep in args.fit): #if the file is in the current directory
+        outdir = os.getcwd()
+      else:
+        outdir = os.path.join(*args.fit.split(os.path.sep)[:-1])
+      outdir = os.path.join(outdir,'plots')
+    else:
+      outdir = args.output_folder
+    if not os.path.exists(outdir):
+      os.makedirs(outdir)
 
     minPt = 250
     maxPt = 1500
@@ -307,8 +321,10 @@ if __name__ == '__main__':
     _values = hmp
     # TF Data
     plotTFsmooth(*TF_smooth_plot(*TF_params(_values, nrho=rhodeg, npt=ptdeg), minPt, maxPt, minMass, maxMass), MC=False,
-                 out=args.output_folder+'/TF_'+('Data' if args.isData else 'MC')+'_ptDeg'+str(ptdeg)+'rhoDeg'+str(rhodeg)+'_'+args.year, year=args.year,
+                 out=outdir,
+                 year=args.year,
                  label=('Data' if args.isData else 'MC')+' TF({},{})'.format(rhodeg, ptdeg))
+                 #out=args.output_folder+'/TF_'+('Data' if args.isData else 'MC')+'_ptDeg'+str(ptdeg)+'rhoDeg'+str(rhodeg)+'_'+args.year, year=args.year,
 
 #    # Effective TF (combination)  #### ALE: this is maybe needed later
 #    _tf1, _, _, _ = TF_smooth_plot(*TF_params(hmp, nrho=2, npt=2), minPt, maxPt, minMass, maxMass)
