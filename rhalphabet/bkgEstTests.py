@@ -2,6 +2,7 @@
 #### Modified version of https://github.com/DAZSLE/ZPrimePlusJet/blob/Hbb/fitting/PbbJet/limit.py
 #### Simple way to run it:
 #### - GoodnessOfFit: python bkgEstTests.py -M GoodnessOfFit -d ttHbb_combined.root -t 100 -a (or saturated or KS)
+#### - Bias: python ../../bkgEstTests.py -M Bias -d ../mc_msd100to150_msdbin5_pt2bin_polyDegs22/ttHbb_combined.root -t 100 --datacard-alt ../biasTest_mc_msd100to150_msdbin5_pt2bin_polyDegs22/ttHbb_combined.root  --seed 64832687 --rMin -30 --rMax 30 --toysFrequentist
 ######################################
 #!/usr/bin/env python
 import ROOT as r,sys,math,array,os
@@ -250,6 +251,7 @@ def goodnessVals(iFName1):
         lDiffs.append(lTree1.limit)
     return lDiffs
 
+################################################################
 def ftest(base,alt,ntoys,iLabel,options):
     if not options.justPlot:
         baseName = base.split('/')[-1].replace('.root','')
@@ -321,6 +323,8 @@ def goodness(base,ntoys,iLabel,options):
 
 ##############################################################
 def bias(base,alt,ntoys,mu,iLabel,options):
+    '''Generates pseudoexperiments based on the alternative function, and then fits each pseudoexperiment with the nominal function.'''
+
     toysOptString = ''
     if options.toysFreq:
         toysOptString='--toysFrequentist'
@@ -366,13 +370,11 @@ def bias(base,alt,ntoys,mu,iLabel,options):
         fitDiag_base += " %s "%(toysOptString)
 
         exec_me(fitDiag_base ,options.dryRun)
-        #exec_me('rm  higgsCombineTest.MaxLikelihoodFit.mH120.123456.root')
         exec_me('mv  fitDiagnostics%s.root %s/biastoys_%s_%s.root'%(iLabel, options.odir, iLabel, options.seed), options.dryRun)
     if options.dryRun: sys.exit()
-    #plotgaus("toys.root",mu,"pull"+iLabel)
     plotgaus("%s/biastoys_%s_%s.root"%(options.odir,iLabel,options.seed),mu,"pull"+iLabel+"_"+str(options.seed),options)
-    #plotgaus(glob.glob("%s/biastoys_%s_*.root"%(options.odir,iLabel)),mu,"pull"+iLabel+"_"+str(options.seed),options)
 
+##############################################################
 def fit(base,options):
     exec_me('combine -M MaxLikelihoodFit %s -v 2 --freezeParameters tqqeffSF,tqqnormSF --rMin=-20 --rMax=20 --saveNormalizations --plot --saveShapes --saveWithUncertainties --minimizerTolerance 0.001 --minimizerStrategy 2'%base)
     exec_me('mv mlfit.root %s/'%options.odir)
@@ -419,6 +421,7 @@ def generate(mass,toys):
         exec_me('chmod +x %s' % os.path.abspath(sub_file.name))
         exec_me('bsub -q 8nh -o out.%%J %s' % (os.path.abspath(sub_file.name)))
 
+###########################################################################
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option('-m','--mass'   ,action='store',type='int',dest='mass'   ,default=125, help='mass')
@@ -470,29 +473,6 @@ if __name__ == "__main__":
     r.gROOT.SetBatch()
     r.RooMsgService.instance().setGlobalKillBelow(r.RooFit.FATAL)
 
-    #setupMC('ZQQ_'+str(options.mass),options.mass,"mc")
-    #setup('ZQQ_'+str(options.mass),options.mass,"ralpha","base")
-    #os.chdir ('ZQQ_'+str(options.mass))
-    #generate(options.mass,options.toys)
-
-    #limit('combined.txt')
-    #goodness('card_ralpha.txt',options.toys,"goodness"+str(options.mass))
-    #bias('combined.txt','combined.txt',options.toys,options.sig,"fitbase"+str(options.mass))
-    #plotmass('card_ralpha.txt',options.mass)
-
-
-    #ftest('card_rhalphabet_r2p2.txt','card_rhalphabet_r3p2.txt',1000,'ftest_r2p2_v_r3p2')
-
-    ## nllBase=nllDiff("base1.root","base2.root",p1=11,p2=8)
-    ## nllToys=nllDiff("toys1.root","toys2.root",p1=11,p2=8)
-    ## lPass=0
-    ## for val in nllToys:
-    ##     print val,nllBase[0]
-    ##     if val < nllBase[0]:
-    ##         lPass+=1
-    ## print "ftest prob",float(lPass)/float(len(nllToys))
-    ## plotftest(nllToys,nllBase[0],float(lPass)/float(len(nllToys)),'ftest_r2p2_v_r3p2')
-
     if options.method=='GoodnessOfFit':
         iLabel= 'goodness_%s_%s'%(options.algo,options.datacard.split('/')[-1].replace('.root',''))
         goodness(options.datacard, options.toys, iLabel, options)
@@ -503,6 +483,7 @@ if __name__ == "__main__":
     elif options.method=='FTest':
         iLabel= 'ftest_%s_vs_%s'%(options.datacard.split('/')[-1].replace('.root',''),options.datacardAlt.split('/')[-1].replace('.root',''))
         ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
+
     elif options.method=='Bias':
         iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.NR1, options.NP1, options.pdf2, options.NR2, options.NP2,
                                               options.poi, options.r)
