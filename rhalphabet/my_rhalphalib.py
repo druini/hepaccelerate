@@ -46,7 +46,7 @@ def rebin(hist, rebin_factor):
     hist['contents'] = new_counts
 
 
-def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runBias=False
+def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runBias=False):
     dataOrBkg = 'data' if isData else 'background'
 
     throwPoisson = False
@@ -226,7 +226,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
     model.renderCombine(combineFolder)
     exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_combined.txt  --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=-1,1', folder=combineFolder)
 
-if __name__ == '__main__':s sin
+if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
   parser.add_argument('-f', '--runPrefit', action='store_true', help='Run prefit on MC.' )
