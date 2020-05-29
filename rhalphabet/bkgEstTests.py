@@ -3,6 +3,7 @@
 #### Simple way to run it:
 #### - GoodnessOfFit: python bkgEstTests.py -M GoodnessOfFit -d ttHbb_combined.root -t 100 -a (or saturated or KS)
 #### - Bias: python ../../bkgEstTests.py -M Bias -d ../mc_msd100to150_msdbin5_pt2bin_polyDegs22/ttHbb_combined.root -t 100 --datacard-alt ../biasTest_mc_msd100to150_msdbin5_pt2bin_polyDegs22/ttHbb_combined.root  --seed 64832687 --rMin -30 --rMax 30 --toysFrequentist
+#### - FTest: python ../../bkgEstTests.py -M FTest --datacard-alt ../mc_msd100to150_msdbin5_pt2bin_polyDegs22/ttHbb_combined.root -t 100 -d ttHbb_combined.root  --seed 424371915
 ######################################
 #!/usr/bin/env python
 import ROOT as r,sys,math,array,os
