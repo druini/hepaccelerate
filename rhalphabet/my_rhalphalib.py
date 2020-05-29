@@ -23,9 +23,9 @@ def exec_me(command, dryRun=False, folder=False):
 #ptbins = np.array([250,300,5000])
 #ptbins = np.array([250,300,450,5000])
 
-def load_from_json(sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs, ver):
-  filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2017/v05/'+ver+'/out_'+sample+'_merged.json'
-  #filepath = 'json_histos/out_'+sample+'_'+ver+'.json'
+def load_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs):
+  #filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2018/v05/'+ver+'/out_'+sample+'_merged.json'
+  filepath = os.path.join(indir, 'out_'+sample+'_merged.json')
   with open(filepath) as json_file:
     data = json.load(json_file)
     data = data['hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop)]
@@ -45,7 +45,8 @@ def rebin(hist, rebin_factor):
     hist['edges']    = new_bins
     hist['contents'] = new_counts
 
-def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,isData=True,runBias=False):
+
+def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runBias=False
     dataOrBkg = 'data' if isData else 'background'
 
     throwPoisson = False
@@ -91,8 +92,8 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
         ptnorm = 1
 #        failTempl = expo_sample(norm=ptnorm*1e5, scale=40, obs=msd)
 #        passTempl = expo_sample(norm=ptnorm*1e3, scale=40, obs=msd)
-        failTempl = load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Fail', rebin_factor, msd, ver)
-        passTempl = load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd, ver)
+        failTempl = load_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Fail', rebin_factor, msd)
+        passTempl = load_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
         failCh.setObservation(failTempl)
         passCh.setObservation(passTempl)
         bkgfail += failCh.getObservation().sum()
@@ -129,7 +130,7 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
                               )
         bkgfit_ws.add(bkgfit)
         if "pytest" not in sys.modules:
-             bkgfit_ws.writeToFile(os.path.join(str(tmpdir), 'ttHbb_bkgfit.root'))
+             bkgfit_ws.writeToFile(os.path.join(str(outdir), 'ttHbb_bkgfit.root'))
         if bkgfit.status() != 0:
             raise RuntimeError('Could not fit bkg')
 
@@ -155,8 +156,8 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
             model.addChannel(ch)
 
             templates = {
-                'signal'     : load_from_json('signal', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd, ver),
-                'background' : load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd, ver),
+                'signal'     : load_from_json(indir, 'signal', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd),
+                'background' : load_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd),
             }
             # some mock expectations
             templ = templates['signal']
@@ -217,15 +218,15 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
         #tqqpass.setParamEffect(tqqnormSF, 1*tqqnormSF)
         #tqqfail.setParamEffect(tqqnormSF, 1*tqqnormSF)
 
-    #with open(os.path.join(str(tmpdir), 'ttHbb.pkl'), "wb") as fout:       ### ALE: still dont understand why we need this
+    #with open(os.path.join(str(outdir), 'ttHbb.pkl'), "wb") as fout:       ### ALE: still dont understand why we need this
     #    pickle.dump(model, fout)
 
     pref = ('biasTest_' if runBias else '') + ('data' if isData else 'mc')
-    combineFolder = os.path.join(str(tmpdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1, polyDegPt,polyDegRho))
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1, polyDegPt,polyDegRho))
     model.renderCombine(combineFolder)
     exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_combined.txt  --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=-1,1', folder=combineFolder)
 
-if __name__ == '__main__':
+if __name__ == '__main__':s sin
   parser = argparse.ArgumentParser()
   parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
   parser.add_argument('-f', '--runPrefit', action='store_true', help='Run prefit on MC.' )
@@ -238,7 +239,10 @@ if __name__ == '__main__':
   parser.add_argument('--polyDegRho', default=2, type=int, help='degree of polynomial to fit rho')
   parser.add_argument('-r', '--rebin_factor', default=5, type=int, help='rebin factor for json histograms, default mass bin size is 1GeV')
   parser.add_argument('--nptbins', default=2, type=int, help='number of pt bins')
-  parser.add_argument('-v', '--version', help='version, in file names')
+  parser.add_argument('-y', '--year', default='2017', type=str, help='year to process, in file paths')
+  parser.add_argument('-v', '--version', default='v05', help='version, in file paths')
+  parser.add_argument('-s', '--selection', nargs='+', default=['met20_btagDDBvL_noMD07','met20_deepTagMD_bbvsLight05845','met20_deepTagMD_bbvsLight08695'], help='event selection, in file paths')
+  parser.add_argument('-j', '--jsonpath', default='/afs/cern.ch/work/d/druini/public/hepaccelerate/results', help='path to json files')
 
   try: args = parser.parse_args()
   except:
@@ -252,43 +256,45 @@ if __name__ == '__main__':
   elif args.nptbins==3:
     ptbins = np.array([250,300,450,5000])
   else:
-    print('invalid number of ptbins')
-    sys.exit(0)
+    raise Exception('invalid number of ptbins')
 
   msd_start    = args.msd_start
   msd_stop     = args.msd_stop
   polyDegPt    = args.polyDegPt
   polyDegRho   = args.polyDegRho
   rebin_factor = args.rebin_factor
-  ver          = args.version
 
-  folder = 'ttH_'+ver
-  if not os.path.exists(folder):
-      os.mkdir(folder)
+  for sel in args.selection:
+    indir = os.path.join(args.jsonpath, args.year, args.version, sel)
+    if not os.path.exists(indir):
+      raise Exception('invalid input path: %s'%indir)
+  
+    outdir = os.path.join('output', args.year, args.version, sel)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
 
-  if not (args.scanMassRange or args.scanPolyDeg):
-    if args.runBias: test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,args.isData,runBias=True)
-    test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,args.isData)
-  else:
-    pref = 'data' if args.isData else 'mc'
-    if args.scanMassRange:
-      for msd_start in range(70,105,rebin_factor):
-        for msd_stop in range(150,251,rebin_factor):
-          with open(os.path.join(folder,'scan_'+pref+'_fitRange_%dptbin_msdbin%dgev_polyDegs%d%d.txt'%(len(ptbins)-1, rebin_factor, polyDegPt,polyDegRho)),'a') as f:
-            try:
-              print('trying %d to %d'%(msd_start,msd_stop))
-              test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,args.isData)
-              f.write('msd range %d to %d worked!!\n' %(msd_start, msd_stop))
-            except:
-              f.write('msd range %d to %d failed\n' %(msd_start, msd_stop))
+    if not (args.scanMassRange or args.scanPolyDeg):
+      test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,args.isData,runBias=args.runBias)
+    else:
+      pref = 'data' if args.isData else 'mc'
+      if args.scanMassRange:
+        for msd_start in range(70,105,rebin_factor):
+          for msd_stop in range(150,251,rebin_factor):
+            with open(os.path.join(outdir,'scan_'+pref+'_fitRange_%dptbin_msdbin%dgev_polyDegs%d%d.txt'%(len(ptbins)-1, rebin_factor, polyDegPt,polyDegRho)),'a') as f:
+              try:
+                print('trying %d to %d'%(msd_start,msd_stop))
+                test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,args.isData)
+                f.write('msd range %d to %d worked!!\n' %(msd_start, msd_stop))
+              except:
+                f.write('msd range %d to %d failed\n' %(msd_start, msd_stop))
 
-    if args.scanPolyDeg:
-      for polyDegPt in range(0,5):
-        for polyDegRho in range(0,10):
-          with open(os.path.join(folder,'scan_'+pref+'_polyDeg_%dptbin_msdbin%dgev_fitRange%dto%d.txt'%(len(ptbins)-1, rebin_factor, msd_start, msd_stop)),'a') as f:
-            try:
-              print('trying ptdeg %d and rhodeg %d'%(polyDegPt,polyDegRho))
-              test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,args.isData)
-              f.write('polyDegPt %d and polyDegRho %d worked!!\n'%(polyDegPt,polyDegRho))
-            except:
-              f.write('polyDegPt %d and polyDegRho %d failed\n'%(polyDegPt,polyDegRho))
+      if args.scanPolyDeg:
+        for polyDegPt in range(0,5):
+          for polyDegRho in range(0,10):
+            with open(os.path.join(outdir,'scan_'+pref+'_polyDeg_%dptbin_msdbin%dgev_fitRange%dto%d.txt'%(len(ptbins)-1, rebin_factor, msd_start, msd_stop)),'a') as f:
+              try:
+                print('trying ptdeg %d and rhodeg %d'%(polyDegPt,polyDegRho))
+                test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,args.isData)
+                f.write('polyDegPt %d and polyDegRho %d worked!!\n'%(polyDegPt,polyDegRho))
+              except:
+                f.write('polyDegPt %d and polyDegRho %d failed\n'%(polyDegPt,polyDegRho))
