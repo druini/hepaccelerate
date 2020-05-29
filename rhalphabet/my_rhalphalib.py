@@ -9,6 +9,12 @@ import json
 rl.util.install_roofit_helpers()
 rl.ParametericSample.PreferRooParametricHist = False
 
+def exec_me(command, dryRun=False, folder=False):
+    print(command)
+    if not dryRun:
+        if folder: os.chdir(folder)
+        os.system(command)
+
 #ver          = 'v04'
 #msd_start    = 95
 #msd_stop     = 150
@@ -39,7 +45,7 @@ def rebin(hist, rebin_factor):
     hist['edges']    = new_bins
     hist['contents'] = new_counts
 
-def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,isData=True):
+def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,isData=True,runBias=False):
     dataOrBkg = 'data' if isData else 'background'
 
     throwPoisson = False
@@ -67,20 +73,20 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
     #import pdb
     #pdb.set_trace()
     rho_start = -6
-    rho_stop  = -1.6
+    rho_stop  = -1.2
     rhoscaled = (rhopts - rho_start) / (rho_stop - rho_start)
     validbins = (rhoscaled >= 0) & (rhoscaled <= 1)
     rhoscaled[~validbins] = 1  # we will mask these out later
 
-    # Build qcd MC pass+fail model and fit to polynomial
+    # Build bkg MC pass+fail model and fit to polynomial
     ### This model is for the prefit but helps to compute the ratio pass/fail
-    qcdmodel = rl.Model("qcdmodel")
-    qcdpass, qcdfail = 0., 0.
+    bkgmodel = rl.Model("bkgmodel")
+    bkgpass, bkgfail = 0., 0.
     for ptbin in range(npt):
         failCh = rl.Channel("ptbin%d%s" % (ptbin, 'fail'))
         passCh = rl.Channel("ptbin%d%s" % (ptbin, 'pass'))
-        qcdmodel.addChannel(failCh)
-        qcdmodel.addChannel(passCh)
+        bkgmodel.addChannel(failCh)
+        bkgmodel.addChannel(passCh)
         # mock template
         ptnorm = 1
 #        failTempl = expo_sample(norm=ptnorm*1e5, scale=40, obs=msd)
@@ -89,31 +95,31 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
         passTempl = load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd, ver)
         failCh.setObservation(failTempl)
         passCh.setObservation(passTempl)
-        qcdfail += failCh.getObservation().sum()
-        qcdpass += passCh.getObservation().sum()
+        bkgfail += failCh.getObservation().sum()
+        bkgpass += passCh.getObservation().sum()
 
-    qcdeff = qcdpass / qcdfail
+    bkgeff = bkgpass / bkgfail
     if args.runPrefit:
-        tf_MCtempl = rl.BernsteinPoly("tf_MCtempl", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-50, 50))
-        tf_MCtempl_params = qcdeff * tf_MCtempl(ptscaled, rhoscaled)
+        tf_MCtempl = rl.BernsteinPoly("tf_MCtempl", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-10, 10))
+        tf_MCtempl_params = bkgeff * tf_MCtempl(ptscaled, rhoscaled)
         for ptbin in range(npt):
-            failCh = qcdmodel['ptbin%dfail' % ptbin]
-            passCh = qcdmodel['ptbin%dpass' % ptbin]
+            failCh = bkgmodel['ptbin%dfail' % ptbin]
+            passCh = bkgmodel['ptbin%dpass' % ptbin]
             failObs = failCh.getObservation()
-            qcdparams = np.array([rl.IndependentParameter('qcdparam_ptbin%d_msdbin%d' % (ptbin, i), 0) for i in range(msd.nbins)])
+            bkgparams = np.array([rl.IndependentParameter('bkgparam_ptbin%d_msdbin%d' % (ptbin, i), 0) for i in range(msd.nbins)])
             sigmascale = 10.
-            scaledparams = failObs * (1 + sigmascale/np.maximum(1., np.sqrt(failObs)))**qcdparams
-            fail_qcd = rl.ParametericSample('ptbin%dfail_qcd' % ptbin, rl.Sample.BACKGROUND, msd, scaledparams)
-            failCh.addSample(fail_qcd)
-            pass_qcd = rl.TransferFactorSample('ptbin%dpass_qcd' % ptbin, rl.Sample.BACKGROUND, tf_MCtempl_params[ptbin, :], fail_qcd)
-            passCh.addSample(pass_qcd)
+            scaledparams = failObs * (1 + sigmascale/np.maximum(1., np.sqrt(failObs)))**bkgparams
+            fail_bkg = rl.ParametericSample('ptbin%dfail_bkg' % ptbin, rl.Sample.BACKGROUND, msd, scaledparams)
+            failCh.addSample(fail_bkg)
+            pass_bkg = rl.TransferFactorSample('ptbin%dpass_bkg' % ptbin, rl.Sample.BACKGROUND, tf_MCtempl_params[ptbin, :], fail_bkg)
+            passCh.addSample(pass_bkg)
 
             failCh.mask = validbins[ptbin]
             passCh.mask = validbins[ptbin]
 
-        qcdfit_ws = ROOT.RooWorkspace('qcdfit_ws')
-        simpdf, obs = qcdmodel.renderRoofit(qcdfit_ws)
-        qcdfit = simpdf.fitTo(obs,
+        bkgfit_ws = ROOT.RooWorkspace('bkgfit_ws')
+        simpdf, obs = bkgmodel.renderRoofit(bkgfit_ws)
+        bkgfit = simpdf.fitTo(obs,
                               ROOT.RooFit.Extended(True),
                               ROOT.RooFit.SumW2Error(True),
                               ROOT.RooFit.Strategy(2),
@@ -121,22 +127,22 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
                               ROOT.RooFit.Minimizer('Minuit2', 'migrad'),
                               ROOT.RooFit.PrintLevel(-1),
                               )
-        qcdfit_ws.add(qcdfit)
+        bkgfit_ws.add(bkgfit)
         if "pytest" not in sys.modules:
-             qcdfit_ws.writeToFile(os.path.join(str(tmpdir), 'ttHbb_qcdfit.root'))
-        if qcdfit.status() != 0:
-            raise RuntimeError('Could not fit qcd')
+             bkgfit_ws.writeToFile(os.path.join(str(tmpdir), 'ttHbb_bkgfit.root'))
+        if bkgfit.status() != 0:
+            raise RuntimeError('Could not fit bkg')
 
         param_names = [p.name for p in tf_MCtempl.parameters.reshape(-1)]
-        decoVector = rl.DecorrelatedNuisanceVector.fromRooFitResult(tf_MCtempl.name + '_deco', qcdfit, param_names)
+        decoVector = rl.DecorrelatedNuisanceVector.fromRooFitResult(tf_MCtempl.name + '_deco', bkgfit, param_names)
         tf_MCtempl.parameters = decoVector.correlated_params.reshape(tf_MCtempl.parameters.shape)
         tf_MCtempl_params_final = tf_MCtempl(ptscaled, rhoscaled)
 
     #### Actual transfer function for combine
-    tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-50, 50))
+    tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-10, 10), coefficient_transform=(np.exp if runBias else None))
     tf_dataResidual_params = tf_dataResidual(ptscaled, rhoscaled)
-    #tf_params = qcdeff * (tf_MCtempl_params_final * tf_dataResidual_params if args.runPrefit else tf_dataResidual_params)
-    tf_params = qcdeff * tf_dataResidual_params
+    #tf_params = bkgeff * (tf_MCtempl_params_final * tf_dataResidual_params if args.runPrefit else tf_dataResidual_params)
+    tf_params = bkgeff * tf_dataResidual_params
     if args.runPrefit:
         tf_params *= tf_MCtempl_params_final
 
@@ -165,15 +171,15 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
 #            # for jec we set lnN prior, shape will automatically be converted to norm systematic
 #            sample.setParamEffect(jec, jecup_ratio)
 #            sample.setParamEffect(massScale, msdUp, msdDn)
-#            sample.setParamEffect(lumi, 1.027)
+            sample.setParamEffect(lumi, 1.027)      ### for bias/ftest/GOF signal needs at least one unc.
 
             ch.addSample(sample)
 
             #import pdb
             #pdb.set_trace()
-            yields = sum(tpl[0] for tpl in templates.values())
-            data_obs = (yields, msd.binning, msd.name)
-            #data_obs = templates[dataOrBkg]
+            #yields = sum(tpl[0] for tpl in templates.values())
+            #data_obs = (yields, msd.binning, msd.name)
+            data_obs = templates['background']
             ch.setObservation(data_obs)
 
             # drop bins outside rho validity
@@ -190,18 +196,18 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
         failCh = model['ptbin%dFail' % ptbin]
         passCh = model['ptbin%dPass' % ptbin]
 
-        qcdparams = np.array([rl.IndependentParameter('qcdparam_ptbin%d_msdbin%d' % (ptbin, i), 0) for i in range(msd.nbins)])
-        initial_qcd = failCh.getObservation().astype(float)  # was integer, and numpy complained about subtracting float from it
+        bkgparams = np.array([rl.IndependentParameter('bkgparam_ptbin%d_msdbin%d' % (ptbin, i), 0) for i in range(msd.nbins)])
+        initial_bkg = failCh.getObservation().astype(float)  # was integer, and numpy complained about subtracting float from it
         for sample in failCh:
-            initial_qcd -= sample.getExpectation(nominal=True)
-        if np.any(initial_qcd < 0.):
-            raise ValueError("initial_qcd negative for some bins..", initial_qcd)
+            initial_bkg -= sample.getExpectation(nominal=True)
+        if np.any(initial_bkg < 0.):
+            raise ValueError("initial_bkg negative for some bins..", initial_bkg)
         sigmascale = 10  # to scale the deviation from initial
-        scaledparams = initial_qcd * (1 + sigmascale/np.maximum(1., np.sqrt(initial_qcd)))**qcdparams
-        fail_qcd = rl.ParametericSample('ptbin%dFail_qcd' % ptbin, rl.Sample.BACKGROUND, msd, scaledparams)
-        failCh.addSample(fail_qcd)
-        pass_qcd = rl.TransferFactorSample('ptbin%dPass_qcd' % ptbin, rl.Sample.BACKGROUND, tf_params[ptbin, :], fail_qcd)
-        passCh.addSample(pass_qcd)
+        scaledparams = initial_bkg * (1 + sigmascale/np.maximum(1., np.sqrt(initial_bkg)))**bkgparams
+        fail_bkg = rl.ParametericSample('ptbin%dFail_bkg' % ptbin, rl.Sample.BACKGROUND, msd, scaledparams)
+        failCh.addSample(fail_bkg)
+        pass_bkg = rl.TransferFactorSample('ptbin%dPass_bkg' % ptbin, rl.Sample.BACKGROUND, tf_params[ptbin, :], fail_bkg)
+        passCh.addSample(pass_bkg)
 
         #tqqpass = passCh['tqq']
         #tqqfail = failCh['tqq']
@@ -211,16 +217,19 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
         #tqqpass.setParamEffect(tqqnormSF, 1*tqqnormSF)
         #tqqfail.setParamEffect(tqqnormSF, 1*tqqnormSF)
 
-    with open(os.path.join(str(tmpdir), 'ttHbb.pkl'), "wb") as fout:
-        pickle.dump(model, fout)
+    #with open(os.path.join(str(tmpdir), 'ttHbb.pkl'), "wb") as fout:       ### ALE: still dont understand why we need this
+    #    pickle.dump(model, fout)
 
-    pref = 'data' if isData else 'mc'
-    model.renderCombine(os.path.join(str(tmpdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1, polyDegPt,polyDegRho)))
+    pref = ('biasTest_' if runBias else '') + ('data' if isData else 'mc')
+    combineFolder = os.path.join(str(tmpdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1, polyDegPt,polyDegRho))
+    model.renderCombine(combineFolder)
+    exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_combined.txt  --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=-1,1', folder=combineFolder)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
   parser.add_argument('-f', '--runPrefit', action='store_true', help='Run prefit on MC.' )
+  parser.add_argument('-b', '--runBias', action='store_true', help='Run prefit on MC.' )
   parser.add_argument('-smr', '--scanMassRange', action='store_true', default=False, help='option to scan mass range')
   parser.add_argument('-spd', '--scanPolyDeg', action='store_true', default=False, help='option to scan degree of polynomial')
   parser.add_argument('--msd_start', default=90, type=int, help='start of the mass range')
@@ -235,7 +244,7 @@ if __name__ == '__main__':
   except:
     parser.print_help()
     sys.exit(0)
-  
+
   if args.nptbins==1:
     ptbins = np.array([250,5000])
   elif args.nptbins==2:
@@ -258,6 +267,7 @@ if __name__ == '__main__':
       os.mkdir(folder)
 
   if not (args.scanMassRange or args.scanPolyDeg):
+    if args.runBias: test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,args.isData,runBias=True)
     test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,args.isData)
   else:
     pref = 'data' if args.isData else 'mc'
