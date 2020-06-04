@@ -23,8 +23,8 @@ def exec_me(command, dryRun=False, folder=False):
 #ptbins = np.array([250,300,5000])
 #ptbins = np.array([250,300,450,5000])
 
-def load_from_json(sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs, ver):
-  filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2017/v05/'+ver+'/out_'+sample+'_merged.json'
+def load_from_json(sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs, ver, year):
+  filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/'+year+'/v05/'+ver+'/out_'+sample+'_merged.json'
   #filepath = 'json_histos/out_'+sample+'_'+ver+'.json'
   with open(filepath) as json_file:
     data = json.load(json_file)
@@ -45,7 +45,7 @@ def rebin(hist, rebin_factor):
     hist['edges']    = new_bins
     hist['contents'] = new_counts
 
-def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,isData=True,runBias=False):
+def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,year,isData=True,runBias=False):
     dataOrBkg = 'data' if isData else 'background'
 
     throwPoisson = False
@@ -91,8 +91,8 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
         ptnorm = 1
 #        failTempl = expo_sample(norm=ptnorm*1e5, scale=40, obs=msd)
 #        passTempl = expo_sample(norm=ptnorm*1e3, scale=40, obs=msd)
-        failTempl = load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Fail', rebin_factor, msd, ver)
-        passTempl = load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd, ver)
+        failTempl = load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Fail', rebin_factor, msd, ver, year)
+        passTempl = load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd, ver, year)
         failCh.setObservation(failTempl)
         passCh.setObservation(passTempl)
         bkgfail += failCh.getObservation().sum()
@@ -155,8 +155,8 @@ def test_rhalphabet(tmpdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,
             model.addChannel(ch)
 
             templates = {
-                'signal'     : load_from_json('signal', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd, ver),
-                'background' : load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd, ver),
+                'signal'     : load_from_json('signal', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd, ver, year),
+                'background' : load_from_json(dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd, ver, year),
             }
             # some mock expectations
             templ = templates['signal']
@@ -239,6 +239,7 @@ if __name__ == '__main__':
   parser.add_argument('-r', '--rebin_factor', default=5, type=int, help='rebin factor for json histograms, default mass bin size is 1GeV')
   parser.add_argument('--nptbins', default=2, type=int, help='number of pt bins')
   parser.add_argument('-v', '--version', help='version, in file names')
+  parser.add_argument('-y', '--year', default='2017', help='Year of data')
 
   try: args = parser.parse_args()
   except:
@@ -261,14 +262,15 @@ if __name__ == '__main__':
   polyDegRho   = args.polyDegRho
   rebin_factor = args.rebin_factor
   ver          = args.version
+  year         = args.year
 
-  folder = 'ttH_'+ver
+  folder = 'ttH_'+ver+'_'+year
   if not os.path.exists(folder):
       os.mkdir(folder)
 
   if not (args.scanMassRange or args.scanPolyDeg):
-    if args.runBias: test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,args.isData,runBias=True)
-    test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,args.isData)
+    if args.runBias: test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,year,args.isData,runBias=True)
+    test_rhalphabet(folder,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,ver,year,args.isData)
   else:
     pref = 'data' if args.isData else 'mc'
     if args.scanMassRange:
