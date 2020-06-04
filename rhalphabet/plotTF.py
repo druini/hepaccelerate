@@ -324,7 +324,7 @@ if __name__ == '__main__':
     plotTFsmooth(*TF_smooth_plot(*TF_params(_values, nrho=rhodeg, npt=ptdeg), minPt, maxPt, minMass, maxMass), MC=False,
                  out=outdir,
                  year=args.year,
-                 label=('Data' if args.isData else 'MC')+' TF({},{})'.format(rhodeg, ptdeg))
+                 label=('Data' if args.isData else 'MC')+fr' TF, $\deg( p_\mathrm{{T}}, \rho ) = ({ptdeg},{rhodeg})$')
                  #out=args.output_folder+'/TF_'+('Data' if args.isData else 'MC')+'_ptDeg'+str(ptdeg)+'rhoDeg'+str(rhodeg)+'_'+args.year, year=args.year,
 
 #    # Effective TF (combination)  #### ALE: this is maybe needed later

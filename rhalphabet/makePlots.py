@@ -1,6 +1,7 @@
 import ROOT as rt
 import tdrstyle
 import sys, os, argparse
+#from ctypes import c_double as double # possible replacement for ROOT.Double
 from math import sqrt
 from glob import glob
 from pdb import set_trace
@@ -169,6 +170,7 @@ def plotRhalphaShapes(rootFilePath, nptbins):
 
         for ext in ['pdf','png']:
           can.SaveAs( os.path.join(outdir,f'{p}.{ext}') )
+        del can
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
