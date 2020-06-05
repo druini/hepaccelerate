@@ -306,14 +306,15 @@ def ftest(base,alt,ntoys,iLabel,options):
 def goodness(base,ntoys,iLabel,options):
     '''Run combine GoodnessOfFit. First quanfities GOF for the single data (or MC) experiment from the combine datacard. Then, throws pseudoexperiements based on the experiment of the datacard and finally quantifies GOF for each experiment. If justPlot option, creates nice plots of the test'''
 
+    combineLabelBase = base.split('/')[-2].replace('.root','').replace('/','_')
     if not options.justPlot:
         # --fixedSignalStrength %f  --freezeParameters tqqnormSF,tqqeffSF
-        exec_me('combine -M GoodnessOfFit %s  --rMax 20 --rMin -20 --algorithm %s -n %s --freezeParameters %s'% (base,options.algo,base.split('/')[-1].replace('.root',''),options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.root %s/goodbase.root'%(base.split('/')[-1].replace('.root',''),options.odir),options.dryRun)
-        exec_me('combine -M GenerateOnly %s --rMax 20 --rMin -20 --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s' % (base,ntoys,options.r,base.split('/')[-1].replace('.root',''),options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GenerateOnly.mH120.123456.root %s/'%(base.split('/')[-1].replace('.root',''),options.odir),options.dryRun)
-        exec_me('combine -M GoodnessOfFit %s --rMax 20 --rMin -20 -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.123456.root --algorithm %s -n %s --freezeParameters %s' % (base,ntoys,options.odir,base.split('/')[-1].replace('.root',''),options.algo,base.split('/')[-1].replace('.root',''),options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.123456.root %s/goodtoys.root'%(base.split('/')[-1].replace('.root',''),options.odir),options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s  --rMax 20 --rMin -20 --algorithm %s -n %s --freezeParameters %s'% (base,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root %s/goodbase.root'%(combineLabelBase,options.odir),options.dryRun)
+        exec_me('combine -M GenerateOnly %s --rMax 20 --rMin -20 --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s' % (base,ntoys,options.r,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('mv higgsCombine%s.GenerateOnly.mH120.123456.root %s/'%(combineLabelBase,options.odir),options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s --rMax 20 --rMin -20 -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.123456.root --algorithm %s -n %s --freezeParameters %s' % (base,ntoys,options.odir,combineLabelBase,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.123456.root %s/goodtoys.root'%(combineLabelBase,options.odir),options.dryRun)
     if options.dryRun: sys.exit()
     nllBase=goodnessVals('%s/goodbase.root'%options.odir)
     nllToys=goodnessVals('%s/goodtoys.root'%options.odir)
@@ -470,6 +471,10 @@ if __name__ == "__main__":
     parser.add_option('--dry-run',dest="dryRun",default=False,action='store_true',help="Just print out commands to run")
     parser.add_option('--toysFrequentist'       ,action='store_true',default = False,dest='toysFreq', metavar='toysFreq', help='generate frequentist toys')
     parser.add_option('--toysNoSystematics'       ,action='store_true',default = False,dest='toysNoSyst', metavar='toysNoSyst', help='generate toys with nominal systematics')
+    parser.add_option('-y', '--year', default='2017', type=str, help='year to process, in file paths')
+    parser.add_option('-v', '--version', default='v05', help='version, in file paths')
+    parser.add_option('--selection', default='met20_deepTagMD_bbvsLight08695', help='event selection, in file paths')
+    #parser.add_option('-s', '--selection', nargs='+', default=['met20_btagDDBvL_noMD07','met20_deepTagMD_bbvsLight05845','met20_deepTagMD_bbvsLight08695'], help='event selection, in file paths')
 
     (options,args) = parser.parse_args()
 
@@ -482,10 +487,10 @@ if __name__ == "__main__":
 
     if options.datacard is None:
       msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
-      options.datacard = 'output/2017/v05/met20_deepTagMD_bbvsLight08695/mc_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,options.pt1,options.rho1)+'/ttHbb_combined.root'
+      options.datacard = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,options.pt1,options.rho1)+'/ttHbb_combined.root'
     if options.datacardAlt is None:
       msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
-      options.datacardAlt = 'output/2017/v05/met20_deepTagMD_bbvsLight08695/mc_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,options.pt2,options.rho2)+'/ttHbb_combined.root'
+      options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,options.pt2,options.rho2)+'/ttHbb_combined.root'
 
     options.datacard    = os.path.abspath(options.datacard)
     options.datacardAlt = os.path.abspath(options.datacardAlt)

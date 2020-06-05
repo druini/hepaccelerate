@@ -268,7 +268,7 @@ if __name__ == '__main__':
     indir = os.path.join(args.jsonpath, args.year, args.version, sel)
     if not os.path.exists(indir):
       raise Exception('invalid input path: %s'%indir)
-  
+
     outdir = os.path.join('output', args.year, args.version, sel)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
