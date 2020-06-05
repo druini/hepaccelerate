@@ -255,19 +255,21 @@ def goodnessVals(iFName1):
 ################################################################
 def ftest(base,alt,ntoys,iLabel,options):
     if not options.justPlot:
-        baseName = base.split('/')[-1].replace('.root','')
-        altName  = alt.split('/')[-1].replace('.root','')
+        baseName = base.split('/')[-2] #base.split('/')[-1].replace('.root','')
+        altName  = alt.split('/')[-2] #alt.split('/')[-1].replace('.root','')
+        if baseName==altName:
+          altName += '_alt'
         os.chdir( options.odir )
         exec_me('combine -M GoodnessOfFit %s  --rMax %s --rMin %s --algorithm saturated -n %s --freezeParameters %s'% (base, options.rMax,options.rMin,baseName, options.freezeNuisances),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root base1.root'%baseName, options.dryRun)
+        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.root base1.root'%baseName, options.dryRun)
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s --algorithm saturated  -n %s --freezeParameters %s' % (alt,options.rMax,options.rMin,altName, options.freezeNuisances),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root base2.root'%altName, options.dryRun)
+        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.root base2.root'%altName, options.dryRun)
         exec_me('combine -M GenerateOnly %s --rMax %s --rMin %s --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s -s %s' % (base,options.rMax,options.rMin,ntoys,options.r,baseName,options.freezeNuisances,options.seed),options.dryRun)
         #exec_me('cp higgsCombine%s.GenerateOnly.mH120.%s.root %s/'%(baseName,options.seed,options.odir))
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.%s.root --algorithm saturated -n %s --freezeParameters %s -s %s' % (base,options.rMax,options.rMin,ntoys,options.odir,baseName,options.seed,baseName, options.freezeNuisances,options.seed),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root toys1_%s.root'%(baseName,options.seed,options.seed),options.dryRun)
+        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.%s.root toys1_%s.root'%(baseName,options.seed,options.seed),options.dryRun)
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.%s.root --algorithm saturated -n %s --freezeParameters %s -s %s' % (alt,options.rMax,options.rMin,ntoys,options.odir,baseName,options.seed,altName, options.freezeNuisances,options.seed),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root toys2_%s.root'%(altName,options.seed,options.seed),options.dryRun)
+        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.%s.root toys2_%s.root'%(altName,options.seed,options.seed),options.dryRun)
     if options.dryRun: sys.exit()
     nllBase=fStat("%s/base1.root"%options.odir,"%s/base2.root"%options.odir,options.p1,options.p2,options.n)
     if not options.justPlot:
