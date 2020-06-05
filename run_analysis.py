@@ -121,6 +121,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     leading_lepton_pt     = NUMPY_LIB.maximum(ha.get_in_offsets(muons.pt, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.pt, electrons.offsets, indices["leading"], mask_events, good_electrons))
     leading_lepton_eta    = NUMPY_LIB.maximum(ha.get_in_offsets(muons.eta, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.eta, electrons.offsets, indices["leading"], mask_events, good_electrons))
 
+    leading_fatjet_rho    = NUMPY_LIB.zeros_like(leading_lepton_pt)
+    leading_fatjet_rho[mask_events] = NUMPY_LIB.log( leading_fatjet_SDmass[mask_events]**2 / leading_fatjet_pt[mask_events]**2 )
+
     lead_lep_p4        = select_lepton_p4(muons, good_muons, electrons, good_electrons, indices["leading"], mask_events)
     leading_fatjet_phi = ha.get_in_offsets(fatjets.phi, fatjets.offsets, indices['leading'], mask_events, good_fatjets)
     deltaRHiggsLepton  = ha.calc_dr(lead_lep_p4.phi, lead_lep_p4.eta, leading_fatjet_phi, leading_fatjet_eta, mask_events)
@@ -185,6 +188,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
       'leadAK8JetEta'     : leading_fatjet_eta,
       'leadAK8JetHbb'     : leading_fatjet_Hbb,
       'leadAK8JetTau21'   : leading_fatjet_tau21,
+      'leadAK8JetRho'     : leading_fatjet_rho,
       'lepton_pt'         : leading_lepton_pt,
       'lepton_eta'        : leading_lepton_eta,
       'hadWPt'            : hadW.pt,
@@ -201,15 +205,18 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     if is_mc:
       vars_to_plot['pu_weights'] = pu_weights
 
-    var_name, var = 'leadAK8JetMass', leading_fatjet_SDmass
+    #var_name, var = 'leadAK8JetMass', leading_fatjet_SDmass
+    vars_split = ['leadAK8JetMass', 'leadAK8JetRho']
     ptbins = NUMPY_LIB.append( NUMPY_LIB.arange(250,600,50), [600, 1000, 5000] )
-    for ipt in range( len(ptbins)-1 ):
-      for m in ['2J2WdeltaR', '2J2WdeltaRTau21', '2J2WdeltaRTau21DDT']:
-        for r in ['Pass','Fail']:
-          mask_name = f'{m}_{r}'
-          mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
-          #ret[f'hist_leadAK8JetMass_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( leading_fatjet_SDmass[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
-          ret[f'hist_{var_name}_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( var[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
+    for var_name in vars_split:
+      var = vars_to_plot[var_name]
+      for ipt in range( len(ptbins)-1 ):
+        for m in ['2J2WdeltaR', '2J2WdeltaRTau21', '2J2WdeltaRTau21DDT']:
+          for r in ['Pass','Fail']:
+            mask_name = f'{m}_{r}'
+            mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
+            #ret[f'hist_leadAK8JetMass_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( leading_fatjet_SDmass[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
+            ret[f'hist_{var_name}_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( var[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
 
     weight_names = {'' : 'nominal', '_NoWeights' : 'ones'}
     for weight_name, w in weight_names.items():
@@ -503,9 +510,9 @@ if __name__ == "__main__":
 
     #results = Results()
     WPs_DAK8 = [0.5845, 0.8695, 0.9795]
-    WPs_DDB  = [0.7, 0.86, 0.89, 0.91, 0.92]
-    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
-    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20,30,40] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
+    WPs_DDB  = [0.7, 0.86]#, 0.89, 0.91, 0.92]
+    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
+    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
     for p in pars.copy():
         pars[f'{p}_1btag'] = pars[p] + (1,)
         pars[p]            = pars[p] + (0,)

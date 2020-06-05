@@ -178,7 +178,7 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
     tLeg.SetLineWidth(0)
     tLeg.SetFillStyle(0)
     tLeg.SetTextFont(42)
-    tLeg.AddEntry(lH,"toy data","lep")
+    tLeg.AddEntry(lH,"toy data (ntoys = %i)"%len(iToys),"lep")
     tLeg.AddEntry(lLine,"observed = %.1f"%iCentral,"l")
     tLeg.AddEntry(lH_cut,"p-value = %.2f"%(1-prob),"f")
     if options.method=='FTest':
@@ -209,7 +209,7 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
 
 
     lCan.SaveAs(options.odir+'/'+iLabel+".png")
-    #lCan.SaveAs(options.odir+'/'+iLabel+".pdf")
+    lCan.SaveAs(options.odir+'/'+iLabel+".pdf")
     #lCan.SaveAs(options.odir+'/'+iLabel+".C")
     #end()
 
@@ -257,24 +257,25 @@ def ftest(base,alt,ntoys,iLabel,options):
     if not options.justPlot:
         baseName = base.split('/')[-1].replace('.root','')
         altName  = alt.split('/')[-1].replace('.root','')
+        os.chdir( options.odir )
         exec_me('combine -M GoodnessOfFit %s  --rMax %s --rMin %s --algorithm saturated -n %s --freezeParameters %s'% (base, options.rMax,options.rMin,baseName, options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.root %s/base1.root'%(baseName,options.odir),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root base1.root'%baseName, options.dryRun)
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s --algorithm saturated  -n %s --freezeParameters %s' % (alt,options.rMax,options.rMin,altName, options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.root %s/base2.root'%(altName,options.odir),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root base2.root'%altName, options.dryRun)
         exec_me('combine -M GenerateOnly %s --rMax %s --rMin %s --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s -s %s' % (base,options.rMax,options.rMin,ntoys,options.r,baseName,options.freezeNuisances,options.seed),options.dryRun)
-        exec_me('cp higgsCombine%s.GenerateOnly.mH120.%s.root %s/'%(baseName,options.seed,options.odir))
+        #exec_me('cp higgsCombine%s.GenerateOnly.mH120.%s.root %s/'%(baseName,options.seed,options.odir))
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.%s.root --algorithm saturated -n %s --freezeParameters %s -s %s' % (base,options.rMax,options.rMin,ntoys,options.odir,baseName,options.seed,baseName, options.freezeNuisances,options.seed),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.%s.root %s/toys1_%s.root'%(baseName,options.seed,options.odir,options.seed),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root toys1_%s.root'%(baseName,options.seed,options.seed),options.dryRun)
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.%s.root --algorithm saturated -n %s --freezeParameters %s -s %s' % (alt,options.rMax,options.rMin,ntoys,options.odir,baseName,options.seed,altName, options.freezeNuisances,options.seed),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.%s.root %s/toys2_%s.root'%(altName,options.seed,options.odir,options.seed),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root toys2_%s.root'%(altName,options.seed,options.seed),options.dryRun)
     if options.dryRun: sys.exit()
     nllBase=fStat("%s/base1.root"%options.odir,"%s/base2.root"%options.odir,options.p1,options.p2,options.n)
     if not options.justPlot:
         print "Using these toys input %s/toys1_%s.root and %s/toys2_%s.root"%(options.odir,options.seed,options.odir,options.seed)
         nllToys=fStat("%s/toys1_%s.root"%(options.odir,options.seed),"%s/toys2_%s.root"%(options.odir,options.seed),options.p1,options.p2,options.n)
     else:
-        nToys1 = len(glob.glob("%s/toys1_*.root"%(options.odir)))
-        nToys2 = len(glob.glob("%s/toys2_*.root"%(options.odir)))
+        nToys1 = len(glob.glob(os.path.join(options.odir,"toys1_*.root")))
+        nToys2 = len(glob.glob(os.path.join(options.odir,"toys2_*.root")))
         if nToys1==nToys2:
             print "Found %s toy files"%nToys1
             nllToys=[]
@@ -303,14 +304,15 @@ def ftest(base,alt,ntoys,iLabel,options):
 def goodness(base,ntoys,iLabel,options):
     '''Run combine GoodnessOfFit. First quanfities GOF for the single data (or MC) experiment from the combine datacard. Then, throws pseudoexperiements based on the experiment of the datacard and finally quantifies GOF for each experiment. If justPlot option, creates nice plots of the test'''
 
+    combineLabelBase = base.split('/')[-2].replace('.root','').replace('/','_')
     if not options.justPlot:
         # --fixedSignalStrength %f  --freezeParameters tqqnormSF,tqqeffSF
-        exec_me('combine -M GoodnessOfFit %s  --rMax 20 --rMin -20 --algorithm %s -n %s --freezeParameters %s'% (base,options.algo,base.split('/')[-1].replace('.root',''),options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.root %s/goodbase.root'%(base.split('/')[-1].replace('.root',''),options.odir),options.dryRun)
-        exec_me('combine -M GenerateOnly %s --rMax 20 --rMin -20 --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s' % (base,ntoys,options.r,base.split('/')[-1].replace('.root',''),options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GenerateOnly.mH120.123456.root %s/'%(base.split('/')[-1].replace('.root',''),options.odir),options.dryRun)
-        exec_me('combine -M GoodnessOfFit %s --rMax 20 --rMin -20 -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.123456.root --algorithm %s -n %s --freezeParameters %s' % (base,ntoys,options.odir,base.split('/')[-1].replace('.root',''),options.algo,base.split('/')[-1].replace('.root',''),options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.123456.root %s/goodtoys.root'%(base.split('/')[-1].replace('.root',''),options.odir),options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s  --rMax 20 --rMin -20 --algorithm %s -n %s --freezeParameters %s'% (base,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root %s/goodbase.root'%(combineLabelBase,options.odir),options.dryRun)
+        exec_me('combine -M GenerateOnly %s --rMax 20 --rMin -20 --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s' % (base,ntoys,options.r,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('mv higgsCombine%s.GenerateOnly.mH120.123456.root %s/'%(combineLabelBase,options.odir),options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s --rMax 20 --rMin -20 -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.123456.root --algorithm %s -n %s --freezeParameters %s' % (base,ntoys,options.odir,combineLabelBase,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.123456.root %s/goodtoys.root'%(combineLabelBase,options.odir),options.dryRun)
     if options.dryRun: sys.exit()
     nllBase=goodnessVals('%s/goodbase.root'%options.odir)
     nllToys=goodnessVals('%s/goodtoys.root'%options.odir)
@@ -426,20 +428,28 @@ def generate(mass,toys):
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option('-m','--mass'   ,action='store',type='int',dest='mass'   ,default=125, help='mass')
-    parser.add_option('-n','--n' ,action='store',type='int',dest='n'   ,default=5*20, help='number of bins')
-    parser.add_option('--p1' ,action='store',type='int',dest='p1'   ,default=9, help='number of parameters for default datacard (p1 > p2)')
-    parser.add_option('--p2' ,action='store',type='int',dest='p2'   ,default=12, help='number of parameters for alternative datacard (p2 > p1)')
-    parser.add_option('-t','--toys'   ,action='store',type='int',dest='toys'   ,default=200, help='number of toys')
+    parser.add_option('-n','--n' ,action='store',type='int',dest='n'   ,default=None, help='number of bins')
+    parser.add_option('--p1' ,action='store',type='int',dest='p1'   ,default=None, help='number of parameters for default datacard (p1 > p2)')
+    parser.add_option('--p2' ,action='store',type='int',dest='p2'   ,default=None, help='number of parameters for alternative datacard (p2 > p1)')
+    parser.add_option('--msd_start', default=100, type=int, help='start of the mass range')
+    parser.add_option('--msd_stop', default=150, type=int, help='stop of the mass range')
+    parser.add_option('--nmsdbins', default=10, type=int, help='number of mass bins')
+    parser.add_option('--nptbins', default=2, type=int, help='number of pt bins')
+    parser.add_option('--pt1', default=1, type=int, help='degree in pt for default datacard')
+    parser.add_option('--rho1', default=1, type=int, help='degree in rho for default datacard')
+    parser.add_option('--pt2', default=1, type=int, help='degree in pt for alternative datacard')
+    parser.add_option('--rho2', default=1, type=int, help='degree in rho for alternative datacard')
+    parser.add_option('-t','--toys'   ,action='store',type='int',dest='toys'   ,default=300, help='number of toys')
     parser.add_option('-s','--seed'   ,action='store',type='int',dest='seed'   ,default=-1, help='random seed')
     parser.add_option('--sig'    ,action='store',type='int',dest='sig'    ,default=1 ,help='sig')
-    parser.add_option('-d','--datacard'   ,action='store',type='string',dest='datacard'   ,default='card_rhalphabet.txt', help='datacard name')
-    parser.add_option('--datacard-alt'   ,action='store',type='string',dest='datacardAlt'   ,default='card_rhalphabet_alt.txt', help='alternative datacard name')
+    parser.add_option('-d','--datacard'   ,action='store',type='string',dest='datacard'   ,default=None, help='datacard name')
+    parser.add_option('--datacard-alt'   ,action='store',type='string',dest='datacardAlt'   ,default=None, help='alternative datacard name')
     parser.add_option('--poi'   ,action='store',type='string',dest='poi'   ,default='r', help='poi')
     parser.add_option('-M','--method'   ,dest='method'   ,default='GoodnessOfFit',
                       choices=['GoodnessOfFit','FTest','Asymptotic','Bias','MaxLikelihoodFit'],help='combine method to use')
     parser.add_option('-a','--algo'   ,dest='algo'   ,default='saturated',
                       choices=['saturated','KS'],help='GOF algo  to use')
-    parser.add_option('-o','--odir', dest='odir', default = 'plots/',help='directory to write plots and output toys', metavar='odir')
+    parser.add_option('-o','--odir', dest='odir', default=None ,help='directory to write plots and output toys', metavar='odir')
     parser.add_option('--just-plot', action='store_true', dest='justPlot', default=False, help='just plot')
     parser.add_option('--data', action='store_true', dest='isData', default=False, help='is data')
     parser.add_option('-l','--lumi'   ,action='store',type='float',dest='lumi'   ,default=36.4, help='lumi')
@@ -459,9 +469,32 @@ if __name__ == "__main__":
     parser.add_option('--dry-run',dest="dryRun",default=False,action='store_true',help="Just print out commands to run")
     parser.add_option('--toysFrequentist'       ,action='store_true',default = False,dest='toysFreq', metavar='toysFreq', help='generate frequentist toys')
     parser.add_option('--toysNoSystematics'       ,action='store_true',default = False,dest='toysNoSyst', metavar='toysNoSyst', help='generate toys with nominal systematics')
+    parser.add_option('-y', '--year', default='2017', type=str, help='year to process, in file paths')
+    parser.add_option('-v', '--version', default='v05', help='version, in file paths')
+    parser.add_option('--selection', default='met20_deepTagMD_bbvsLight08695', help='event selection, in file paths')
+    #parser.add_option('-s', '--selection', nargs='+', default=['met20_btagDDBvL_noMD07','met20_deepTagMD_bbvsLight05845','met20_deepTagMD_bbvsLight08695'], help='event selection, in file paths')
 
     (options,args) = parser.parse_args()
 
+    if options.n is None:
+      options.n = options.nptbins*options.nmsdbins
+    if options.p1 is None:
+      options.p1 = (options.pt1+1)*(options.rho1+1)
+    if options.p2 is None:
+      options.p2 = (options.pt2+1)*(options.rho2+1)
+
+    if options.datacard is None:
+      msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
+      options.datacard = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,options.pt1,options.rho1)+'/ttHbb_combined.root'
+    if options.datacardAlt is None:
+      msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
+      options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,options.pt2,options.rho2)+'/ttHbb_combined.root'
+
+    options.datacard    = os.path.abspath(options.datacard)
+    options.datacardAlt = os.path.abspath(options.datacardAlt)
+
+    if options.odir is None:
+      options.odir = os.path.join( os.path.dirname(options.datacard),'bkgEstTests' )
     if not os.path.exists(options.odir): os.makedirs(options.odir)
 
     import tdrstyle
@@ -482,7 +515,10 @@ if __name__ == "__main__":
         fit(options.datacard,options)
 
     elif options.method=='FTest':
-        iLabel= 'ftest_%s_vs_%s'%(options.datacard.split('/')[-1].replace('.root',''),options.datacardAlt.split('/')[-1].replace('.root',''))
+        ptrho_base = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
+        ptrho_alt  = os.path.dirname(os.path.abspath(options.datacardAlt)).split('polyDegs')[1]
+        iLabel= 'ftest_ptrho%s_vs_ptrho%s'%(ptrho_base, ptrho_alt)
+        #iLabel= 'ftest_%s_vs_%s'%(options.datacard.split('/')[-1].replace('.root',''),options.datacardAlt.split('/')[-1].replace('.root',''))
         ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
 
     elif options.method=='Bias':
