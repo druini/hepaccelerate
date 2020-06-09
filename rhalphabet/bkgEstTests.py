@@ -318,8 +318,8 @@ def goodness(base,ntoys,iLabel,options):
         exec_me('combine -M GoodnessOfFit %s --rMax 20 --rMin -20 -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.123456.root --algorithm %s -n %s --freezeParameters %s' % (base,ntoys,options.odir,combineLabelBase,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
         exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.123456.root %s/goodtoys_%s.root'%(combineLabelBase,options.odir,combineLabelBase),options.dryRun)
     if options.dryRun: sys.exit()
-    nllBase=goodnessVals('%s/goodbase.root'%options.odir)
-    nllToys=goodnessVals('%s/goodtoys.root'%options.odir)
+    nllBase=goodnessVals('%s/goodbase_%s.root'%(options.odir,combineLabelBase))
+    nllToys=goodnessVals('%s/goodtoys_%s.root'%(options.odir,combineLabelBase))
     lPass=0
     for val in nllToys:
         if nllBase[0] > val:
@@ -513,7 +513,8 @@ if __name__ == "__main__":
     r.RooMsgService.instance().setGlobalKillBelow(r.RooFit.FATAL)
 
     if options.method=='GoodnessOfFit':
-        iLabel= 'goodness_%s_%s'%(options.algo,options.datacard.split('/')[-1].replace('.root',''))
+        ptrho = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
+        iLabel= 'goodness_%s_%s_ptrho%s'%(options.algo,options.datacard.split('/')[-1].replace('.root',''),ptrho)
         goodness(options.datacard, options.toys, iLabel, options)
 
     elif options.method=='MaxLikelihoodFit':
