@@ -185,6 +185,7 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
         #tLeg.AddEntry(fdist,"f-dist fit, ndf = (%.1f #pm %.1f, %.1f #pm %.1f) "%(fdist.GetParameter(1),fdist.GetParError(1),fdist.GetParameter(2),fdist.GetParError(2)),"l")
         tLeg.AddEntry(fdist,"F-dist, ndf = (%.0f, %.0f) "%(fdist.GetParameter(1),fdist.GetParameter(2)),"l")
     elif options.method=='GoodnessOfFit' and options.algo=='saturated':
+        #tLeg.AddEntry(chi2_func,"#chi^{2} fit, #chi^{2}/ndf = %.1f"%(iCentral/chi2_func.GetParameter(1)),"l")
         tLeg.AddEntry(chi2_func,"#chi^{2} fit, ndf = %.1f #pm %.1f"%(chi2_func.GetParameter(1),chi2_func.GetParError(1)),"l")
 
     tLeg.Draw("same")
@@ -261,35 +262,35 @@ def ftest(base,alt,ntoys,iLabel,options):
           altName += '_alt'
         os.chdir( options.odir )
         exec_me('combine -M GoodnessOfFit %s  --rMax %s --rMin %s --algorithm saturated -n %s --freezeParameters %s'% (base, options.rMax,options.rMin,baseName, options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.root base1.root'%baseName, options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root base_%s.root'%(baseName,baseName), options.dryRun)
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s --algorithm saturated  -n %s --freezeParameters %s' % (alt,options.rMax,options.rMin,altName, options.freezeNuisances),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.root base2.root'%altName, options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root base_%s.root'%(altName,altName), options.dryRun)
         exec_me('combine -M GenerateOnly %s --rMax %s --rMin %s --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s -s %s' % (base,options.rMax,options.rMin,ntoys,options.r,baseName,options.freezeNuisances,options.seed),options.dryRun)
-        #exec_me('cp higgsCombine%s.GenerateOnly.mH120.%s.root %s/'%(baseName,options.seed,options.odir))
+        #exec_me('mv higgsCombine%s.GenerateOnly.mH120.%s.root %s/'%(baseName,options.seed,options.odir))
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.%s.root --algorithm saturated -n %s --freezeParameters %s -s %s' % (base,options.rMax,options.rMin,ntoys,options.odir,baseName,options.seed,baseName, options.freezeNuisances,options.seed),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.%s.root toys1_%s.root'%(baseName,options.seed,options.seed),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root toys_%s_%s.root'%(baseName,options.seed,baseName,options.seed),options.dryRun)
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.%s.root --algorithm saturated -n %s --freezeParameters %s -s %s' % (alt,options.rMax,options.rMin,ntoys,options.odir,baseName,options.seed,altName, options.freezeNuisances,options.seed),options.dryRun)
-        exec_me('cp higgsCombine%s.GoodnessOfFit.mH120.%s.root toys2_%s.root'%(altName,options.seed,options.seed),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root toys_%s_%s.root'%(altName,options.seed,altName,options.seed),options.dryRun)
     if options.dryRun: sys.exit()
-    nllBase=fStat("%s/base1.root"%options.odir,"%s/base2.root"%options.odir,options.p1,options.p2,options.n)
-    if not options.justPlot:
-        print "Using these toys input %s/toys1_%s.root and %s/toys2_%s.root"%(options.odir,options.seed,options.odir,options.seed)
-        nllToys=fStat("%s/toys1_%s.root"%(options.odir,options.seed),"%s/toys2_%s.root"%(options.odir,options.seed),options.p1,options.p2,options.n)
-    else:
-        nToys1 = len(glob.glob(os.path.join(options.odir,"toys1_*.root")))
-        nToys2 = len(glob.glob(os.path.join(options.odir,"toys2_*.root")))
-        if nToys1==nToys2:
-            print "Found %s toy files"%nToys1
-            nllToys=[]
-            for i in range(0,nToys1):
-                if not os.path.exists("%s/toys1_%s.root"%(options.odir,i)):
-                    print "cannot find job %i, skipping it"%i
-                else:
-                    print "="*20 +" job %i "%i+"="*20
-                    nllToys += (fStat("%s/toys1_%s.root"%(options.odir,i),"%s/toys2_%s.root"%(options.odir,i),options.p1,options.p2,options.n))
-        else:
-            print "Using these toys input %s/toys1.root and %s/toys2.root"%(options.odir,options.odir)
-            nllToys=fStat("%s/toys1.root"%(options.odir),"%s/toys2.root"%(options.odir),options.p1,options.p2,options.n)
+    nllBase=fStat("%s/base_%s.root"%(options.odir,baseName),"%s/base_%s.root"%(options.odir,altName),options.p1,options.p2,options.n)
+#    if not options.justPlot:
+    print "Using these toys input %s/toys_%s_%s.root and %s/toys_%s_%s.root"%(options.odir,baseName,options.seed,options.odir,altName,options.seed)
+    nllToys=fStat("%s/toys_%s_%s.root"%(options.odir,baseName,options.seed),"%s/toys_%s_%s.root"%(options.odir,altName,options.seed),options.p1,options.p2,options.n)
+#    else:
+#        nToys1 = len(glob.glob(os.path.join(options.odir,"toys1_*.root")))
+#        nToys2 = len(glob.glob(os.path.join(options.odir,"toys2_*.root")))
+#        if nToys1==nToys2:
+#            print "Found %s toy files"%nToys1
+#            nllToys=[]
+#            for i in range(0,nToys1):
+#                if not os.path.exists("%s/toys1_%s.root"%(options.odir,i)):
+#                    print "cannot find job %i, skipping it"%i
+#                else:
+#                    print "="*20 +" job %i "%i+"="*20
+#                    nllToys += (fStat("%s/toys1_%s.root"%(options.odir,i),"%s/toys2_%s.root"%(options.odir,i),options.p1,options.p2,options.n))
+#        else:
+#            print "Using these toys input %s/toys1.root and %s/toys2.root"%(options.odir,options.odir)
+#            nllToys=fStat("%s/toys1.root"%(options.odir),"%s/toys2.root"%(options.odir),options.p1,options.p2,options.n)
     lPass=0
     for val in nllToys:
         #print val,nllBase[0]
@@ -308,13 +309,14 @@ def goodness(base,ntoys,iLabel,options):
 
     combineLabelBase = base.split('/')[-2].replace('.root','').replace('/','_')
     if not options.justPlot:
+        os.chdir( options.odir )
         # --fixedSignalStrength %f  --freezeParameters tqqnormSF,tqqeffSF
         exec_me('combine -M GoodnessOfFit %s  --rMax 20 --rMin -20 --algorithm %s -n %s --freezeParameters %s'% (base,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root %s/goodbase.root'%(combineLabelBase,options.odir),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root %s/goodbase_%s.root'%(combineLabelBase,options.odir,combineLabelBase),options.dryRun)
         exec_me('combine -M GenerateOnly %s --rMax 20 --rMin -20 --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s' % (base,ntoys,options.r,combineLabelBase,options.freezeNuisances),options.dryRun)
-        exec_me('mv higgsCombine%s.GenerateOnly.mH120.123456.root %s/'%(combineLabelBase,options.odir),options.dryRun)
+        #exec_me('mv higgsCombine%s.GenerateOnly.mH120.123456.root %s/'%(combineLabelBase,options.odir),options.dryRun)
         exec_me('combine -M GoodnessOfFit %s --rMax 20 --rMin -20 -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.123456.root --algorithm %s -n %s --freezeParameters %s' % (base,ntoys,options.odir,combineLabelBase,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.123456.root %s/goodtoys.root'%(combineLabelBase,options.odir),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.123456.root %s/goodtoys_%s.root'%(combineLabelBase,options.odir,combineLabelBase),options.dryRun)
     if options.dryRun: sys.exit()
     nllBase=goodnessVals('%s/goodbase.root'%options.odir)
     nllToys=goodnessVals('%s/goodtoys.root'%options.odir)
@@ -497,6 +499,7 @@ if __name__ == "__main__":
 
     if options.odir is None:
       options.odir = os.path.join( os.path.dirname(options.datacard),'bkgEstTests' )
+    options.odir = os.path.abspath(options.odir)
     if not os.path.exists(options.odir): os.makedirs(options.odir)
 
     import tdrstyle
