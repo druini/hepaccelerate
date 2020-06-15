@@ -3,6 +3,7 @@ import tdrstyle
 import sys, os, argparse
 #from ctypes import c_double as double # possible replacement for ROOT.Double
 from math import sqrt
+import numpy as np
 from glob import glob
 from pdb import set_trace
 
@@ -14,7 +15,7 @@ rt.gStyle.SetOptStat(0)
 rt.tdrStyle.SetPadLeftMargin(0.15)
 rt.tdrStyle.SetPadRightMargin(0.05)
 
-def TH1fromRooObj(RooObj, errorBand=None):
+def TH1fromRooObj(RooObj, errorBand=None, returnHistArray=False):
   if type(RooObj) == rt.RooHist:
     bins = range(RooObj.GetN())
   elif type(RooObj) == rt.RooCurve:
@@ -27,6 +28,8 @@ def TH1fromRooObj(RooObj, errorBand=None):
     RooObj.GetPoint(b, *hist[n])
   binWidth = round(hist[1][0] - hist[0][0])
   nbins    = len(bins)
+
+  if returnHistArray: return np.array(hist)
 
   if errorBand is None:
     err = [sqrt(v[1]) for v in hist]
@@ -172,6 +175,97 @@ def plotRhalphaShapes(rootFilePath, nptbins):
           can.SaveAs( os.path.join(outdir,f'{p}.{ext}') )
         del can
 
+def plotTF(rootFilePath, nptbins): 
+  if not rootFilePath.endswith(".root"):
+    raise Exception(f'Must supply ROOT filename, but got {rootFilePath}')
+  if not (os.path.sep in rootFilePath): #if the file is in the current directory
+    outdir = os.getcwd()
+  else:
+    outdir = os.path.join(*rootFilePath.split(os.path.sep)[:-1])
+  outdir = os.path.join(outdir,'plots')
+  if not os.path.exists(outdir):
+    os.mkdir(outdir)
+
+  import matplotlib.pyplot as plt
+  import mplhep as hep
+  plt.style.use([hep.style.ROOT, {'font.size': 24}])
+  plt.switch_backend('agg')
+  rootfile = rt.TFile(rootFilePath)
+  ptdeg  = rootFilePath.split('polyDegs')[1][0]
+  rhodeg = rootFilePath.split('polyDegs')[1][1]
+  tf = []
+  for ibin in range(2):#[1,0]:
+    msd_hist = {}
+    for region in ['Pass','Fail']:
+      SorB = 's'
+      p = f'ptbin{ibin}{region}_msd_fit_{SorB}'
+      b_suffix = '_model_bonly__' if SorB=='b' else ''
+      hist_name = f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]'
+      msd_hist[region] = TH1fromRooObj( rootfile.Get(p).getCurve(hist_name), returnHistArray=True )
+    tf.append(msd_hist['Pass'][:,1]/msd_hist['Fail'][:,1])
+  tf = np.array(tf)
+
+  msdbins  = np.round(msd_hist['Pass'][:,0])
+  msdbins  = np.append(msdbins, msdbins[-1]+np.diff(msdbins)[0])
+  msdsampl = msdbins[:-1] + 0.5*np.diff(msdbins)
+  ptbins   = np.array([250,300,2000])
+  ptsampl  = ptbins[:-1] + 0.3*np.diff(ptbins)
+  sampling = np.meshgrid(msdsampl, ptsampl)
+  rho = 2*np.log(sampling[0]/sampling[1])
+  mask = (rho>-1.2) | (rho<-6)
+  fig, ax = plt.subplots()
+  ptbins[-1] = 400
+  vmin = np.floor(100*min(tf[~mask]))/100
+  vmax = np.ceil(100*max(tf[~mask]))/100
+  hist2d = hep.hist2dplot(tf.T, msdbins, ptbins, vmin=vmin, vmax=vmax, cmap='inferno', ax=ax)
+  for ibin in range(len(ptbins)-1):
+    pt = ptbins[ibin]
+    ptnext = ptbins[ibin+1]
+    ax.fill_between(msdbins, np.full_like(msdbins,pt), np.full_like(msdbins,ptnext), where=np.append(mask[ibin],True), facecolor='w', edgecolor='k', linewidth=0, hatch='xx')
+  ax.set_title(fr'MC TF, $\deg( p_\mathrm{{T}}, \rho ) = ({ptdeg},{rhodeg})$', pad=9, fontsize=22, loc='left')
+  ax.set_title('2017',pad=9, fontsize=22, loc='right')
+  ax.set_xlabel(r'Jet $\mathrm{m_{SD}}$ [GeV]', ha='right', x=1)
+  ax.set_ylabel(r'Jet $\mathrm{p_{T}}$ [GeV]', ha='right', y=1)
+  ax.yaxis.set_ticks([250,300])
+  cax = fig.axes[1]
+  cax.set_ylabel('TF', ha='right', y=1)
+  for ext in ['pdf','png']:
+    fig.savefig(os.path.join(outdir,f'TF.{ext}'))
+
+  ######### trying the pt-rho plot
+#  ptbins[-1] = 2000
+#  msdptgrid = np.meshgrid(msdbins,ptbins)
+#  rho_vertices = 2*np.log(msdptgrid[0]/msdptgrid[1])# these are the vertices of the bins. Idea: make rectangular bins centered in the centre of these skewed bins and with the correct bin width
+#  #plt.scatter(rho,msdptgrid[1]) 
+#  rho_ptbin0 = 2*np.log(msdsampl/ptsampl[0])-np.diff(rho_vertices)[0]/2
+#  rho_ptbin0 = np.append(rho_ptbin0, rho_ptbin0[-1]+np.diff(rho_vertices)[0][-1]/2)
+#  rho_ptbin1 = 2*np.log(msdsampl/ptsampl[1])-np.diff(rho_vertices)[0]/2
+#  rho_ptbin1 = np.append(rho_ptbin1, rho_ptbin1[-1]+np.diff(rho_vertices)[0][-1]/2)
+#  fig, ax = plt.subplots()
+#  rhobins = np.append(rho_ptbin1, rho_ptbin0)
+#  tf = np.array([np.append(np.zeros(11),tf[0]),np.append(tf[1],np.zeros(11))])
+#  ptbins[-1] = 400
+#  hist2d = hep.hist2dplot(tf.T, rhobins, ptbins, vmin=vmin, vmax=vmax, cmap='inferno', ax=ax)
+#  ax.set_xlim(right=-1.2)
+#  for ibin in range(len(ptbins)-1):
+#    pt = ptbins[ibin]
+#    ptnext = ptbins[ibin+1]
+#    wh = np.append(tf[ibin]==0,True) if ibin==1 else np.append(True,tf[ibin]==0)
+#    ax.fill_between(rhobins, np.full_like(rhobins,pt), np.full_like(rhobins,ptnext), where=wh, facecolor='w', edgecolor='k', linewidth=0, hatch='xx')
+#  ax.set_title(fr'MC TF, $\deg( p_\mathrm{{T}}, \rho ) = ({ptdeg},{rhodeg})$', pad=9, fontsize=22, loc='left')
+#  ax.set_title('2017',pad=9, fontsize=22, loc='right')
+#  ax.set_xlabel(r'Jet $\rho$', ha='right', x=1)
+#  ax.set_ylabel(r'Jet $\mathrm{p_{T}}$ [GeV]', ha='right', y=1)
+#  ax.yaxis.set_ticks([250,300])
+#  cax = fig.axes[1]
+#  cax.set_ylabel('TF', ha='right', y=1)
+#  #set_trace()
+#  #hep.hist2dplot(tf[0], rho_ptbin0, ptbins[0:2], ax=ax)
+#  #hep.hist2dplot(tf[1], rho_ptbin0, ptbins[1:3], ax=ax)
+#  for ext in ['pdf','png']:
+#    fig.savefig(f'test/TF_rho.{ext}')
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-f', '--rootfile', action='store', dest='rootfile', help='root file containing the output from CombineHarvester')
@@ -182,6 +276,7 @@ if __name__ == '__main__':
     parser.print_help()
     sys.exit(0)
 
+  plotTF(args.rootfile, args.nptbins)
   plotRhalphaShapes(args.rootfile, args.nptbins)
   #for f in glob('output/201*/v05/*/mc_msd100to150*/fitDiagnostics.root'):
   #  try:
