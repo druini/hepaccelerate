@@ -157,14 +157,14 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
     lH_cut.SetFillColor(r.kViolet-10)
     lH_cut.Draw("histsame")
 
-    if options.method=='FTest':
-        fdist = r.TF1("fDist", "[0]*TMath::FDist(x, [1], [2])", 0,max(max(iToys),iCentral)+1)
-        fdist.SetParameter(0,lH.Integral()*((max(max(iToys),iCentral)+1)/70.))
-        fdist.SetParameter(1,options.p2-options.p1)
-        fdist.SetParameter(2,options.n-options.p2)
-        fdist.Draw('same')
+#    if options.method=='FTest':
+#        fdist = r.TF1("fDist", "[0]*TMath::FDist(x, [1], [2])", 0,max(max(iToys),iCentral)+1)
+#        fdist.SetParameter(0,lH.Integral()*((max(max(iToys),iCentral)+1)/70.))
+#        fdist.SetParameter(1,options.p2-options.p1)
+#        fdist.SetParameter(2,options.n-options.p2)
+#        fdist.Draw('same')
         #lH.Fit(fdist,'mle')
-    elif options.method=='GoodnessOfFit' and options.algo=='saturated':
+    if options.method=='GoodnessOfFit' and options.algo=='saturated':
         chi2_func = r.TF1('chisqpdf','[0]*ROOT::Math::chisquared_pdf(x,[1])',0,max(max(iToys),iCentral)+100)
         chi2_func.SetParameter(0,lH.Integral())
         chi2_func.SetParameter(1,50)
@@ -181,10 +181,10 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
     tLeg.AddEntry(lH,"toy data (ntoys = %i)"%len(iToys),"lep")
     tLeg.AddEntry(lLine,"observed = %.1f"%iCentral,"l")
     tLeg.AddEntry(lH_cut,"p-value = %.2f"%(1-prob),"f")
-    if options.method=='FTest':
-        #tLeg.AddEntry(fdist,"f-dist fit, ndf = (%.1f #pm %.1f, %.1f #pm %.1f) "%(fdist.GetParameter(1),fdist.GetParError(1),fdist.GetParameter(2),fdist.GetParError(2)),"l")
-        tLeg.AddEntry(fdist,"F-dist, ndf = (%.0f, %.0f) "%(fdist.GetParameter(1),fdist.GetParameter(2)),"l")
-    elif options.method=='GoodnessOfFit' and options.algo=='saturated':
+#    if options.method=='FTest':
+#        #tLeg.AddEntry(fdist,"f-dist fit, ndf = (%.1f #pm %.1f, %.1f #pm %.1f) "%(fdist.GetParameter(1),fdist.GetParError(1),fdist.GetParameter(2),fdist.GetParError(2)),"l")
+#        tLeg.AddEntry(fdist,"F-dist, ndf = (%.0f, %.0f) "%(fdist.GetParameter(1),fdist.GetParameter(2)),"l")
+    if options.method=='GoodnessOfFit' and options.algo=='saturated':
         #tLeg.AddEntry(chi2_func,"#chi^{2} fit, #chi^{2}/ndf = %.1f"%(iCentral/chi2_func.GetParameter(1)),"l")
         tLeg.AddEntry(chi2_func,"#chi^{2} fit, ndf = %.1f #pm %.1f"%(chi2_func.GetParameter(1),chi2_func.GetParError(1)),"l")
 
@@ -255,9 +255,9 @@ def goodnessVals(iFName1):
 
 ################################################################
 def ftest(base,alt,ntoys,iLabel,options):
+    baseName = base.split('/')[-2] #base.split('/')[-1].replace('.root','')
+    altName  = alt.split('/')[-2] #alt.split('/')[-1].replace('.root','')
     if not options.justPlot:
-        baseName = base.split('/')[-2] #base.split('/')[-1].replace('.root','')
-        altName  = alt.split('/')[-2] #alt.split('/')[-1].replace('.root','')
         if baseName==altName:
           altName += '_alt'
         os.chdir( options.odir )
@@ -481,11 +481,11 @@ if __name__ == "__main__":
     (options,args) = parser.parse_args()
 
     if options.n is None:
-      options.n = options.nptbins*options.nmsdbins
+      options.n = options.nptbins*options.nmsdbins -1
     if options.p1 is None:
-      options.p1 = (options.pt1+1)*(options.rho1+1)
+      options.p1 = (options.pt1+1)*(options.rho1+1) +1
     if options.p2 is None:
-      options.p2 = (options.pt2+1)*(options.rho2+1)
+      options.p2 = (options.pt2+1)*(options.rho2+1) +1
 
     if options.datacard is None:
       msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
