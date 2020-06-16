@@ -26,6 +26,7 @@ def exec_me(command, dryRun=False, folder=False):
 def load_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs):
   #filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2018/v05/'+ver+'/out_'+sample+'_merged.json'
   filepath = os.path.join(indir, 'out_'+sample+'_merged.json')
+  if ptStop==2000: ptStop = 5000
   with open(filepath) as json_file:
     data = json.load(json_file)
     data = data['hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop)]
@@ -250,11 +251,11 @@ if __name__ == '__main__':
     sys.exit(0)
 
   if args.nptbins==1:
-    ptbins = np.array([250,5000])
+    ptbins = np.array([250,2000])
   elif args.nptbins==2:
-    ptbins = np.array([250,300,5000])
+    ptbins = np.array([250,300,2000])
   elif args.nptbins==3:
-    ptbins = np.array([250,300,450,5000])
+    ptbins = np.array([250,300,450,2000])
   else:
     raise Exception('invalid number of ptbins')
 
