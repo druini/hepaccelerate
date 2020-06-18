@@ -36,7 +36,7 @@ def load_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, 
 
 def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs):
   #filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2018/v05/'+ver+'/out_'+sample+'_merged.json'
-  filepath = os.path.join(indir, 'out_'+sample+'_merged.json')
+  filepath = os.path.join(indir, 'out_'+sample+('_noQCD' if (args.year.startswith('2016') and sample.startswith('back')) else '' )+'_merged.json')
   if ptStop==2000: ptStop = 5000
   with open(filepath) as json_file:
     data = json.load(json_file)
@@ -67,7 +67,7 @@ def rebin(hist, rebin_factor):
     hist['contents_w2'] = new_countsErr
 
 
-def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runBias=False):
+def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runExp=False):
     dataOrBkg = 'data' if isData else 'background'
 
     throwPoisson = False
@@ -161,7 +161,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         tf_MCtempl_params_final = tf_MCtempl(ptscaled, rhoscaled)
 
     #### Actual transfer function for combine
-    tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-10, 10), coefficient_transform=(np.exp if runBias else None))
+    tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-10, 10), coefficient_transform=(np.exp if runExp else None))
     tf_dataResidual_params = tf_dataResidual(ptscaled, rhoscaled)
     #tf_params = bkgeff * (tf_MCtempl_params_final * tf_dataResidual_params if args.runPrefit else tf_dataResidual_params)
     tf_params = bkgeff * tf_dataResidual_params
@@ -242,8 +242,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
     #with open(os.path.join(str(outdir), 'ttHbb.pkl'), "wb") as fout:       ### ALE: still dont understand why we need this
     #    pickle.dump(model, fout)
 
-    pref = ('biasTest_' if runBias else '') + ('data' if isData else 'mc')
-    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1, polyDegPt,polyDegRho))
+    pref = ('data' if isData else 'mc')
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1,('exp' if args.runExp else ''), polyDegPt,polyDegRho))
     model.renderCombine(combineFolder)
     exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_combined.txt  --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=-1,1', folder=combineFolder)
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
   parser.add_argument('-f', '--runPrefit', action='store_true', help='Run prefit on MC.' )
-  parser.add_argument('-b', '--runBias', action='store_true', help='Run prefit on MC.' )
+  parser.add_argument('-e', '--runExp', action='store_true', help='Run prefit on MC.' )
   parser.add_argument('-smr', '--scanMassRange', action='store_true', default=False, help='option to scan mass range')
   parser.add_argument('-spd', '--scanPolyDeg', action='store_true', default=False, help='option to scan degree of polynomial')
   parser.add_argument('--msd_start', default=90, type=int, help='start of the mass range')
@@ -295,7 +295,7 @@ if __name__ == '__main__':
         os.makedirs(outdir)
 
     if not (args.scanMassRange or args.scanPolyDeg):
-      test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,args.isData,runBias=args.runBias)
+      test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,args.isData,runExp=args.runExp)
     else:
       pref = 'data' if args.isData else 'mc'
       if args.scanMassRange:
