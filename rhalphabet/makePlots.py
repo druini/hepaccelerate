@@ -1,5 +1,6 @@
 import ROOT as rt
 import tdrstyle
+import CMS_lumi as CMS_lumi
 import sys, os, argparse
 #from ctypes import c_double as double # possible replacement for ROOT.Double
 from math import sqrt
@@ -83,7 +84,7 @@ def plotRhalphaShapes(rootFilePath, nptbins):
   }
   #legend labels
   leglab = {
-    'data'       : 'Data',
+    'data'       : 'Data' if args.isData else 'MC as Data',
     'signal'     : 'Signal',
     'bkg'        : 'Background',
     'sigPlusBkg' : 'Signal+Bkg'
@@ -136,6 +137,9 @@ def plotRhalphaShapes(rootFilePath, nptbins):
           if s in leglab:
             leg.AddEntry( RooObj[s], leglab[s], legopts[s] )
 
+        CMS_lumi.cmsTextOffset = 0.0
+        CMS_lumi.relPosX = 0.13
+        CMS_lumi.CMS_lumi(pad1, 4, 0)
         leg.Draw()
     #    #ymax = h['data_obs'].GetMaximum() + 1.5*sqrt(h['data_obs'].GetMaximum())
     #    #h[namesInRoot[0]].GetYaxis().SetRangeUser(0, ymax)
@@ -175,7 +179,7 @@ def plotRhalphaShapes(rootFilePath, nptbins):
           can.SaveAs( os.path.join(outdir,f'{p}.{ext}') )
         del can
 
-def plotTF(rootFilePath, nptbins): 
+def plotTF(rootFilePath, nptbins):
   if not rootFilePath.endswith(".root"):
     raise Exception(f'Must supply ROOT filename, but got {rootFilePath}')
   if not (os.path.sep in rootFilePath): #if the file is in the current directory
@@ -188,7 +192,7 @@ def plotTF(rootFilePath, nptbins):
 
   import matplotlib.pyplot as plt
   import mplhep as hep
-  plt.style.use([hep.style.ROOT, {'font.size': 24}])
+  plt.style.use([hep.cms.style.ROOT, {'font.size': 24}])
   plt.switch_backend('agg')
   rootfile = rt.TFile(rootFilePath)
   ptdeg  = rootFilePath.split('polyDegs')[1][0]
@@ -214,6 +218,7 @@ def plotTF(rootFilePath, nptbins):
   rho = 2*np.log(sampling[0]/sampling[1])
   mask = (rho>-1.2) | (rho<-6)
   fig, ax = plt.subplots()
+  ax = hep.cms.cmslabel(data=args.isData, paper=False, year=args.year, ax=ax, loc=1)
   ptbins[-1] = 400
   vmin = np.floor(100*min(tf[~mask]))/100
   vmax = np.ceil(100*max(tf[~mask]))/100
@@ -223,7 +228,7 @@ def plotTF(rootFilePath, nptbins):
     ptnext = ptbins[ibin+1]
     ax.fill_between(msdbins, np.full_like(msdbins,pt), np.full_like(msdbins,ptnext), where=np.append(mask[ibin],True), facecolor='w', edgecolor='k', linewidth=0, hatch='xx')
   ax.set_title(fr'MC TF, $\deg( p_\mathrm{{T}}, \rho ) = ({ptdeg},{rhodeg})$', pad=9, fontsize=22, loc='left')
-  ax.set_title('2017',pad=9, fontsize=22, loc='right')
+  #ax.set_title('2017',pad=9, fontsize=22, loc='right')
   ax.set_xlabel(r'Jet $\mathrm{m_{SD}}$ [GeV]', ha='right', x=1)
   ax.set_ylabel(r'Jet $\mathrm{p_{T}}$ [GeV]', ha='right', y=1)
   ax.yaxis.set_ticks([250,300])
@@ -236,7 +241,7 @@ def plotTF(rootFilePath, nptbins):
 #  ptbins[-1] = 2000
 #  msdptgrid = np.meshgrid(msdbins,ptbins)
 #  rho_vertices = 2*np.log(msdptgrid[0]/msdptgrid[1])# these are the vertices of the bins. Idea: make rectangular bins centered in the centre of these skewed bins and with the correct bin width
-#  #plt.scatter(rho,msdptgrid[1]) 
+#  #plt.scatter(rho,msdptgrid[1])
 #  rho_ptbin0 = 2*np.log(msdsampl/ptsampl[0])-np.diff(rho_vertices)[0]/2
 #  rho_ptbin0 = np.append(rho_ptbin0, rho_ptbin0[-1]+np.diff(rho_vertices)[0][-1]/2)
 #  rho_ptbin1 = 2*np.log(msdsampl/ptsampl[1])-np.diff(rho_vertices)[0]/2
@@ -270,11 +275,19 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-f', '--rootfile', action='store', dest='rootfile', help='root file containing the output from CombineHarvester')
   parser.add_argument('-n', '--nptbins', action='store', default=2, type=int, dest='nptbins', help='number of pt bins')
+  parser.add_argument('-y', '--year', default='2017', type=str, help='year to process, in file paths')
+  parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
 
   try: args = parser.parse_args()
   except:
     parser.print_help()
     sys.exit(0)
+
+  if args.year.endswith('2016'): args.lumi = 35920.
+  elif args.year.endswith('2017'): args.lumi = 41530.
+  elif args.year.endswith('2018'): args.lumi = 59740.
+  CMS_lumi.extraText = "Preliminary" if args.isData else "Simulation Preliminary"
+  CMS_lumi.lumi_13TeV = str( round( (args.lumi/1000.), 2 ) )+" fb^{-1}, "+args.year+" (13 TeV)"
 
   plotTF(args.rootfile, args.nptbins)
   plotRhalphaShapes(args.rootfile, args.nptbins)

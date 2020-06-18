@@ -34,17 +34,37 @@ def load_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, 
   assert( np.all(np.array(obs.binning)==np.array(data['edges'])[msd_start_idx:msd_stop_idx+1]) )
   return(np.array(data['contents'])[msd_start_idx:msd_stop_idx], obs.binning, obs.name)
 
+def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs):
+  #filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2018/v05/'+ver+'/out_'+sample+'_merged.json'
+  filepath = os.path.join(indir, 'out_'+sample+'_merged.json')
+  if ptStop==2000: ptStop = 5000
+  with open(filepath) as json_file:
+    data = json.load(json_file)
+    data = data['hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop)]
+    rebin(data,rebin_factor)
+  assert( np.all(np.array(obs.binning)==np.array(data['edges'])[msd_start_idx:msd_stop_idx+1]) )
+  tmpHisto = ROOT.TH1F( obs.name, 'hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop), len(obs.binning)-1, data['edges'][msd_start_idx], data['edges'][msd_stop_idx])
+  for nBin in range( len( data['contents'][msd_start_idx:msd_stop_idx] ) ):
+      #print( data['contents'][msd_start_idx+nBin], ROOT.TMath.Sqrt(data['contents'][msd_start_idx+nBin]), ROOT.TMath.Sqrt(data['contents_w2'][msd_start_idx+nBin] ) )
+      tmpHisto.SetBinContent( nBin+1, data['contents'][msd_start_idx+nBin] )
+      tmpHisto.SetBinError( nBin+1, ROOT.TMath.Sqrt(data['contents_w2'][msd_start_idx+nBin] ) )
+
+  return(tmpHisto)
+
 #def rebin(bins, counts, yerr, rebin_factor):
 def rebin(hist, rebin_factor):
     bins   = np.array(hist['edges'])#[:-1])
     counts = np.array(hist['contents'])
+    countsErr = np.array(hist['contents_w2'])
 
     new_bins   = bins[::rebin_factor]
     new_counts = np.add.reduceat(counts, range(0, len(counts), rebin_factor))
+    new_countsErr = np.add.reduceat(countsErr, range(0, len(countsErr), rebin_factor))
 #    new_yerr   = np.add.reduceat(yerr, range(0, len(yerr), rebin_factor))
 #    return new_bins, new_counts#, new_yerr
     hist['edges']    = new_bins
     hist['contents'] = new_counts
+    hist['contents_w2'] = new_countsErr
 
 
 def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runBias=False):
@@ -93,8 +113,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         ptnorm = 1
 #        failTempl = expo_sample(norm=ptnorm*1e5, scale=40, obs=msd)
 #        passTempl = expo_sample(norm=ptnorm*1e3, scale=40, obs=msd)
-        failTempl = load_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Fail', rebin_factor, msd)
-        passTempl = load_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
+        failTempl = loadTH1_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Fail', rebin_factor, msd)
+        passTempl = loadTH1_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
         failCh.setObservation(failTempl)
         passCh.setObservation(passTempl)
         bkgfail += failCh.getObservation().sum()
@@ -157,8 +177,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
             model.addChannel(ch)
 
             templates = {
-                'signal'     : load_from_json(indir, 'signal', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd),
-                'background' : load_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd),
+                'signal'     : loadTH1_from_json(indir, 'signal', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd),
+                'background' : loadTH1_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd),
             }
             # some mock expectations
             templ = templates['signal']

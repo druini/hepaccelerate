@@ -201,7 +201,7 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
     if options.isData:
         l.DrawLatex(0.23,0.91,"Preliminary")
     else:
-        l.DrawLatex(0.23,0.91,"Simulation")
+        l.DrawLatex(0.23,0.91,"Simulation Preliminary")
     l.SetTextFont(42)
     l.DrawLatex(0.70,0.91,"%.1f fb^{-1} (13 TeV)"%options.lumi)
     l.SetTextFont(52)
@@ -241,6 +241,9 @@ def fStat(iFName1,iFName2,p1,p2,n):
             F = (lTree1.limit-lTree2.limit)/(p2-p1)/(lTree2.limit/(n-p2))
             print i0, ":", lTree1.limit, "-", lTree2.limit, "=", lTree1.limit-lTree2.limit, "F =", F
             lDiffs.append(F)
+#        else: F = 0
+#        print i0, ":", lTree1.limit, "-", lTree2.limit, "=", lTree1.limit-lTree2.limit, "F =", F
+#        lDiffs.append(F)
     print "number of toys with F>0: %s / %s"%(len(lDiffs),lTree1.GetEntries())
     return lDiffs
 
@@ -338,6 +341,7 @@ def bias(base,alt,ntoys,mu,iLabel,options):
     elif options.toysNoSyst:
         toysOptString='--toysNoSystematics'
 
+    os.chdir( options.odir )
     if not options.justPlot:
         if options.scaleLumi>0:     ### ALE: I dont understand why we need this.
             ##### Get snapshots with lumiscale=1 for Toy generations ########
@@ -366,6 +370,7 @@ def bias(base,alt,ntoys,mu,iLabel,options):
         #fitDiag_base = "combine -M FitDiagnostics %s  -n %s  --redefineSignalPOIs %s" %(base,iLabel,options.poi)
         # generate and fit separately:
         fitDiag_base = "combine -M FitDiagnostics %s --toysFile higgsCombine%s.GenerateOnly.mH120.%s.root -n %s  --redefineSignalPOIs %s" %(base,iLabel,options.seed,iLabel,options.poi)
+        #fitDiag_base += ' --saveNLL  --saveWorkspace --setRobustFitAlgo Minuit2,Migrad'
         fitDiag_base += ' --robustFit 1 --saveNLL  --saveWorkspace --setRobustFitAlgo Minuit2,Migrad'
         fitDiag_base += ' -t %s -s %s '%(ntoys,options.seed)
         fitDiag_base += " --freezeParameters %s "%(options.freezeNuisances)
