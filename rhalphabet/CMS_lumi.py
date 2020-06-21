@@ -12,7 +12,7 @@ writeExtraText = True
 extraText   = "Preliminary"
 extraTextFont = 52
 
-lumiTextSize     = 0.6
+lumiTextSize     = 0.5
 lumiTextOffset   = 0.2
 
 cmsTextSize      = 0.70

@@ -34,20 +34,40 @@ def load_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, 
   assert( np.all(np.array(obs.binning)==np.array(data['edges'])[msd_start_idx:msd_stop_idx+1]) )
   return(np.array(data['contents'])[msd_start_idx:msd_stop_idx], obs.binning, obs.name)
 
+def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs):
+  #filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2018/v05/'+ver+'/out_'+sample+'_merged.json'
+  filepath = os.path.join(indir, 'out_'+sample+('_noQCD' if (args.year.startswith('2016') and sample.startswith('back')) else '' )+'_merged.json')
+  if ptStop==2000: ptStop = 5000
+  with open(filepath) as json_file:
+    data = json.load(json_file)
+    data = data['hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop)]
+    rebin(data,rebin_factor)
+  assert( np.all(np.array(obs.binning)==np.array(data['edges'])[msd_start_idx:msd_stop_idx+1]) )
+  tmpHisto = ROOT.TH1F( obs.name, 'hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop), len(obs.binning)-1, data['edges'][msd_start_idx], data['edges'][msd_stop_idx])
+  for nBin in range( len( data['contents'][msd_start_idx:msd_stop_idx] ) ):
+      #print( data['contents'][msd_start_idx+nBin], ROOT.TMath.Sqrt(data['contents'][msd_start_idx+nBin]), ROOT.TMath.Sqrt(data['contents_w2'][msd_start_idx+nBin] ) )
+      tmpHisto.SetBinContent( nBin+1, data['contents'][msd_start_idx+nBin] )
+      tmpHisto.SetBinError( nBin+1, ROOT.TMath.Sqrt(data['contents_w2'][msd_start_idx+nBin] ) )
+
+  return(tmpHisto)
+
 #def rebin(bins, counts, yerr, rebin_factor):
 def rebin(hist, rebin_factor):
     bins   = np.array(hist['edges'])#[:-1])
     counts = np.array(hist['contents'])
+    countsErr = np.array(hist['contents_w2'])
 
     new_bins   = bins[::rebin_factor]
     new_counts = np.add.reduceat(counts, range(0, len(counts), rebin_factor))
+    new_countsErr = np.add.reduceat(countsErr, range(0, len(countsErr), rebin_factor))
 #    new_yerr   = np.add.reduceat(yerr, range(0, len(yerr), rebin_factor))
 #    return new_bins, new_counts#, new_yerr
     hist['edges']    = new_bins
     hist['contents'] = new_counts
+    hist['contents_w2'] = new_countsErr
 
 
-def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runBias=False):
+def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runExp=False):
     dataOrBkg = 'data' if isData else 'background'
 
     throwPoisson = False
@@ -93,8 +113,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         ptnorm = 1
 #        failTempl = expo_sample(norm=ptnorm*1e5, scale=40, obs=msd)
 #        passTempl = expo_sample(norm=ptnorm*1e3, scale=40, obs=msd)
-        failTempl = load_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Fail', rebin_factor, msd)
-        passTempl = load_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
+        failTempl = loadTH1_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Fail', rebin_factor, msd)
+        passTempl = loadTH1_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
         failCh.setObservation(failTempl)
         passCh.setObservation(passTempl)
         bkgfail += failCh.getObservation().sum()
@@ -141,7 +161,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         tf_MCtempl_params_final = tf_MCtempl(ptscaled, rhoscaled)
 
     #### Actual transfer function for combine
-    tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-10, 10), coefficient_transform=(np.exp if runBias else None))
+    tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-10, 10), coefficient_transform=(np.exp if runExp else None))
     tf_dataResidual_params = tf_dataResidual(ptscaled, rhoscaled)
     #tf_params = bkgeff * (tf_MCtempl_params_final * tf_dataResidual_params if args.runPrefit else tf_dataResidual_params)
     tf_params = bkgeff * tf_dataResidual_params
@@ -157,8 +177,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
             model.addChannel(ch)
 
             templates = {
-                'signal'     : load_from_json(indir, 'signal', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd),
-                'background' : load_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd),
+                'signal'     : loadTH1_from_json(indir, 'signal', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd),
+                'background' : loadTH1_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd),
             }
             # some mock expectations
             templ = templates['signal']
@@ -222,8 +242,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
     #with open(os.path.join(str(outdir), 'ttHbb.pkl'), "wb") as fout:       ### ALE: still dont understand why we need this
     #    pickle.dump(model, fout)
 
-    pref = ('biasTest_' if runBias else '') + ('data' if isData else 'mc')
-    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1, polyDegPt,polyDegRho))
+    pref = ('data' if isData else 'mc')
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1,('exp' if args.runExp else ''), polyDegPt,polyDegRho))
     model.renderCombine(combineFolder)
     exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_combined.txt  --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=-1,1', folder=combineFolder)
 
@@ -231,7 +251,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
   parser.add_argument('-f', '--runPrefit', action='store_true', help='Run prefit on MC.' )
-  parser.add_argument('-b', '--runBias', action='store_true', help='Run prefit on MC.' )
+  parser.add_argument('-e', '--runExp', action='store_true', help='Run prefit on MC.' )
   parser.add_argument('-smr', '--scanMassRange', action='store_true', default=False, help='option to scan mass range')
   parser.add_argument('-spd', '--scanPolyDeg', action='store_true', default=False, help='option to scan degree of polynomial')
   parser.add_argument('--msd_start', default=90, type=int, help='start of the mass range')
@@ -275,7 +295,7 @@ if __name__ == '__main__':
         os.makedirs(outdir)
 
     if not (args.scanMassRange or args.scanPolyDeg):
-      test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,args.isData,runBias=args.runBias)
+      test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,args.isData,runExp=args.runExp)
     else:
       pref = 'data' if args.isData else 'mc'
       if args.scanMassRange:
