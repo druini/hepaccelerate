@@ -7,6 +7,7 @@
 ######################################
 #!/usr/bin/env python
 import ROOT as r,sys,math,array,os
+import CMS_lumi
 from optparse import OptionParser
 
 #from tools import *
@@ -42,7 +43,7 @@ def plotgaus(iFName,injet,iLabel,options):
     lH_1 = r.TH1D('h_bias_1','h_bias',50,-4,4)
     lH_2 = r.TH1D('h_bias_2','h_bias',50,-4,4)
     lTree.Project('h_bias_1','(%s-%s)/%sLoErr'% (options.poi,injet,options.poi),
-                  '%s>%s&&(%sHiErr+%s)<%i&&(%s-%sLoErr)>%i'%(options.poi,injet,
+                  '%s>=%s&&(%sHiErr+%s)<%i&&(%s-%sLoErr)>%i'%(options.poi,injet,
                                                              options.poi,options.poi,float(options.rMax)-1,
                                                              options.poi,options.poi,float(options.rMin)+1))
     lTree.Project('h_bias_2','(%s-%s)/%sHiErr'% (options.poi,injet,options.poi),
@@ -85,29 +86,33 @@ def plotgaus(iFName,injet,iLabel,options):
     tLeg.AddEntry(gaus_func,"#splitline{Gaussian fit}{mean = %+1.2f, s.d. = %1.2f}"%(gaus_func.GetParameter(1),gaus_func.GetParameter(2)),"l")
     tLeg.Draw("same")
 
+    CMS_lumi.cmsTextSize = 0.5
+    CMS_lumi.lumiTextSize = .75*CMS_lumi.cmsTextSize
+    CMS_lumi.relPosX = 0.13
+    CMS_lumi.CMS_lumi(lCan, 4, 0)
 
     l = r.TLatex()
     l.SetTextAlign(11)
-    l.SetTextSize(0.06)
-    l.SetTextFont(62)
+    #l.SetTextSize(0.06)
+    #l.SetTextFont(62)
     l.SetNDC()
-    l.DrawLatex(0.12,0.91,"CMS")
-    l.SetTextSize(0.05)
-    l.SetTextFont(52)
-    l.DrawLatex(0.23,0.91,"Preliminary")
-    l.SetTextFont(42)
-    l.DrawLatex(0.70,0.91,"%.1f fb^{-1} (13 TeV)"%options.lumi)
+    #l.DrawLatex(0.12,0.91,"CMS")
+    #l.SetTextSize(0.05)
+    #l.SetTextFont(52)
+    #l.DrawLatex(0.23,0.91,"Preliminary")
+    #l.SetTextFont(42)
+    #l.DrawLatex(0.70,0.91,"%.1f fb^{-1} (13 TeV)"%options.lumi)
     l.SetTextFont(52)
     l.SetTextSize(0.045)
 
 
-    l.DrawLatex(0.15,0.82,'gen. pdf = %s(n_{#rho}=%i,n_{p_{T}}=%i)'%(options.pdf2, options.NR2,options.NP2))
-    l.DrawLatex(0.15,0.75,'fit pdf = %s(n_{#rho}=%i,n_{p_{T}}=%i)'%(options.pdf1, options.NR1,options.NP1))
+    l.DrawLatex(0.15,0.82,'gen. pdf = %s(n_{#rho}=%i,n_{p_{T}}=%i)'%(options.pdf2, options.rho2,options.pt2))
+    l.DrawLatex(0.15,0.75,'fit pdf = %s(n_{#rho}=%i,n_{p_{T}}=%i)'%(options.pdf1, options.rho1,options.pt1))
 
     lCan.Modified()
     lCan.Update()
     lCan.SaveAs(options.odir+'/'+iLabel+".png")
-    #lCan.SaveAs(options.odir+'/'+iLabel+".pdf")
+    lCan.SaveAs(options.odir+'/'+iLabel+".pdf")
     #lCan.SaveAs(options.odir+'/'+iLabel+".C")
     #end()
 
@@ -343,6 +348,7 @@ def bias(base,alt,ntoys,mu,iLabel,options):
 
     os.chdir( options.odir )
     if not options.justPlot:
+        os.chdir( options.odir )
         if options.scaleLumi>0:     ### ALE: I dont understand why we need this.
             ##### Get snapshots with lumiscale=1 for Toy generations ########
             snapshot_base ="combine -M MultiDimFit  %s  -n .saved "%(alt)
@@ -444,15 +450,16 @@ if __name__ == "__main__":
     parser.add_option('--msd_stop', default=150, type=int, help='stop of the mass range')
     parser.add_option('--nmsdbins', default=10, type=int, help='number of mass bins')
     parser.add_option('--nptbins', default=2, type=int, help='number of pt bins')
-    parser.add_option('--pt1', default=1, type=int, help='degree in pt for default datacard')
-    parser.add_option('--rho1', default=1, type=int, help='degree in rho for default datacard')
-    parser.add_option('--pt2', default=1, type=int, help='degree in pt for alternative datacard')
-    parser.add_option('--rho2', default=1, type=int, help='degree in rho for alternative datacard')
+    parser.add_option('--pt1', default=1, type=int, help='degree in pt for default/fit datacard')
+    parser.add_option('--rho1', default=1, type=int, help='degree in rho for default/fit datacard')
+    parser.add_option('--pt2', default=1, type=int, help='degree in pt for alternative/gen datacard')
+    parser.add_option('--rho2', default=1, type=int, help='degree in rho for alternative/gen datacard')
     parser.add_option('-t','--toys'   ,action='store',type='int',dest='toys'   ,default=300, help='number of toys')
     parser.add_option('-s','--seed'   ,action='store',type='int',dest='seed'   ,default=-1, help='random seed')
     parser.add_option('--sig'    ,action='store',type='int',dest='sig'    ,default=1 ,help='sig')
     parser.add_option('-d','--datacard'   ,action='store',type='string',dest='datacard'   ,default=None, help='datacard name')
     parser.add_option('--datacard-alt'   ,action='store',type='string',dest='datacardAlt'   ,default=None, help='alternative datacard name')
+    parser.add_option('-e', '--runExp', action='store_true', help='Run with exponential Bernstein.' )
     parser.add_option('--poi'   ,action='store',type='string',dest='poi'   ,default='r', help='poi')
     parser.add_option('-M','--method'   ,dest='method'   ,default='GoodnessOfFit',
                       choices=['GoodnessOfFit','FTest','Asymptotic','Bias','MaxLikelihoodFit'],help='combine method to use')
@@ -468,12 +475,12 @@ if __name__ == "__main__":
     parser.add_option('--rMax',dest='rMax', default=20,type='float',help='maximum of r (signal strength) in profile likelihood plot')
     parser.add_option('--freezeNuisances'   ,action='store',type='string',dest='freezeNuisances'   ,default='None', help='freeze nuisances')
     parser.add_option('--setParameters'   ,action='store',type='string',dest='setParameters'   ,default='None', help='setParameters')
-    parser.add_option('--pdf1'   ,action='store',type='string',dest='pdf1'   ,default='poly', help='fit pdf1')
-    parser.add_option('--pdf2'   ,action='store',type='string',dest='pdf2'   ,default='poly', help='gen pdf2')
-    parser.add_option('--nr1','--NR1' ,action='store',type='int',dest='NR1'   ,default=2, help='order of rho polynomial for fit pdf')
-    parser.add_option('--np1','--NP1' ,action='store',type='int',dest='NP1'   ,default=2, help='order of pt polynomial for fit pdf')
-    parser.add_option('--nr2','--NR2' ,action='store',type='int',dest='NR2'   ,default=2, help='order of rho polynomial for gen pdf')
-    parser.add_option('--np2','--NP2' ,action='store',type='int',dest='NP2'   ,default=2, help='order of pt polynomial for gen pdf')
+    parser.add_option('--pdf1',dest='pdf1'   ,default='poly', choices=['poly','exp'], help='fit pdf1')
+    parser.add_option('--pdf2',dest='pdf2'   ,default='poly', choices=['poly','exp'], help='gen pdf2')
+    #parser.add_option('--nr1','--NR1' ,action='store',type='int',dest='NR1'   ,default=2, help='order of rho polynomial for fit pdf')
+    #parser.add_option('--np1','--NP1' ,action='store',type='int',dest='NP1'   ,default=2, help='order of pt polynomial for fit pdf')
+    #parser.add_option('--nr2','--NR2' ,action='store',type='int',dest='NR2'   ,default=2, help='order of rho polynomial for gen pdf')
+    #parser.add_option('--np2','--NP2' ,action='store',type='int',dest='NP2'   ,default=2, help='order of pt polynomial for gen pdf')
 
     parser.add_option('--dry-run',dest="dryRun",default=False,action='store_true',help="Just print out commands to run")
     parser.add_option('--toysFrequentist'       ,action='store_true',default = False,dest='toysFreq', metavar='toysFreq', help='generate frequentist toys')
@@ -494,13 +501,17 @@ if __name__ == "__main__":
 
     if options.datacard is None:
       msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
-      options.datacard = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,options.pt1,options.rho1)+'/ttHbb_combined.root'
+      options.datacard = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if (options.runExp or options.pdf1=='exp') else ''),options.pt1,options.rho1)+'/ttHbb_combined.root'
     if options.datacardAlt is None:
       msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
-      options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_polyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,options.pt2,options.rho2)+'/ttHbb_combined.root'
+      if options.method=='FTest':
+        options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if options.runExp else ''),options.pt2,options.rho2)+'/ttHbb_combined.root'
+      elif options.method=='Bias':
+        options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if options.pdf2=='exp' else ''),options.pt2,options.rho2)+'/ttHbb_combined.root'
 
     options.datacard    = os.path.abspath(options.datacard)
-    options.datacardAlt = os.path.abspath(options.datacardAlt)
+    if options.datacardAlt is not None:
+      options.datacardAlt = os.path.abspath(options.datacardAlt)
 
     if options.odir is None:
       options.odir = os.path.join( os.path.dirname(options.datacard),'bkgEstTests' )
@@ -516,6 +527,12 @@ if __name__ == "__main__":
     r.gStyle.SetPaintTextFormat("1.2g")
     r.gROOT.SetBatch()
     r.RooMsgService.instance().setGlobalKillBelow(r.RooFit.FATAL)
+
+    if options.year.endswith('2016'): lumi = 35920.
+    elif options.year.endswith('2017'): lumi = 41530.
+    elif options.year.endswith('2018'): lumi = 59740.
+    CMS_lumi.extraText = "Preliminary" if options.isData else "Simulation Preliminary"
+    CMS_lumi.lumi_13TeV = str( round( (lumi/1000.), 2 ) )+" fb^{-1}, "+options.year+" (13 TeV)"
 
     if options.method=='GoodnessOfFit':
         ptrho = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
@@ -533,6 +550,6 @@ if __name__ == "__main__":
         ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
 
     elif options.method=='Bias':
-        iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.NR1, options.NP1, options.pdf2, options.NR2, options.NP2,
+        iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.rho1, options.pt1, options.pdf2, options.rho2, options.pt2,
                                               options.poi, options.r)
         bias(options.datacard, options.datacardAlt, options.toys, options.r, iLabel, options)
