@@ -29,7 +29,7 @@ parameters = {
   "fatjets": {
     "type": "fatjet",
     "dr": 0.8,
-    "pt": 250,
+    "pt": 200,
     "eta": 2.4,
     "jetId": 2,
     "tau32cut": 0.4,
@@ -542,6 +542,7 @@ histogram_settings = {
   'leadAK8JetEta'     : (-4,4,81),
   'leadAK8JetHbb'     : (0,1,41),
   'leadAK8JetTau21'   : (0,1,41),
+  'leadAK8JetRho'     : (-8,0,801),
   'lepton_pt'         : (0,2000,201),
   'lepton_eta'        : (-4,4,81),
   'hadWPt'            : (0,300,61),
