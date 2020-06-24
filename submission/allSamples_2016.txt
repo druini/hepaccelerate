@@ -20,7 +20,6 @@ TTWJetsToLNu
 TTWJetsToQQ
 TTZToLLNuNu
 TTZToQQ
-WJetsToLNu
 WJetsToLNu_HT-1200To2500
 WJetsToLNu_HT-200To400
 WJetsToLNu_HT-2500ToInf
@@ -30,7 +29,6 @@ WJetsToLNu_HT-800To1200
 WW
 WZ
 ZZ
-SingleElectron_Run2016Bv1
 SingleElectron_Run2016Bv2
 SingleElectron_Run2016C
 SingleElectron_Run2016D
