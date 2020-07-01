@@ -8,6 +8,7 @@
 #!/usr/bin/env python
 import ROOT as r,sys,math,array,os
 import CMS_lumi
+import numpy as np
 from optparse import OptionParser
 
 #from tools import *
@@ -125,11 +126,19 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
     lCan.SetTopMargin(0.1)
 
     if options.method=='FTest':
-        lH = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+1)
-        lH_cut = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+1)
+        #lH = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+1)
+        #lH_cut = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+1)
+        x_max = max(np.percentile(iToys,80),iCentral)+1
+        #if x_max>4: x_max=4
+        lH = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,x_max)
+        lH_cut = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,x_max)
     elif options.method=='GoodnessOfFit' and options.algo=='saturated':
-        lH = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+100)
-        lH_cut = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+100)
+        #lH = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+100)
+        #lH_cut = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+100)
+        x_max = max(max(iToys),iCentral)+100
+        if x_max>100: x_max=100
+        lH = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,x_max)
+        lH_cut = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,x_max)
     elif options.method=='GoodnessOfFit' and options.algo=='KS':
         lH = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+0.05)
         lH_cut = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+0.05)
@@ -163,12 +172,14 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
     lH_cut.Draw("histsame")
 
 #    if options.method=='FTest':
-#        fdist = r.TF1("fDist", "[0]*TMath::FDist(x, [1], [2])", 0,max(max(iToys),iCentral)+1)
-#        fdist.SetParameter(0,lH.Integral()*((max(max(iToys),iCentral)+1)/70.))
+#        #fdist = r.TF1("fDist", "[0]*TMath::FDist(x, [1], [2])", 0,max(max(iToys),iCentral)+1)
+#        #fdist.SetParameter(0,lH.Integral()*((max(max(iToys),iCentral)+1)/70.))
+#        fdist = r.TF1("fDist", "[0]*TMath::FDist(x, [1], [2])", 0,x_max)
+#        fdist.SetParameter(0,lH.Integral()*x_max/70.)
 #        fdist.SetParameter(1,options.p2-options.p1)
 #        fdist.SetParameter(2,options.n-options.p2)
 #        fdist.Draw('same')
-        #lH.Fit(fdist,'mle')
+#        #lH.Fit(fdist,'mle')
     if options.method=='GoodnessOfFit' and options.algo=='saturated':
         chi2_func = r.TF1('chisqpdf','[0]*ROOT::Math::chisquared_pdf(x,[1])',0,max(max(iToys),iCentral)+100)
         chi2_func.SetParameter(0,lH.Integral())
@@ -319,11 +330,11 @@ def goodness(base,ntoys,iLabel,options):
     if not options.justPlot:
         os.chdir( options.odir )
         # --fixedSignalStrength %f  --freezeParameters tqqnormSF,tqqeffSF
-        exec_me('combine -M GoodnessOfFit %s  --rMax 20 --rMin -20 --algorithm %s -n %s --freezeParameters %s'% (base,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s  --rMax %i --rMin %i --algorithm %s -n %s --freezeParameters %s'% (base,options.rMax,options.rMin,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
         exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root %s/goodbase_%s.root'%(combineLabelBase,options.odir,combineLabelBase),options.dryRun)
-        exec_me('combine -M GenerateOnly %s --rMax 20 --rMin -20 --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s' % (base,ntoys,options.r,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('combine -M GenerateOnly %s --rMax %i --rMin %i --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s' % (base,options.rMax,options.rMin,ntoys,options.r,combineLabelBase,options.freezeNuisances),options.dryRun)
         #exec_me('mv higgsCombine%s.GenerateOnly.mH120.123456.root %s/'%(combineLabelBase,options.odir),options.dryRun)
-        exec_me('combine -M GoodnessOfFit %s --rMax 20 --rMin -20 -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.123456.root --algorithm %s -n %s --freezeParameters %s' % (base,ntoys,options.odir,combineLabelBase,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s --rMax %i --rMin %i -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.123456.root --algorithm %s -n %s --freezeParameters %s' % (base,options.rMax,options.rMin,ntoys,options.odir,combineLabelBase,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
         exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.123456.root %s/goodtoys_%s.root'%(combineLabelBase,options.odir,combineLabelBase),options.dryRun)
     if options.dryRun: sys.exit()
     nllBase=goodnessVals('%s/goodbase_%s.root'%(options.odir,combineLabelBase))
@@ -477,6 +488,8 @@ if __name__ == "__main__":
     parser.add_option('--setParameters'   ,action='store',type='string',dest='setParameters'   ,default='None', help='setParameters')
     parser.add_option('--pdf1',dest='pdf1'   ,default='poly', choices=['poly','exp'], help='fit pdf1')
     parser.add_option('--pdf2',dest='pdf2'   ,default='poly', choices=['poly','exp'], help='gen pdf2')
+    parser.add_option('--poly-limit', default=2, type=int, help='limit for the parameters of the Bernsetin polynomial in the base datacard')
+    parser.add_option('--polyAlt-limit', default=2, type=int, help='limit for the parameters of the Bernsetin polynomial in the alt datacard')
     #parser.add_option('--nr1','--NR1' ,action='store',type='int',dest='NR1'   ,default=2, help='order of rho polynomial for fit pdf')
     #parser.add_option('--np1','--NP1' ,action='store',type='int',dest='NP1'   ,default=2, help='order of pt polynomial for fit pdf')
     #parser.add_option('--nr2','--NR2' ,action='store',type='int',dest='NR2'   ,default=2, help='order of rho polynomial for gen pdf')
@@ -499,22 +512,26 @@ if __name__ == "__main__":
     if options.p2 is None:
       options.p2 = (options.pt2+1)*(options.rho2+1) +1
 
+    
+    str_polylims = ''
     if options.datacard is None:
+      str_polylims = "_polylims%ito%i"%(-options.poly_limit,options.poly_limit)
       msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
-      options.datacard = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if (options.runExp or options.pdf1=='exp') else ''),options.pt1,options.rho1)+'/ttHbb_combined.root'
+      options.datacard = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if (options.runExp or options.pdf1=='exp') else ''),options.pt1,options.rho1)+'/ttHbb%s_combined.root'%str_polylims
     if options.datacardAlt is None:
+      str_polylimsAlt = "_polylims%ito%i"%(-options.polyAlt_limit,options.polyAlt_limit)
       msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
       if options.method=='FTest':
-        options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if options.runExp else ''),options.pt2,options.rho2)+'/ttHbb_combined.root'
+        options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if options.runExp else ''),options.pt2,options.rho2)+'/ttHbb%s_combined.root'%str_polylimsAlt
       elif options.method=='Bias':
-        options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if options.pdf2=='exp' else ''),options.pt2,options.rho2)+'/ttHbb_combined.root'
+        options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if options.pdf2=='exp' else ''),options.pt2,options.rho2)+'/ttHbb%s_combined.root'%str_polylimsAlt
 
     options.datacard    = os.path.abspath(options.datacard)
     if options.datacardAlt is not None:
       options.datacardAlt = os.path.abspath(options.datacardAlt)
 
     if options.odir is None:
-      options.odir = os.path.join( os.path.dirname(options.datacard),'bkgEstTests' )
+      options.odir = os.path.join( os.path.dirname(options.datacard),'bkgEstTests%s_r%ito%i'%(str_polylims,options.rMin,options.rMax) )
     options.odir = os.path.abspath(options.odir)
     if not os.path.exists(options.odir): os.makedirs(options.odir)
 

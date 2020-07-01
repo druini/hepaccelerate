@@ -68,7 +68,7 @@ def rebin(hist, rebin_factor):
 
 
 def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runExp=False):
-    dataOrBkg = 'data' if isData else 'background'
+    dataOrBkg = 'data' if isData else ('all' if args.sig_and_bkg else 'background')
 
     throwPoisson = False
 
@@ -122,7 +122,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
 
     bkgeff = bkgpass / bkgfail
     if args.runPrefit:
-        tf_MCtempl = rl.BernsteinPoly("tf_MCtempl", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-10, 10))
+        tf_MCtempl = rl.BernsteinPoly("tf_MCtempl", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-args.poly_limit, args.poly_limit))
         tf_MCtempl_params = bkgeff * tf_MCtempl(ptscaled, rhoscaled)
         for ptbin in range(npt):
             failCh = bkgmodel['ptbin%dfail' % ptbin]
@@ -161,7 +161,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         tf_MCtempl_params_final = tf_MCtempl(ptscaled, rhoscaled)
 
     #### Actual transfer function for combine
-    tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-10, 10), coefficient_transform=(np.exp if runExp else None))
+    tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-args.poly_limit, args.poly_limit), coefficient_transform=(np.exp if runExp else None))
     tf_dataResidual_params = tf_dataResidual(ptscaled, rhoscaled)
     #tf_params = bkgeff * (tf_MCtempl_params_final * tf_dataResidual_params if args.runPrefit else tf_dataResidual_params)
     tf_params = bkgeff * tf_dataResidual_params
@@ -169,7 +169,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         tf_params *= tf_MCtempl_params_final
 
     # build actual fit model now
-    model = rl.Model("ttHbb")
+    str_polylims = "polylims%ito%i"%(-args.poly_limit,args.poly_limit)
+    model = rl.Model('ttHbb_'+('data_' if args.isData else ('sig_' if args.sig_and_bkg else ''))+str_polylims)
 
     for ptbin in range(npt):
         for region in ['Pass', 'Fail']:
@@ -245,13 +246,15 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
     pref = ('data' if isData else 'mc')
     combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1,('exp' if args.runExp else ''), polyDegPt,polyDegRho))
     model.renderCombine(combineFolder)
-    exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_combined.txt  --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=-1,1', folder=combineFolder)
+    exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(str_polylims,args.rMin,args.rMax,str_polylims,args.rMin,args.rMax), folder=combineFolder)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
+  parser.add_argument('--sig-and-bkg', action='store_true', default=False, help='sum signal and background samples when running on MC')
   parser.add_argument('-f', '--runPrefit', action='store_true', help='Run prefit on MC.' )
-  parser.add_argument('-e', '--runExp', action='store_true', help='Run prefit on MC.' )
+  #parser.add_argument('-e', '--runExp', action='store_true', help='Run with exponential Bernstein.' )
+  parser.add_argument('--pdf', default='poly', choices=['poly','exp'])
   parser.add_argument('-smr', '--scanMassRange', action='store_true', default=False, help='option to scan mass range')
   parser.add_argument('-spd', '--scanPolyDeg', action='store_true', default=False, help='option to scan degree of polynomial')
   parser.add_argument('--msd_start', default=90, type=int, help='start of the mass range')
@@ -260,16 +263,24 @@ if __name__ == '__main__':
   parser.add_argument('--polyDegRho', default=2, type=int, help='degree of polynomial to fit rho')
   parser.add_argument('-r', '--rebin_factor', default=5, type=int, help='rebin factor for json histograms, default mass bin size is 1GeV')
   parser.add_argument('--nptbins', default=2, type=int, help='number of pt bins')
+  parser.add_argument('--rMin', default=-20, type=float, help='minimum of r (signal strength) in combine fit')
+  parser.add_argument('--rMax', default=20, type=float, help='maximum of r (signal strength) in combine fit')
+  parser.add_argument('-l','--poly-limit', default=2, type=int, help='sets the limit for the parameters of the Bernsetin polynomial')
   parser.add_argument('-y', '--year', default='2017', type=str, help='year to process, in file paths')
   parser.add_argument('-v', '--version', default='v05', help='version, in file paths')
   parser.add_argument('-s', '--selection', nargs='+', default=['met20_btagDDBvL_noMD07','met20_deepTagMD_bbvsLight05845','met20_deepTagMD_bbvsLight08695'], help='event selection, in file paths')
   parser.add_argument('-j', '--jsonpath', default='/afs/cern.ch/work/d/druini/public/hepaccelerate/results', help='path to json files')
+  parser.add_argument('-o','--outdir', default=None, help='specifiy a custom output directory')
 
   try: args = parser.parse_args()
   except:
     parser.print_help()
     sys.exit(0)
 
+  if args.pdf=='poly':
+    args.runExp = False
+  else:
+    args.runExp = True
   if args.nptbins==1:
     ptbins = np.array([250,2000])
   elif args.nptbins==2:
@@ -290,7 +301,8 @@ if __name__ == '__main__':
     if not os.path.exists(indir):
       raise Exception('invalid input path: %s'%indir)
 
-    outdir = os.path.join('output', args.year, args.version, sel)
+    if args.outdir is None: outdir = os.path.join('output', args.year, args.version, sel)
+    else: outdir = args.outdir
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
