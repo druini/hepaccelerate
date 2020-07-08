@@ -5,6 +5,8 @@ import sys, os, argparse
 #from ctypes import c_double as double # possible replacement for ROOT.Double
 from math import sqrt
 import numpy as np
+import matplotlib.pyplot as plt
+import mplhep as hep
 from glob import glob
 from pdb import set_trace
 
@@ -15,6 +17,19 @@ rt.gStyle.SetOptStat(0)
 
 rt.tdrStyle.SetPadLeftMargin(0.15)
 rt.tdrStyle.SetPadRightMargin(0.05)
+
+def makeOutdir(rootFilePath):
+  if not rootFilePath.endswith(".root"):
+    raise Exception(f'Must supply ROOT filename, but got {rootFilePath}')
+  if not (os.path.sep in rootFilePath): #if the file is in the current directory
+    outdir = os.getcwd()
+  else:
+    outdir = os.path.join(*rootFilePath.split(os.path.sep)[:-1])
+  #outdir = os.path.join(outdir,'plots')
+  outdir = os.path.join(outdir,'plots'+os.path.splitext(rootFilePath.split('fitDiagnostics')[1])[0])
+  if not os.path.exists(outdir):
+    os.mkdir(outdir)
+  return outdir
 
 def TH1fromRooObj(RooObj, errorBand=None, returnHistArray=False):
   if type(RooObj) == rt.RooHist:
@@ -62,16 +77,7 @@ def TH1fromRooObj(RooObj, errorBand=None, returnHistArray=False):
   return TH1.Clone()
 
 def plotRhalphaShapes(rootFilePath, nptbins):
-  if not rootFilePath.endswith(".root"):
-    raise Exception(f'Must supply ROOT filename, but got {rootFilePath}')
-  if not (os.path.sep in rootFilePath): #if the file is in the current directory
-    outdir = os.getcwd()
-  else:
-    outdir = os.path.join(*rootFilePath.split(os.path.sep)[:-1])
-  #outdir = os.path.join(outdir,'plots')
-  outdir = os.path.join(outdir,'plots'+os.path.splitext(rootFilePath.split('fitDiagnostics')[1])[0])
-  if not os.path.exists(outdir):
-    os.mkdir(outdir)
+  outdir = makeOutdir(rootFilePath)
 
   rootfile = rt.TFile(rootFilePath)
 
@@ -183,35 +189,29 @@ def plotRhalphaShapes(rootFilePath, nptbins):
         except: continue
 
 def plotTF(rootFilePath, nptbins):
-  if not rootFilePath.endswith(".root"):
-    raise Exception(f'Must supply ROOT filename, but got {rootFilePath}')
-  if not (os.path.sep in rootFilePath): #if the file is in the current directory
-    outdir = os.getcwd()
-  else:
-    outdir = os.path.join(*rootFilePath.split(os.path.sep)[:-1])
-  #outdir = os.path.join(outdir,'plots')
-  outdir = os.path.join(outdir,'plots'+os.path.splitext(rootFilePath.split('fitDiagnostics')[1])[0])
-  if not os.path.exists(outdir):
-    os.mkdir(outdir)
+  outdir = makeOutdir(rootFilePath)
 
-  import matplotlib.pyplot as plt
-  import mplhep as hep
   plt.style.use([hep.cms.style.ROOT, {'font.size': 24}])
   plt.switch_backend('agg')
   rootfile = rt.TFile(rootFilePath)
   ptdeg  = rootFilePath.split('polyDegs')[1][0]
   rhodeg = rootFilePath.split('polyDegs')[1][1]
-  tf = []
+  tf, dataRatio = [], []
   for ibin in range(2):#[1,0]:
-    msd_hist = {}
+    msd_hist  = {}
+    data_hist = {}
     for region in ['Pass','Fail']:
       SorB = 's'
       p = f'ptbin{ibin}{region}_msd_fit_{SorB}'
       b_suffix = '_model_bonly__' if SorB=='b' else ''
       hist_name = f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]'
-      msd_hist[region] = TH1fromRooObj( rootfile.Get(p).getCurve(hist_name), returnHistArray=True )
+      msd_hist[region]  = TH1fromRooObj( rootfile.Get(p).getCurve(hist_name), returnHistArray=True )
+      data_hist[region] = TH1fromRooObj( rootfile.Get(p).getHist(f'h_ptbin{ibin}{region}'), returnHistArray=True )
     tf.append(msd_hist['Pass'][:,1]/msd_hist['Fail'][:,1])
+    dataRatio.append(data_hist['Pass'][:,1]/data_hist['Fail'][:,1])
   tf = np.array(tf)
+  dataRatio = np.array(dataRatio)
+  residuals = (tf - dataRatio)/dataRatio
 
   msdbins  = np.round(msd_hist['Pass'][:,0])
   msdbins  = np.append(msdbins, msdbins[-1]+np.diff(msdbins)[0])
@@ -221,25 +221,36 @@ def plotTF(rootFilePath, nptbins):
   sampling = np.meshgrid(msdsampl, ptsampl)
   rho = 2*np.log(sampling[0]/sampling[1])
   mask = (rho>-1.2) | (rho<-6)
-  fig, ax = plt.subplots()
-  ax = hep.cms.cmslabel(data=args.isData, paper=False, year=args.year, ax=ax, loc=1)
-  ptbins[-1] = 400
-  vmin = np.floor(100*min(tf[~mask]))/100
-  vmax = np.ceil(100*max(tf[~mask]))/100
-  hist2d = hep.hist2dplot(tf.T, msdbins, ptbins, vmin=vmin, vmax=vmax, cmap='inferno', ax=ax)
-  for ibin in range(len(ptbins)-1):
-    pt = ptbins[ibin]
-    ptnext = ptbins[ibin+1]
-    ax.fill_between(msdbins, np.full_like(msdbins,pt), np.full_like(msdbins,ptnext), where=np.append(mask[ibin],True), facecolor='w', edgecolor='k', linewidth=0, hatch='xx')
-  ax.set_title(fr'MC TF, $\deg( p_\mathrm{{T}}, \rho ) = ({ptdeg},{rhodeg})$', pad=9, fontsize=22, loc='left')
-  #ax.set_title('2017',pad=9, fontsize=22, loc='right')
-  ax.set_xlabel(r'Jet $\mathrm{m_{SD}}$ [GeV]', ha='right', x=1)
-  ax.set_ylabel(r'Jet $\mathrm{p_{T}}$ [GeV]', ha='right', y=1)
-  ax.yaxis.set_ticks([250,300])
-  cax = fig.axes[1]
-  cax.set_ylabel('TF', ha='right', y=1)
-  for ext in ['pdf','png']:
-    fig.savefig(os.path.join(outdir,f'TF.{ext}'))
+  for arr in [tf, residuals]:
+      fig, ax = plt.subplots()
+      fig.subplots_adjust(right=.85)
+      ax = hep.cms.cmslabel(data=args.isData, paper=False, year=args.year, ax=ax, loc=1)
+      ptbins[-1] = 400
+      vmin = np.floor(100*min(arr[~mask]))/100
+      vmax = np.ceil(100*max(arr[~mask]))/100
+      if arr is residuals:
+          colmap = 'RdBu_r'
+          if abs(vmin) > abs(vmax):
+              vmax = abs(vmin)
+          else:
+              vmin = -vmax
+      else:
+          colmap = 'inferno'
+
+      hist2d = hep.hist2dplot(arr.T, msdbins, ptbins, vmin=vmin, vmax=vmax, cmap=colmap, ax=ax)
+      for ibin in range(len(ptbins)-1):
+        pt = ptbins[ibin]
+        ptnext = ptbins[ibin+1]
+        ax.fill_between(msdbins, np.full_like(msdbins,pt), np.full_like(msdbins,ptnext), where=np.append(mask[ibin],True), facecolor='w', edgecolor='k', linewidth=0, hatch='xx')
+      ax.set_title(fr'{"" if args.isData else "MC "}TF{" residuals" if arr is residuals else ""}, $\deg( p_\mathrm{{T}}, \rho ) = ({ptdeg},{rhodeg})$', pad=9, fontsize=22, loc='left')
+      #ax.set_title('2017',pad=9, fontsize=22, loc='right')
+      ax.set_xlabel(r'Jet $\mathrm{m_{SD}}$ [GeV]', ha='right', x=1)
+      ax.set_ylabel(r'Jet $\mathrm{p_{T}}$ [GeV]', ha='right', y=1)
+      ax.yaxis.set_ticks([250,300])
+      cax = fig.axes[1]
+      cax.set_ylabel('(TF - data)/data' if arr is residuals else 'TF', ha='right', y=1)
+      for ext in ['pdf','png']:
+        fig.savefig(os.path.join(outdir,f'TF{"_residuals" if arr is residuals else ""}.{ext}'))
 
   ######### trying the pt-rho plot
 #  ptbins[-1] = 2000
