@@ -1,0 +1,16 @@
+universe    =  vanilla
+arguments   =  $(r) v06 2018
+executable  =  $ENV(PWD)/submit_bias.sh
+log         =  $ENV(PWD)/condor_output/bias_r$(r)_v06_2018.log
+error       =  $ENV(PWD)/condor_output/bias_r$(r)_v06_2018.err
+output      =  $ENV(PWD)/condor_output/bias_r$(r)_v06_2018.out
+getenv      =  True
++JobFlavour =  "nextweek"
+queue r from (
+  0
+  0.5
+  1
+  2
+  2.5
+  5
+  )

@@ -280,10 +280,10 @@ def ftest(base,alt,ntoys,iLabel,options):
         if baseName==altName:
           altName += '_alt'
         os.chdir( options.odir )
-        exec_me('combine -M GoodnessOfFit %s  --rMax %s --rMin %s --algorithm saturated -n %s --freezeParameters %s'% (base, options.rMax,options.rMin,baseName, options.freezeNuisances),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root base_%s.root'%(baseName,baseName), options.dryRun)
-        exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s --algorithm saturated  -n %s --freezeParameters %s' % (alt,options.rMax,options.rMin,altName, options.freezeNuisances),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root base_%s.root'%(altName,altName), options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s  --rMax %s --rMin %s --algorithm saturated -n %s --freezeParameters %s -s %s'% (base, options.rMax,options.rMin,baseName, options.freezeNuisances, options.seed),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root base_%s_%s.root'%(baseName,options.seed,baseName,options.seed), options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s --algorithm saturated  -n %s --freezeParameters %s -s %s' % (alt,options.rMax,options.rMin,altName, options.freezeNuisances, options.seed),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root base_%s_%s.root'%(altName,options.seed,altName,options.seed), options.dryRun)
         exec_me('combine -M GenerateOnly %s --rMax %s --rMin %s --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s -s %s' % (base,options.rMax,options.rMin,ntoys,options.r,baseName,options.freezeNuisances,options.seed),options.dryRun)
         #exec_me('mv higgsCombine%s.GenerateOnly.mH120.%s.root %s/'%(baseName,options.seed,options.odir))
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.%s.root --algorithm saturated -n %s --freezeParameters %s -s %s' % (base,options.rMax,options.rMin,ntoys,options.odir,baseName,options.seed,baseName, options.freezeNuisances,options.seed),options.dryRun)
@@ -291,7 +291,7 @@ def ftest(base,alt,ntoys,iLabel,options):
         exec_me('combine -M GoodnessOfFit %s --rMax %s --rMin %s -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.%s.root --algorithm saturated -n %s --freezeParameters %s -s %s' % (alt,options.rMax,options.rMin,ntoys,options.odir,baseName,options.seed,altName, options.freezeNuisances,options.seed),options.dryRun)
         exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root toys_%s_%s.root'%(altName,options.seed,altName,options.seed),options.dryRun)
     if options.dryRun: sys.exit()
-    nllBase=fStat("%s/base_%s.root"%(options.odir,baseName),"%s/base_%s.root"%(options.odir,altName),options.p1,options.p2,options.n)
+    nllBase=fStat("%s/base_%s_%s.root"%(options.odir,baseName,options.seed),"%s/base_%s_%s.root"%(options.odir,altName,options.seed),options.p1,options.p2,options.n)
 #    if not options.justPlot:
     print "Using these toys input %s/toys_%s_%s.root and %s/toys_%s_%s.root"%(options.odir,baseName,options.seed,options.odir,altName,options.seed)
     nllToys=fStat("%s/toys_%s_%s.root"%(options.odir,baseName,options.seed),"%s/toys_%s_%s.root"%(options.odir,altName,options.seed),options.p1,options.p2,options.n)
@@ -330,15 +330,15 @@ def goodness(base,ntoys,iLabel,options):
     if not options.justPlot:
         os.chdir( options.odir )
         # --fixedSignalStrength %f  --freezeParameters tqqnormSF,tqqeffSF
-        exec_me('combine -M GoodnessOfFit %s  --rMax %i --rMin %i --algorithm %s -n %s --freezeParameters %s'% (base,options.rMax,options.rMin,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.root %s/goodbase_%s.root'%(combineLabelBase,options.odir,combineLabelBase),options.dryRun)
-        exec_me('combine -M GenerateOnly %s --rMax %i --rMin %i --toysFrequentist -t %i --expectSignal %f --saveToys -n %s --freezeParameters %s' % (base,options.rMax,options.rMin,ntoys,options.r,combineLabelBase,options.freezeNuisances),options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s  --rMax %i --rMin %i --algorithm %s -n %s -s %s --freezeParameters %s'% (base,options.rMax,options.rMin,options.algo,combineLabelBase,options.seed,options.freezeNuisances),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root %s/goodbase_%s_%s.root'%(combineLabelBase,options.seed,options.odir,combineLabelBase,options.seed),options.dryRun)
+        exec_me('combine -M GenerateOnly %s --rMax %i --rMin %i --toysFrequentist -t %i --expectSignal %f --saveToys -n %s -s %s --freezeParameters %s' % (base,options.rMax,options.rMin,ntoys,options.r,combineLabelBase,options.seed,options.freezeNuisances),options.dryRun)
         #exec_me('mv higgsCombine%s.GenerateOnly.mH120.123456.root %s/'%(combineLabelBase,options.odir),options.dryRun)
-        exec_me('combine -M GoodnessOfFit %s --rMax %i --rMin %i -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.123456.root --algorithm %s -n %s --freezeParameters %s' % (base,options.rMax,options.rMin,ntoys,options.odir,combineLabelBase,options.algo,combineLabelBase,options.freezeNuisances),options.dryRun)
-        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.123456.root %s/goodtoys_%s.root'%(combineLabelBase,options.odir,combineLabelBase),options.dryRun)
+        exec_me('combine -M GoodnessOfFit %s --rMax %i --rMin %i -t %i --toysFile %s/higgsCombine%s.GenerateOnly.mH120.%s.root --algorithm %s -n %s -s %s --freezeParameters %s' % (base,options.rMax,options.rMin,ntoys,options.odir,combineLabelBase,options.seed,options.algo,combineLabelBase,options.seed,options.freezeNuisances),options.dryRun)
+        exec_me('mv higgsCombine%s.GoodnessOfFit.mH120.%s.root %s/goodtoys_%s_%s.root'%(combineLabelBase,options.seed,options.odir,combineLabelBase,options.seed),options.dryRun)
     if options.dryRun: sys.exit()
-    nllBase=goodnessVals('%s/goodbase_%s.root'%(options.odir,combineLabelBase))
-    nllToys=goodnessVals('%s/goodtoys_%s.root'%(options.odir,combineLabelBase))
+    nllBase=goodnessVals('%s/goodbase_%s_%s.root'%(options.odir,combineLabelBase,options.seed))
+    nllToys=goodnessVals('%s/goodtoys_%s_%s.root'%(options.odir,combineLabelBase,options.seed))
     lPass=0
     for val in nllToys:
         if nllBase[0] > val:
@@ -465,7 +465,7 @@ if __name__ == "__main__":
     parser.add_option('--rho1', default=1, type=int, help='degree in rho for default/fit datacard')
     parser.add_option('--pt2', default=1, type=int, help='degree in pt for alternative/gen datacard')
     parser.add_option('--rho2', default=1, type=int, help='degree in rho for alternative/gen datacard')
-    parser.add_option('-t','--toys'   ,action='store',type='int',dest='toys'   ,default=300, help='number of toys')
+    parser.add_option('-t','--toys'   ,type=int, default=300, help='number of toys')
     parser.add_option('-s','--seed'   ,action='store',type='int',dest='seed'   ,default=-1, help='random seed')
     parser.add_option('--sig'    ,action='store',type='int',dest='sig'    ,default=1 ,help='sig')
     parser.add_option('-d','--datacard'   ,action='store',type='string',dest='datacard'   ,default=None, help='datacard name')
@@ -551,22 +551,55 @@ if __name__ == "__main__":
     CMS_lumi.extraText = "Preliminary" if options.isData else "Simulation Preliminary"
     CMS_lumi.lumi_13TeV = str( round( (lumi/1000.), 2 ) )+" fb^{-1}, "+options.year+" (13 TeV)"
 
+    #if options.toys=='merged':
+    #  splits = 1
+    #  options.justPlot == True
+    #else:
+    if not options.justPlot:
+        splits = options.toys//50 #run the toys in batches of 50
+        options.toys = 50
+
+        for _ in range(splits):
+          if options.method=='GoodnessOfFit':
+            ptrho = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
+            iLabel= 'goodness_%s_%s_ptrho%s'%(options.algo,options.datacard.split('/')[-1].replace('.root',''),ptrho)
+            goodness(options.datacard, options.toys, iLabel, options)
+
+            combineLabelBase = options.datacard.split('/')[-2].replace('.root','').replace('/','_')
+            to_hadd = ['goodbase_%s'%combineLabelBase,'goodtoys_%s'%combineLabelBase]
+
+          elif options.method=='MaxLikelihoodFit':
+            fit(options.datacard,options)
+
+          elif options.method=='FTest':
+            ptrho_base = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
+            ptrho_alt  = os.path.dirname(os.path.abspath(options.datacardAlt)).split('polyDegs')[1]
+            iLabel= 'ftest_ptrho%s_vs_ptrho%s'%(ptrho_base, ptrho_alt)
+            #iLabel= 'ftest_%s_vs_%s'%(options.datacard.split('/')[-1].replace('.root',''),options.datacardAlt.split('/')[-1].replace('.root',''))
+            ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
+
+            baseName = options.datacard.split('/')[-2] #base.split('/')[-1].replace('.root','')
+            altName  = options.datacardAlt.split('/')[-2] #alt.split('/')[-1].replace('.root','')
+            to_hadd = ['%s_%s'%(bt,ba) for bt in ['base','toys'] for ba in [baseName, altName]]
+
+          elif options.method=='Bias':
+            iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.rho1, options.pt1, options.pdf2, options.rho2, options.pt2,
+                                                  options.poi, options.r)
+            bias(options.datacard, options.datacardAlt, options.toys, options.r, iLabel, options)
+            to_hadd = ['biastoys_%s'%iLabel]
+
+          options.seed += 1 #run each set of 100 toys with a different seed
+
+        for fh in to_hadd:
+            cmd = 'hadd {odir}/{fh}_merged.root {fh}*root'.format(odir=options.odir, fh=fh)
+            exec_me(cmd,options.dryRun) 
+
+        options.justPlot = True
+        options.seed     = 'merged'
+
     if options.method=='GoodnessOfFit':
-        ptrho = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
-        iLabel= 'goodness_%s_%s_ptrho%s'%(options.algo,options.datacard.split('/')[-1].replace('.root',''),ptrho)
         goodness(options.datacard, options.toys, iLabel, options)
-
-    elif options.method=='MaxLikelihoodFit':
-        fit(options.datacard,options)
-
     elif options.method=='FTest':
-        ptrho_base = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
-        ptrho_alt  = os.path.dirname(os.path.abspath(options.datacardAlt)).split('polyDegs')[1]
-        iLabel= 'ftest_ptrho%s_vs_ptrho%s'%(ptrho_base, ptrho_alt)
-        #iLabel= 'ftest_%s_vs_%s'%(options.datacard.split('/')[-1].replace('.root',''),options.datacardAlt.split('/')[-1].replace('.root',''))
         ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
-
     elif options.method=='Bias':
-        iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.rho1, options.pt1, options.pdf2, options.rho2, options.pt2,
-                                              options.poi, options.r)
         bias(options.datacard, options.datacardAlt, options.toys, options.r, iLabel, options)

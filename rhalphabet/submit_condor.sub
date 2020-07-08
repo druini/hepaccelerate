@@ -1,46 +1,64 @@
 universe    =  vanilla
-arguments   =  $(ptdeg) $(rhodeg)
-executable  =  $ENV(PWD)/submit_condor.sh
-log         =  $ENV(PWD)/condor_output/degptrho$(ptdeg)$(rhodeg).log
-error       =  $ENV(PWD)/condor_output/degptrho$(ptdeg)$(rhodeg).err
-output      =  $ENV(PWD)/condor_output/degptrho$(ptdeg)$(rhodeg).out
+arguments   =  $(ptdeg) $(rhodeg) 2018 $(pdf) $(polylim) v06
+executable  =  $ENV(PWD)/$F(exec)
+log         =  $ENV(PWD)/condor_output/degptrho$(ptdeg)$(rhodeg)_$Fn(exec)_$(pdf)_v06_2018.log
+error       =  $ENV(PWD)/condor_output/degptrho$(ptdeg)$(rhodeg)_$Fn(exec)_$(pdf)_v06_2018.err
+output      =  $ENV(PWD)/condor_output/degptrho$(ptdeg)$(rhodeg)_$Fn(exec)_$(pdf)_v06_2018.out
 getenv      =  True
-+JobFlavour =  "tomorrow"
-queue ptdeg,rhodeg from (
-  0 0
-  0 1
-  0 2
-  0 3
-  0 4
-  0 5
-  1 0
-  1 1
-  1 2
-  1 3
-  1 4
-  1 5
-  2 0
-  2 1
-  2 2
-  2 3
-  2 4
-  2 5
-  3 0
-  3 1
-  3 2
-  3 3
-  3 4
-  3 5
-  4 0
-  4 1
-  4 2
-  4 3
-  4 4
-  4 5
-  5 0
-  5 1
-  5 2
-  5 3
-  5 4
-  5 5
-  )
++JobFlavour =  "nextweek"
+queue ptdeg,rhodeg,polylim,pdf,exec from (
+  1 1 2 poly submit_ftest_pt.sh
+  1 1 2 poly submit_ftest_rho.sh
+  1 1 2 poly submit_gof.sh
+  1 1 2 exp submit_ftest_pt.sh
+  1 1 2 exp submit_ftest_rho.sh
+  1 1 2 exp submit_gof.sh
+  1 2 2 poly submit_ftest_pt.sh
+  1 2 2 poly submit_ftest_rho.sh
+  1 2 2 poly submit_gof.sh
+  1 2 2 exp submit_ftest_pt.sh
+  1 2 2 exp submit_ftest_rho.sh
+  1 2 3 exp submit_gof.sh
+  1 3 2 poly submit_ftest_pt.sh
+  1 3 2 poly submit_ftest_rho.sh
+  1 3 2 poly submit_gof.sh
+  1 3 2 exp submit_ftest_pt.sh
+  1 3 2 exp submit_ftest_rho.sh
+  1 3 2 exp submit_gof.sh
+  2 1 2 poly submit_ftest_pt.sh
+  2 1 2 poly submit_ftest_rho.sh
+  2 1 2 poly submit_gof.sh
+  2 1 2 exp submit_ftest_pt.sh
+  2 1 2 exp submit_ftest_rho.sh
+  2 1 2 exp submit_gof.sh
+  2 2 2 poly submit_ftest_pt.sh
+  2 2 2 poly submit_ftest_rho.sh
+  2 2 2 poly submit_gof.sh
+  2 2 2 exp submit_ftest_pt.sh
+  2 2 2 exp submit_ftest_rho.sh
+  2 2 2 exp submit_gof.sh
+  2 3 2 poly submit_ftest_pt.sh
+  2 3 2 poly submit_ftest_rho.sh
+  2 3 2 poly submit_gof.sh
+  2 3 2 exp submit_ftest_pt.sh
+  2 3 2 exp submit_ftest_rho.sh
+  2 3 2 exp submit_gof.sh
+  3 1 2 poly submit_ftest_pt.sh
+  3 1 2 poly submit_ftest_rho.sh
+  3 1 2 poly submit_gof.sh
+  3 1 2 exp submit_ftest_pt.sh
+  3 1 2 exp submit_ftest_rho.sh
+  3 1 2 exp submit_gof.sh
+  3 2 2 poly submit_ftest_pt.sh
+  3 2 2 poly submit_ftest_rho.sh
+  3 2 2 poly submit_gof.sh
+  3 2 2 exp submit_ftest_pt.sh
+  3 2 2 exp submit_ftest_rho.sh
+  3 2 2 exp submit_gof.sh
+  3 3 2 poly submit_ftest_pt.sh
+  3 3 2 poly submit_ftest_rho.sh
+  3 3 2 poly submit_gof.sh
+  3 3 2 exp submit_ftest_pt.sh
+  3 3 2 exp submit_ftest_rho.sh
+  3 3 2 exp submit_gof.sh
+)
