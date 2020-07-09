@@ -202,7 +202,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
             #pdb.set_trace()
             #yields = sum(tpl[0] for tpl in templates.values())
             #data_obs = (yields, msd.binning, msd.name)
-            if not isData and args.addSignal: templates['background'].Add( templates['signal'] )
+            if not isData and args.sig_and_bkg: templates['background'].Add( templates['signal'] )
             data_obs = templates['background']
             ch.setObservation(data_obs)
 
