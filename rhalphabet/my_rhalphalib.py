@@ -36,7 +36,7 @@ def load_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, 
 
 def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs):
   #filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2018/v05/'+ver+'/out_'+sample+'_merged.json'
-  filepath = os.path.join(indir, 'out_'+sample+('_noQCD' if (args.year.startswith('2016') and sample.startswith('back')) else '' )+'_merged.json')
+  filepath = os.path.join(indir, 'out_'+sample+('_noQCD_noDY' if (args.year.startswith('2016') and sample.startswith('back')) else '' )+'_merged.json')
   if ptStop==2000: ptStop = 5000
   with open(filepath) as json_file:
     data = json.load(json_file)
@@ -202,6 +202,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
             #pdb.set_trace()
             #yields = sum(tpl[0] for tpl in templates.values())
             #data_obs = (yields, msd.binning, msd.name)
+            if not isData and args.addSignal: templates['background'].Add( templates['signal'] )
             data_obs = templates['background']
             ch.setObservation(data_obs)
 
@@ -243,7 +244,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
     #with open(os.path.join(str(outdir), 'ttHbb.pkl'), "wb") as fout:       ### ALE: still dont understand why we need this
     #    pickle.dump(model, fout)
 
-    pref = ('data' if isData else 'mc')
+    pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
     combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1,('exp' if args.runExp else ''), polyDegPt,polyDegRho))
     model.renderCombine(combineFolder)
     exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(str_polylims,args.rMin,args.rMax,str_polylims,args.rMin,args.rMax), folder=combineFolder)
