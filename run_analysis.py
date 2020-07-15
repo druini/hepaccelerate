@@ -230,11 +230,12 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
             ret[f'hist_{var_name}_{mask_name+weight_name}'] = get_histogram( var[mask], weights[w][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
           except KeyError:
             print(f'!!!!!!!!!!!!!!!!!!!!!!!! Please add variable {var_name} to the histogram settings')
-    mask = mask_events['2J2WdeltaR'] & (leading_fatjet_pt>1500)
-    if 'Single' in sample:
-      with open('/afs/cern.ch/work/d/druini/public/hepaccelerate/highptEvents.txt','a+') as f:
-        for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
-          f.write(f'{sample}, {nevt}, {run}, {lumiBlock}\n')
+    ### next lines are to write event numbers of very high pt events
+    #mask = mask_events['2J2WdeltaR'] & (leading_fatjet_pt>1500)
+    #if 'Single' in sample:
+    #  with open('/afs/cern.ch/work/d/druini/public/hepaccelerate/highptEvents.txt','a+') as f:
+    #    for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
+    #      f.write(f'{sample}, {nevt}, {run}, {lumiBlock}\n')
 
     #synch
 #    evts = [1550213, 1550290, 1550342, 1550361, 1550369, 1550387, 1550396, 1550467, 1550502, 1550566]
@@ -515,8 +516,8 @@ if __name__ == "__main__":
 
     #results = Results()
     WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
-    WPs_DDB  = [0.7, 0.86]#, 0.89, 0.91, 0.92]
-    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8}#, 'btagDDBvL_noMD': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
+    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
+    bbtags   = {'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTagMD_bbvsLight': WPs_DAK8, 'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
     pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
     #for p in pars.copy():
     #    pars[f'{p}_1btag'] = pars[p] + (1,)
