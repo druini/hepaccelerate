@@ -68,7 +68,8 @@ def rebin(hist, rebin_factor):
 
 
 def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runExp=False):
-    dataOrBkg = 'data' if isData else ('all' if args.sig_and_bkg else 'background')
+    #dataOrBkg = 'data' if isData else ('all' if args.sig_and_bkg else 'background')
+    dataOrBkg = 'data' if isData else 'background'
 
     throwPoisson = False
 
@@ -169,8 +170,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         tf_params *= tf_MCtempl_params_final
 
     # build actual fit model now
-    str_polylims = "polylims%ito%i"%(-args.poly_limit,args.poly_limit)
-    model = rl.Model('ttHbb_'+('data_' if args.isData else ('sig_' if args.sig_and_bkg else ''))+str_polylims)
+    str_polylims = ('data_' if args.isData else ('sig_' if args.sig_and_bkg else ''))+"polylims%ito%i"%(-args.poly_limit,args.poly_limit)
+    model = rl.Model('ttHbb_'+str_polylims)
 
     for ptbin in range(npt):
         for region in ['Pass', 'Fail']:
