@@ -285,7 +285,7 @@ class NanoAODDataset(Dataset):
         dt = t1 - t0
         if verbose:
             print("analyze: processed analysis with {0:.2E} events in {1:.1f} seconds, {2:.2E} Hz".format(len(self), dt, len(self)/dt))
-        return sum(rets, Results({}))
+        return sum(rets)
 
     def to_cache(self, nthreads=1, verbose=False):
         if self.do_progress:

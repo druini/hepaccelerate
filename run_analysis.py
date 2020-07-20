@@ -75,14 +75,14 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     # apply basic event selection -> individual categories cut later
     nleps =  NUMPY_LIB.add(ha.sum_in_offsets(muons, good_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, good_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
-#    lepton_veto = NUMPY_LIB.add(ha.sum_in_offsets(muons, veto_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, veto_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
+    lepton_veto = NUMPY_LIB.add(ha.sum_in_offsets(muons, veto_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, veto_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
     njets = ha.sum_in_offsets(jets, nonbjets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
     btags = ha.sum_in_offsets(jets, bjets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
     nfatjets = ha.sum_in_offsets(fatjets, good_fatjets, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
     #nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
 
     # for reference, this is the selection for the resolved analysis
-    mask_events_res = mask_events & (nleps == 1) & (lepton_veto == 0) & (njets >= 4) & (btags >=2) & met
+    mask_events_res = mask_events & (nleps == 1) & (lepton_veto == 0) & (njets >= 4) & (btags >=2) & (scalars["MET_pt"] > parameters['met'])
     # apply basic event selection
     #mask_events_higgs = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
     mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags'])# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
@@ -151,7 +151,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     assert( len(mask_events['2J2WdeltaR'])==len(mask_events_res) )
     #return (total number of events, number of boosted events, number of resolved events, number of events in overlap)
-    return (len(mask_events['2J2WdeltaR']), sum(mask_events['2J2WdeltaR']), sum(mask_events_res), sum(mask_events['2J2WdeltaR']&mask_events_res))
+    return NUMPY_LIB.array([len(mask_events['2J2WdeltaR']), sum(mask_events['2J2WdeltaR']), sum(mask_events_res), sum(mask_events['2J2WdeltaR']&mask_events_res)])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Runs a simple array-based analysis')
@@ -253,15 +253,13 @@ if __name__ == "__main__":
             raise Exception("Must supply ROOT filename, but got {0}".format(fn))
 
     #results = Results()
-    WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
-    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
-    bbtags   = {'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTagMD_bbvsLight': WPs_DAK8, 'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
-    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
-    #for p in pars.copy():
-    #    pars[f'{p}_1btag'] = pars[p] + (1,)
-    #    pars[p]            = pars[p] + (0,)
+#    WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
+#    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
+#    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
+#    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
 
-    results  = {}
+    #results  = {p : NUMPY_LIB.zeros(4) for p in pars}
+    results  = NUMPY_LIB.zeros(4)
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
@@ -306,14 +304,16 @@ if __name__ == "__main__":
         if ibatch == 0:
             print(dataset.printout())
 
-        for p in pars:
-          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p]
-        #### this is where the magic happens: run the main analysis
-          results[p] = dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
+#        for p in pars:
+#          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p]
+#        #### this is where the magic happens: run the main analysis
+#          results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
+        results += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
 
-    #print(results)
+    print(results)
 
     #Save the results
+    results = list(results) #necessary for json encoding
     outdir = args.outdir
     if args.version!='':
       outdir = os.path.join(outdir,args.version)
