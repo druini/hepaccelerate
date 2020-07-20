@@ -19,9 +19,6 @@ from lib_analysis import vertex_selection, lepton_selection, jet_selection, load
 
 #This function will be called for every file in the dataset
 def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False):
-    #Output structure that will be returned and added up among the files.
-    #Should be relatively small.
-    ret = Results()
 
     muons = data["Muon"]
     electrons = data["Electron"]
@@ -84,11 +81,11 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     nfatjets = ha.sum_in_offsets(fatjets, good_fatjets, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
     #nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
 
+    # for reference, this is the selection for the resolved analysis
+    mask_events_res = mask_events & (nleps == 1) & (lepton_veto == 0) & (njets >= 4) & (btags >=2) & met
     # apply basic event selection
     #mask_events_higgs = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
     mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags'])# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
-    # for reference, this is the selection for the resolved analysis
-    # mask_events = mask_events & (nleps == 1) & (lepton_veto == 0) & (njets >= 4) & (btags >=2) & met
 
 ############# calculate weights for MC samples
     weights = {}
@@ -150,270 +147,11 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #    mask_events['2J2WdeltaR'] = mask_events['2J2W'] & (deltaRlepWHiggs>1.5) & (deltaRhadWHiggs>1.5) & (deltaRlepWHiggs<4) & (deltaRhadWHiggs<4)
     mask_events['2J2WdeltaR'] = mask_events['2J2W'] & (deltaRlepWHiggs>1) & (deltaRhadWHiggs>1)# & (deltaRlepWHiggs<4) & (deltaRhadWHiggs<4)
 
-    #boosted Higgs
-    leading_fatjet_tau1     = ha.get_in_offsets(fatjets.tau1, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
-    leading_fatjet_tau2     = ha.get_in_offsets(fatjets.tau2, fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
-    leading_fatjet_tau21    = NUMPY_LIB.divide(leading_fatjet_tau2, leading_fatjet_tau1)
-    ### tau21DDT defined as in https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetWtagging#tau21DDT_0_43_HP_0_43_tau21DDT_0
-#    leading_fatjet_tau21DDT = NUMPY_LIB.zeros_like(leading_fatjet_tau21)
-#    if args.year=='2016':
-#        leading_fatjet_tau21DDT[mask_events['2J2WdeltaR']] = leading_fatjet_tau21[mask_events['2J2WdeltaR']] * 0.063 * NUMPY_LIB.log(leading_fatjet_SDmass[mask_events['2J2WdeltaR']]**2 / leading_fatjet_pt[mask_events['2J2WdeltaR']])
-#    elif args.year=='2017':
-#        leading_fatjet_tau21DDT[mask_events['2J2WdeltaR']] = leading_fatjet_tau21[mask_events['2J2WdeltaR']] * 0.080 * NUMPY_LIB.log(leading_fatjet_SDmass[mask_events['2J2WdeltaR']]**2 / leading_fatjet_pt[mask_events['2J2WdeltaR']])
-#    else:
-#        leading_fatjet_tau21DDT[mask_events['2J2WdeltaR']] = leading_fatjet_tau21[mask_events['2J2WdeltaR']] * 0.082 * NUMPY_LIB.log(leading_fatjet_SDmass[mask_events['2J2WdeltaR']]**2 / leading_fatjet_pt[mask_events['2J2WdeltaR']])
+    #leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging_algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaRTau21'], good_fatjets)
 
-    mask_events['2J2WdeltaRTau21']    = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21cut"][args.year])
-#    mask_events['2J2WdeltaRTau21DDT'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21DDTcut"][args.year])
-
-    leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging_algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaRTau21'], good_fatjets)
-    #mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging_WP'])
-    #mask_events['2J2WdeltaRTau21_Fail'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb<=parameters['bbtagging_WP'])
-    for m in ['2J2WdeltaR']:#, '2J2WdeltaRTau21']:#, '2J2WdeltaRTau21DDT']:
-        mask_events[f'{m}_Pass'] = mask_events[m] & (leading_fatjet_Hbb>parameters['bbtagging_WP'])
-        mask_events[f'{m}_Fail'] = mask_events[m] & (leading_fatjet_Hbb<=parameters['bbtagging_WP'])
-
-
-############# histograms
-    vars_to_plot = {
-      'nleps'             : nleps,
-      'njets'             : njets,
-      'btags'             : btags,
-      'nfatjets'          : nfatjets,
-      'met'               : scalars['MET_pt'],
-      'leading_jet_pt'    : leading_jet_pt,
-      'leading_jet_eta'   : leading_jet_eta,
-      'leadAK8JetMass'    : leading_fatjet_SDmass,
-      'leadAK8JetPt'      : leading_fatjet_pt,
-      'leadAK8JetEta'     : leading_fatjet_eta,
-      'leadAK8JetHbb'     : leading_fatjet_Hbb,
-      'leadAK8JetTau21'   : leading_fatjet_tau21,
-      'leadAK8JetRho'     : leading_fatjet_rho,
-      'lepton_pt'         : leading_lepton_pt,
-      'lepton_eta'        : leading_lepton_eta,
-      'hadWPt'            : hadW.pt,
-      'hadWEta'           : hadW.eta,
-      'hadWMass'          : hadW.mass,
-      'lepWPt'            : lepW.pt,
-      'lepWEta'           : lepW.eta,
-      'lepWMass'          : lepW.mass,
-      'deltaRlepWHiggs'   : deltaRlepWHiggs,
-      'deltaRhadWHiggs'   : deltaRhadWHiggs,
-      'deltaRHiggsLepton' : deltaRHiggsLepton,
-      'PV_npvsGood'       : scalars['PV_npvsGood'],
-    }
-    if is_mc:
-      vars_to_plot['pu_weights'] = pu_weights
-
-    #var_name, var = 'leadAK8JetMass', leading_fatjet_SDmass
-    vars_split = ['leadAK8JetMass', 'leadAK8JetRho']
-    ptbins = NUMPY_LIB.append( NUMPY_LIB.arange(200,600,50), [600, 1000, 5000] )
-    for var_name in vars_split:
-      var = vars_to_plot[var_name]
-      for ipt in range( len(ptbins)-1 ):
-        for m in ['2J2WdeltaR']:#, '2J2WdeltaRTau21']:#, '2J2WdeltaRTau21DDT']:
-          for r in ['Pass','Fail']:
-            mask_name = f'{m}_{r}'
-            mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
-            #ret[f'hist_leadAK8JetMass_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( leading_fatjet_SDmass[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
-            ret[f'hist_{var_name}_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( var[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
-
-    weight_names = {'' : 'nominal', '_NoWeights' : 'ones'}
-    for weight_name, w in weight_names.items():
-      for mask_name, mask in mask_events.items():
-#        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/tests/events_pass_selection_{sample}_{mask_name}.txt','a+') as f:
-#          for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
-#            f.write(f'{nevt}, {run}, {lumiBlock}\n')
-        for var_name, var in vars_to_plot.items():
-          if (not is_mc) and (mask_name=='2J2WdeltaRTau21_Pass') and (var_name=='leadAK8JetMass') : continue
-          try:
-            ret[f'hist_{var_name}_{mask_name+weight_name}'] = get_histogram( var[mask], weights[w][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
-          except KeyError:
-            print(f'!!!!!!!!!!!!!!!!!!!!!!!! Please add variable {var_name} to the histogram settings')
-    ### next lines are to write event numbers of very high pt events
-    #mask = mask_events['2J2WdeltaR'] & (leading_fatjet_pt>1500)
-    #if 'Single' in sample:
-    #  with open('/afs/cern.ch/work/d/druini/public/hepaccelerate/highptEvents.txt','a+') as f:
-    #    for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
-    #      f.write(f'{sample}, {nevt}, {run}, {lumiBlock}\n')
-
-    #synch
-#    evts = [1550213, 1550290, 1550342, 1550361, 1550369, 1550387, 1550396, 1550467, 1550502, 1550566]
-##    evts = [1550251, 1556872, 1557197, 1558222, 1558568, 1600001, 1602391, 3928629, 3930963, 3931311, 4086276]
-#    mask = NUMPY_LIB.zeros_like(mask_events)
-#    for iev in evts:
-#      mask |= (scalars["event"] == iev)
-#    print('nevt', scalars["event"][mask])
-#    print('pass sel', mask_events[mask])
-#    print('nleps', nleps[mask])
-#    print('njets', njets[mask])
-#    print('nfatjets', nfatjets[mask])
-#    print('fatjet mass', leading_fatjet_SDmass[mask])
-#    print('fatjet pt', leading_fatjet_pt[mask])
-#    print('fatjet eta', leading_fatjet_eta[mask])
-#    print('met', scalars['MET_pt'][mask])
-#    print('lep_pt', leading_lepton_pt[mask])
-#    print('lep_eta', leading_lepton_eta[mask])
-#    print('pu_weight', pu_weights[mask])
-#    print('lep_weight', muon_weights[mask] * electron_weights[mask])
-#    print('nevents', np.count_nonzero(mask_events))
-
-#    np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-#    evts = [1550290, 1550342, 1550361, 1550387, 1550467, 1550502, 1550607, 1550660]
-#    for evt in evts:
-#      evt_idx = NUMPY_LIB.where( scalars["event"] == evt )[0][0]
-#      start = jets.offsets[evt_idx]
-#      stop  = jets.offsets[evt_idx+1]
-#      print(f'!!! EVENT {evt} !!!')
-#      print(f'njets good {njets[evt_idx]}, total {stop-start}')
-#      print('jets mask', nonbjets[start:stop])
-#      print('jets pt', jets.pt[start:stop])
-#      print('jets eta', jets.eta[start:stop])
-#      print('jets btag', getattr(jets, parameters["btagging_algorithm"])[start:stop])
-#      print('jet Id', jets.jetId[start:stop]),
-#      print('jet puId', jets.puId[start:stop])
-#    with open('events_pass_selection.txt','w+') as f:
-#      for nevt in scalars['event'][mask_events['2J']]:
-#        f.write(str(nevt)+'\n')
-#    import pdb
-#    pdb.set_trace()
-
-##
-#    variables = [
-##        ("jet", jets, good_jets, "leading", ["pt", "eta"]),
-##        ("bjet", jets, bjets, "leading", ["pt", "eta"]),
-#    ]
-##
-#    if boosted:
-#        variables += [
-##            ("fatjet", fatjets, good_fatjets, "leading",["pt", "eta", "mass", "msoftdrop", "tau32", "tau21"]),
-##            ("fatjet", fatjets, good_fatjets, "subleading",["pt", "eta", "mass", "msoftdrop", "tau32", "tau21"]),
-##            ("top_candidate", fatjets, top_candidates, "leading", ["pt", "eta", "mass", "msoftdrop", "tau32", "tau21"]),
-##            ("WH_candidate", fatjets, WH_candidates, "inds_WHcandidates", ["pt", "eta", "mass", "msoftdrop", "tau32", "tau21"]),
-##            ("higgs", genparts, higgs, "leading", ["pt", "eta"]),
-##            ("tops", genparts, tops, "leading", ["pt", "eta"])
-#            ("", fatjets, higgs_candidates, "best_higgs_candidate", ["pt", "msoftdrop", "tau21", parameters["bbtagging_algorithm"]]),
-##            ("boosted", fatjets, W_candidates, "best_W_candidate", ["pt", "msoftdrop", "tau21"]),
-##            ("boosted", fatjets, top_candidates, "best_top_candidate", ["pt", "msoftdrop", "tau21"]),
-#
-#    ]
-##
-##    if boosted:
-##      higgs = (genparts.pdgId == 25) & (genparts.status==62)
-##      tops  = ( (genparts.pdgId == 6) | (genparts.pdgId == -6) ) & (genparts.status==62)
-##      var["nfatjets"] = ha.sum_in_offsets(fatjets, good_fatjets, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
-##      var["ntop_candidates"] = ha.sum_in_offsets(fatjets, tops, mask_events, fatjets.masks["all"], NUMPY_LIB.int8)
-##
-##    # special role of lepton
-##    var["leading_lepton_pt"] = NUMPY_LIB.maximum(ha.get_in_offsets(muons.pt, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.pt, electrons.offsets, indices["leading"], mask_events, good_electrons))
-##    var["leading_lepton_eta"] = NUMPY_LIB.maximum(ha.get_in_offsets(muons.eta, muons.offsets, indices["leading"], mask_events, good_muons), ha.get_in_offsets(electrons.eta, electrons.offsets, indices["leading"], mask_events, good_electrons))
-##
-#    # all other variables
-#    for v in variables:
-#      calculate_variable_features(v, mask_events, indices, var)
-#    for f in ['pt', 'mass']:
-#      var['best_W_candidate_resolved_'+f] = getattr(hadW, f)
-#      var['leptonic_W_candidate_'+f] = getattr(lepW, f)
-#    var['deltaR_Wlep_WhadResolved'] = ha.calc_dr(lepW.phi, lepW.eta, hadW.phi, hadW.eta)
-##    Whad_phi = ha.get_in_offsets(fatjets.phi, fatjets.offsets, indices["best_W_candidate"], mask_events, W_candidates)
-##    Whad_eta = ha.get_in_offsets(fatjets.eta, fatjets.offsets, indices["best_W_candidate"], mask_events, W_candidates)
-#    H_phi = ha.get_in_offsets(fatjets.phi, fatjets.offsets, indices["best_higgs_candidate"], mask_events, higgs_candidates)
-#    H_eta = ha.get_in_offsets(fatjets.eta, fatjets.offsets, indices["best_higgs_candidate"], mask_events, higgs_candidates)
-##    var['deltaR_Wlep_WhadBoosted'] = ha.calc_dr(lepW.phi, lepW.eta, Whad_phi, Whad_eta)
-#    var['deltaR_Wlep_H'] = ha.calc_dr(lepW.phi, lepW.eta, H_phi, H_eta)
-##    var['deltaR_H_WhadBoosted'] = ha.calc_dr(Whad_phi, Whad_eta, H_phi, H_eta)
-#    var['deltaR_H_WhadResolved'] = ha.calc_dr(H_phi, H_eta, hadW.phi, hadW.eta)
-#
-#    #in case of data: check if event is in golden lumi file
-#    if not is_mc and not (lumimask is None):
-#        mask_lumi = lumimask(scalars["run"], scalars["luminosityBlock"])
-#        mask_events = mask_events & mask_lumi
-##
-#    # in case of tt+jets -> split in ttbb, tt2b, ttb, ttcc, ttlf
-#    processes = {}
-#    if sample.startswith("TT"):
-#        ttCls = scalars["genTtbarId"]%100
-#        processes["ttbb"] = mask_events & (ttCls >=53) & (ttCls <=56)
-#        processes["tt2b"] = mask_events & (ttCls ==52)
-#        processes["ttb"] = mask_events & (ttCls ==51)
-#        processes["ttcc"] = mask_events & (ttCls >=41) & (ttCls <=45)
-#        ttHF =  ((ttCls >=53) & (ttCls <=56)) | (ttCls ==52) | (ttCls ==51) | ((ttCls >=41) & (ttCls <=45))
-#        processes["ttlf"] = mask_events & NUMPY_LIB.invert(ttHF)
-#    else:
-#        processes["unsplit"] = mask_events
-#
-#    for p in processes.keys():
-#
-#        mask_events_split = processes[p]
-#
-#        # Categories
-#        categories = {}
-#        if not boosted:
-#          categories["sl_jge4_tge2"] = mask_events_split
-#          categories["sl_jge4_tge3"] = mask_events_split & (btags >=3)
-#
-#          categories["sl_j4_tge3"] = mask_events_split & (njets ==4) & (btags >=3)
-#          categories["sl_j5_tge3"] = mask_events_split & (njets ==5) & (btags >=3)
-#          categories["sl_jge6_tge3"] = mask_events_split & (njets >=6) & (btags >=3)
-#
-#          categories["sl_j4_t3"] = mask_events_split & (njets ==4) & (btags ==3)
-#          categories["sl_j4_tge4"] = mask_events_split & (njets ==4) & (btags >=4)
-#          categories["sl_j5_t3"] = mask_events_split & (njets ==5) & (btags ==3)
-#          categories["sl_j5_tge4"] = mask_events_split & (njets ==5) & (btags >=4)
-#          categories["sl_jge6_t3"] = mask_events_split & (njets >=6) & (btags ==3)
-#          categories["sl_jge6_tge4"] = mask_events_split & (njets >=6) & (btags >=4)
-#        else:
-##          categories['boosted_higgs_only'] = mask_events_split & (nhiggs>0)
-#          categories['boosted_HandW'] = mask_events_split & (nhiggs>0) & ( ( (hadW.mass>65) & (hadW.mass<105) ) ) # (nW>0) |
-#          for objlist in [['Wlep','H','WhadResolved']]:#, ['Wlep','H','WhadBoosted']]:
-#            for obj in itertools.combinations(objlist,2):
-#              categories['boosted_HandW_deltaRcut_{}_{}'.format(obj[0],obj[1])] = categories['boosted_HandW'] & (var['deltaR_{}_{}'.format(obj[0],obj[1])] > 1.5)
-##          categories['boosted_higgs_and_W_dRcut'] = categories['boosted_higgs_and_W'] \
-##              & (var['deltaR_Wlep_Whad_resolved'] < 3.5) \
-##              & (var['deltaR_Wlep_Whad_boosted'] < 3.5) \
-##              & (var['deltaR_Wlep_H'] < 3.5) \
-##              & ( (var['deltaR_H_Whad_boosted'] > 2.) & (var['deltaR_H_Whad_boosted'] < 3.5) ) \
-##              & ( (var['deltaR_H_Whad_resolved'] > 2.) & (var['deltaR_H_Whad_resolved'] < 3.5) )
-#
-#        #the following 2d histos are only needed before the cuts
-#        cut = categories['boosted_HandW']
-#        for objlist in [['Wlep','H','WhadResolved']]: #, ['Wlep','H','WhadBoosted']]:
-#          for obj in itertools.combinations(itertools.combinations(objlist,2),2):
-#            var1 = 'deltaR_{}_{}'.format(obj[0][0],obj[0][1])
-#            var2 = 'deltaR_{}_{}'.format(obj[1][0],obj[1][1])
-#            if (var1 in var) and (var2 in var):
-#              hist, binsx, binsy = NUMPY_LIB.histogram2d(var[var1][cut], var[var2][cut],\
-#                                                         bins=(\
-#                                                               NUMPY_LIB.linspace(histogram_settings[var1][0], histogram_settings[var1][1], histogram_settings[var1][2]),\
-#                                                               NUMPY_LIB.linspace(histogram_settings[var2][0], histogram_settings[var2][1], histogram_settings[var2][2]),\
-#                                                              ),\
-#                                                         weights=weights["nominal"][cut]\
-#                                                        )
-#              ret['hist2d_deltaR_{}_{}'.format(obj[0][0]+obj[0][1], obj[1][0]+obj[1][1])] =\
-#                Histogram( hist, hist, (binsx[0],binsx[-1], binsy[0],binsy[-1]) )
-#
-#        if 'all' in cat:
-#          cat=categories.keys()
-##        elif not isinstance(cat, list):
-##            cat = [cat]
-#        for c in cat:
-#            cut = categories[c]
-#            cut_name = c
-#
-#            if p=="unsplit":
-#                if "Run" in sample:
-#                    name = "data" + "_" + cut_name
-#                elif "process" in samples_info[sample].keys():
-#                    name = samples_info[sample]["process"] + "_" + cut_name
-#                else:
-#                    name = sample.split('_')[0] + "_" + cut_name
-#            else:
-#                name = p + "_" + cut_name
-#
-#
-#
-#
-    return ret
+    assert( len(mask_events['2J2WdeltaR'])==len(mask_events_res) )
+    #return (total number of events, number of boosted events, number of resolved events, number of events in overlap)
+    return (len(mask_events['2J2WdeltaR']), sum(mask_events['2J2WdeltaR']), sum(mask_events_res), sum(mask_events['2J2WdeltaR']&mask_events_res))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Runs a simple array-based analysis')
@@ -523,10 +261,7 @@ if __name__ == "__main__":
     #    pars[f'{p}_1btag'] = pars[p] + (1,)
     #    pars[p]            = pars[p] + (0,)
 
-    results  = {p : Results() for p in pars}
-
-    #results = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : Results() for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
-    #pars    = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
+    results  = {}
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
@@ -574,17 +309,16 @@ if __name__ == "__main__":
         for p in pars:
           parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p]
         #### this is where the magic happens: run the main analysis
-          results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
+          results[p] = dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
 
     #print(results)
 
     #Save the results
-    for r in results:
-      outdir = args.outdir
-      if args.version!='':
-        outdir = os.path.join(outdir,args.version)
-      outdir = os.path.join(outdir,r)
-      if not os.path.exists(outdir):
-        os.makedirs(outdir)
+    outdir = args.outdir
+    if args.version!='':
+      outdir = os.path.join(outdir,args.version)
+    if not os.path.exists(outdir):
+      os.makedirs(outdir)
 
-      results[r].save_json(os.path.join(outdir,f"out_{args.sample}{args.outtag}.json"))
+    with open(os.path.join(outdir,f'out_{args.sample}{args.outtag}.json'), 'w+') as f:
+        json.dump(results,f)
