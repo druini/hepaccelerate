@@ -24,7 +24,8 @@ def bern_elem(x, v, n):
     # Bernstein element calculation
     normalization = 1. * math.factorial(n) / (math.factorial(v) * math.factorial(n - v))
     Bvn = normalization * (x**v) * (1-x)**(n-v)
-    return float(Bvn)
+    #return float(Bvn)
+    return Bvn
 
 
 def TF(pT, rho, n_pT=2, n_rho=2, par_map=np.ones((3, 3))):
@@ -61,15 +62,16 @@ def plotTFsmooth(TF, msd, pt, mask=None, MC=False, raw=False, rhodeg=2, ptdeg=2,
 
     zmin, zmax = np.floor(10*np.min(TF))/10, np.ceil(10*np.max(TF))/10
     zmin, zmax = zmin + 0.001, zmax - 0.001
-    clim = np.round(np.min([abs(zmin - 1), abs(zmax - 1)]), 1)
-    if clim < .3: clim = .3
-    if clim > .5: clm = .5
+    clim = np.round(np.max([abs(zmin - 1), abs(zmax - 1)]), 1)
+    #if clim < .3: clim = .3
+    #if clim > .5: clm = .5
     levels = np.linspace(1-clim, 1+clim, 500)
 
-    if np.min(TF) < 1-clim and np.max(TF) > 1+clim: _extend = 'both '
-    elif np.max(TF) > 1+clim: _extend = 'max'
-    elif np.min(TF) < 1-clim: _extend = 'min'
-    else: _extend = 'neither'
+    #if np.min(TF) < 1-clim and np.max(TF) > 1+clim: _extend = 'both '
+    #elif np.max(TF) > 1+clim: _extend = 'max'
+    #elif np.min(TF) < 1-clim: _extend = 'min'
+    #else: _extend = 'neither'
+    _extend = 'neither'
 
     if mask is not None:
         contf = ax.contourf(msd, pt, TF, levels=levels,
@@ -77,16 +79,18 @@ def plotTFsmooth(TF, msd, pt, mask=None, MC=False, raw=False, rhodeg=2, ptdeg=2,
     else:
         contf = ax.contourf(msd, pt, TF, levels=levels, cmap='RdBu_r', extend=_extend)
     cax = hep.make_square_add_cbar(ax, pad=0.2, size=0.5)
-    if abs(1-zmin) > .3 and abs(1-zmax) > .3:
-        c_extend = 'both'
-    elif abs(1-zmin) > .3:
-        c_extend = 'min'
-    elif abs(1-zmax) > .3:
-        c_extend = 'max'
-    else:
-        c_extend = 'neither'
+    #if abs(1-zmin) > .3 and abs(1-zmax) > .3:
+    #    c_extend = 'both'
+    #elif abs(1-zmin) > .3:
+    #    c_extend = 'min'
+    #elif abs(1-zmax) > .3:
+    #    c_extend = 'max'
+    #else:
+    #    c_extend = 'neither'
+    c_extend = 'neither'
     cbar = fig.colorbar(contf, cax=cax, extend=c_extend)
-    cbar.set_ticks([np.arange(1-clim, 1+clim, 0.1)])
+    cbar.set_ticks([np.round(np.linspace(1-clim, 1+clim, 10),1)])
+    #cbar.set_ticks([np.arange(1-clim, 1+clim, 0.1)])
 
     def rho_bound(ms, rho):
         # rho = {minRho, maxRho}
