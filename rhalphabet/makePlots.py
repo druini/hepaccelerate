@@ -216,11 +216,13 @@ def plotTF(rootFilePath, nptbins):
   msdbins  = np.round(msd_hist['Pass'][:,0])
   msdbins  = np.append(msdbins, msdbins[-1]+np.diff(msdbins)[0])
   msdsampl = msdbins[:-1] + 0.5*np.diff(msdbins)
-  ptbins   = np.array([250,300,2000])
+  pt_start = 200 if 'v06' in rootFilePath else 250
+  ptbins   = np.array([pt_start,300,2000])
   ptsampl  = ptbins[:-1] + 0.3*np.diff(ptbins)
   sampling = np.meshgrid(msdsampl, ptsampl)
   rho = 2*np.log(sampling[0]/sampling[1])
-  mask = (rho>-1.2) | (rho<-6)
+  rho_max = 0 if 'v06' in rootFilePath else -1.2
+  mask = (rho>rho_max) | (rho<-6)
   for arr in [tf, residuals]:
       fig, ax = plt.subplots()
       fig.subplots_adjust(right=.85)
@@ -246,7 +248,7 @@ def plotTF(rootFilePath, nptbins):
       #ax.set_title('2017',pad=9, fontsize=22, loc='right')
       ax.set_xlabel(r'Jet $\mathrm{m_{SD}}$ [GeV]', ha='right', x=1)
       ax.set_ylabel(r'Jet $\mathrm{p_{T}}$ [GeV]', ha='right', y=1)
-      ax.yaxis.set_ticks([250,300])
+      ax.yaxis.set_ticks([pt_start,300])
       cax = fig.axes[1]
       cax.set_ylabel('(TF - data)/data' if arr is residuals else 'TF', ha='right', y=1)
       for ext in ['pdf','png']:

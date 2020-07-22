@@ -36,7 +36,13 @@ def load_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, 
 
 def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs):
   #filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2018/v05/'+ver+'/out_'+sample+'_merged.json'
-  filepath = os.path.join(indir, 'out_'+sample+('_noQCD_noDY' if (args.year.startswith('2016') and sample.startswith('back')) else '' )+'_merged.json')
+  suffix = ''
+  if sample.startswith('back'):
+    if args.year=='2016':
+      suffix = '_noQCD_noDY'
+    elif args.year=='2018':
+      suffix = '_noDY'
+  filepath = os.path.join(indir, 'out_'+sample+suffix+'_merged.json')
   if ptStop==2000: ptStop = 5000
   with open(filepath) as json_file:
     data = json.load(json_file)
@@ -96,7 +102,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
     #import pdb
     #pdb.set_trace()
     rho_start = -6
-    rho_stop  = -1.2
+    rho_stop  = 0 #-1.2
     rhoscaled = (rhopts - rho_start) / (rho_stop - rho_start)
     validbins = (rhoscaled >= 0) & (rhoscaled <= 1)
     rhoscaled[~validbins] = 1  # we will mask these out later
@@ -248,7 +254,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
     pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
     combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1,('exp' if args.runExp else ''), polyDegPt,polyDegRho))
     model.renderCombine(combineFolder)
-    exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(str_polylims,args.rMin,args.rMax,str_polylims,args.rMin,args.rMax), folder=combineFolder)
+    exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(('data_' if args.isData else ('sig_' if args.sig_and_bkg else ''))+str_polylims,args.rMin,args.rMax,str_polylims,args.rMin,args.rMax), folder=combineFolder)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -283,12 +289,13 @@ if __name__ == '__main__':
     args.runExp = False
   else:
     args.runExp = True
+  pt_start = 200 if args.version=='v06' else 250
   if args.nptbins==1:
-    ptbins = np.array([250,2000])
+    ptbins = np.array([pt_start,2000])
   elif args.nptbins==2:
-    ptbins = np.array([250,300,2000])
+    ptbins = np.array([pt_start,300,2000])
   elif args.nptbins==3:
-    ptbins = np.array([250,300,450,2000])
+    ptbins = np.array([pt_start,300,450,2000])
   else:
     raise Exception('invalid number of ptbins')
 
