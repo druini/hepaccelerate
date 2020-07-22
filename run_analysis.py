@@ -24,6 +24,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     electrons = data["Electron"]
     scalars = data["eventvars"]
     jets = data["Jet"]
+#    jets.pt = jets.pt_nom
     jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
     fatjets = data["FatJet"]
 
@@ -76,7 +77,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     # apply basic event selection -> individual categories cut later
     nleps =  NUMPY_LIB.add(ha.sum_in_offsets(muons, good_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, good_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
     lepton_veto = NUMPY_LIB.add(ha.sum_in_offsets(muons, veto_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, veto_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
-    njets = ha.sum_in_offsets(jets, nonbjets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
+    njets = ha.sum_in_offsets(jets, good_jets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
     btags = ha.sum_in_offsets(jets, bjets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
     nfatjets = ha.sum_in_offsets(fatjets, good_fatjets, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
     #nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
@@ -151,7 +152,37 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     assert( len(mask_events['2J2WdeltaR'])==len(mask_events_res) )
     #return (total number of events, number of boosted events, number of resolved events, number of events in overlap)
-    return NUMPY_LIB.array([len(mask_events['2J2WdeltaR']), sum(mask_events['2J2WdeltaR']), sum(mask_events_res), sum(mask_events['2J2WdeltaR']&mask_events_res)])
+    #return NUMPY_LIB.array([sum(weights['nominal']), sum(weights['nominal'][mask_events['2J2WdeltaR']]), sum(weights['nominal'][mask_events_res]), sum(weights['nominal'][mask_events['2J2WdeltaR']&mask_events_res])])
+    #synch
+    evts = [5619330, 5619314, 5619327, 5619356, 5619383, 5619377, 5619388, 5619397, 5619410, 5619409, 5619422, 5619460, 5619450, 5619467, 5619482, 5619491, 5619518, 5619510, 5619526, 5619527, 5619535, 5619533, 5619541, 5619548, 5619545, 5619592, 5619607, 5619617, 5619618, 5619613, 5619634, 5619627, 5619647, 5619673, 5619675, 5619685, 5619700, 5619691, 5619699, 5619692, 5619707, 5619719, 5619723, 5619730, 5619736, 5619777, 5619791, 5619804, 5619805, 5619818, 5619820, 5619817, 5619844, 5619856, 5619849, 5619863, 5619853, 5619876, 5619865, 5619881, 5619901, 5619916, 5619915, 5619923, 5619922, 5619931, 5619942, 5619955, 5619979, 5619957, 5619983, 5619990, 5619992, 5619981, 5619998, 5620023, 5619989, 5620047, 5620056, 5620062, 5620069, 5620074, 5620072, 5620096, 5620105, 5620115, 5620103, 5620123, 5620121, 5620127, 5620128, 5620137, 5620135, 5620134, 5620142, 5620161, 5620160, 5620165, 5620186, 5620189, 5620195, 1267734, 1267748, 1267749, 1267744, 1267770, 1267759, 1267767, 1267778, 1267785, 1267781, 1267791, 1267812, 1267818, 1267839, 1267830, 1267853, 1267856, 1267892, 1267890, 1267896, 1267899, 1267909, 1267905, 1267915, 1267932, 1267907, 1267931, 1267955, 1267962, 1267967, 1267976, 1267990, 1267994, 1267989, 1267995, 1268012, 1268023, 1268033, 1268046, 1268060, 1268056, 1268067, 1268086, 1268083, 1268088, 1268097, 1268106, 1268121, 1268127, 1268139, 1268151, 1268159, 1268160, 1268167, 1268131, 1268164, 1268194, 1268201, 1268217, 1268232, 1268240, 1268249, 1268247, 1268256, 1268275, 1268299, 1268300, 1268297, 1268310, 1268322, 1268329, 1268327, 1268344, 1268363, 1268349, 1268383, 1268386, 1268371, 1268377, 1268404, 1268397, 1268424, 1268418, 1268433, 1268434, 1268436, 1268442, 1268452, 1268472, 1268498, 1268504, 1268520, 1268509, 1268541, 1268531, 1268546, 1268552, 1268553, 1268569, 1268575, 1268565]
+    mask = NUMPY_LIB.zeros_like(mask_events_res)
+    for iev in evts:
+      if not iev in scalars["event"][mask_events_res]:
+        mask |= (scalars["event"] == iev)
+    print('nevt', scalars["event"][mask])
+    print('pass sel', mask_events_res[mask])
+    print('nleps', nleps[mask])
+    print('lepton_veto', lepton_veto[mask])
+    print('njets', njets[mask])
+    print('btags', btags[mask])
+    print('met', scalars['MET_pt'][mask])
+
+    np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
+    for evt in scalars["event"][mask]:
+      evt_idx = NUMPY_LIB.where( scalars["event"] == evt )[0][0]
+      start = jets.offsets[evt_idx]
+      stop  = jets.offsets[evt_idx+1]
+      print(f'!!! EVENT {evt} !!!')
+      print(f'njets good {njets[evt_idx]}, total {stop-start}')
+      print('jets mask', good_jets[start:stop])
+      print('jets pt', jets.pt[start:stop])
+      #print('jets eta', jets.eta[start:stop])
+      print('jets btag', getattr(jets, parameters["btagging_algorithm"])[start:stop])
+      print('jet Id', jets.jetId[start:stop]),
+      print('jet puId', jets.puId[start:stop])
+      import pdb
+      pdb.set_trace()
+    return NUMPY_LIB.array([len(mask_events_res), sum(mask_events['2J2WdeltaR']), sum(mask_events_res), sum(mask_events['2J2WdeltaR']&mask_events_res)])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Runs a simple array-based analysis')
@@ -213,7 +244,7 @@ if __name__ == "__main__":
     ]
     if args.boosted:
       arrays_objects += [
-        "FatJet_pt", "FatJet_eta", "FatJet_phi", "FatJet_deepTagMD_bbvsLight", "FatJet_btagHbb", "FatJet_deepTagMD_HbbvsQCD", "FatJet_deepTagMD_ZHbbvsQCD", "FatJet_deepTagMD_TvsQCD", "FatJet_deepTag_H", "FatJet_btagDDBvL", "FatJet_btagDDBvL_noMD", "FatJet_deepTag_TvsQCD", "FatJet_jetId", "FatJet_mass", "FatJet_msoftdrop", "FatJet_tau1", "FatJet_tau2", "FatJet_tau3", "FatJet_tau4", "FatJet_n2b1"]
+        "FatJet_pt", "FatJet_eta", "FatJet_phi", "FatJet_deepTagMD_bbvsLight", "FatJet_btagHbb", "FatJet_deepTagMD_HbbvsQCD", "FatJet_deepTagMD_ZHbbvsQCD", "FatJet_deepTagMD_TvsQCD", "FatJet_deepTag_H", "FatJet_btagDDBvL", "FatJet_jetId", "FatJet_msoftdrop"]#, "FatJet_btagDDBvL_noMD", "FatJet_deepTag_TvsQCD", "FatJet_mass", "FatJet_tau1", "FatJet_tau2", "FatJet_tau3", "FatJet_tau4", "FatJet_n2b1"]
 
     #these are variables per event
     arrays_event = [
