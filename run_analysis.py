@@ -30,7 +30,12 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
     fatjets = data["FatJet"]
 
-    METp4 = TLorentzVectorArray.from_ptetaphim(scalars["MET_pt"], 0, scalars["MET_phi"], 0)
+    if args.year=='2017':
+      metstruct = 'METFixEE2017'
+    else:
+      metstruct = 'MET'
+
+    METp4 = TLorentzVectorArray.from_ptetaphim(scalars[metstruct+"_pt"], 0, scalars[metstruct+"_phi"], 0)
     nEvents = muons.numevents()
 
     indices = {
@@ -86,10 +91,10 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     #nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
 
     # for reference, this is the selection for the resolved analysis
-    mask_events_res = mask_events & (nleps == 1) & (lepton_veto == 0) & (ngoodjets >= 4) & (btags >=2) & (scalars["MET_pt"] > 20)
+    mask_events_res = mask_events & (nleps == 1) & (lepton_veto == 0) & (ngoodjets >= 4) & (btags > 2) & (scalars[metstruct+"_pt"] > 20)
     # apply basic event selection
-    #mask_events_higgs = mask_events & (nleps == 1) & (scalars["MET_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
-    mask_events = mask_events & (nleps == 1) & (scalars["MET_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags'])# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
+    #mask_events_higgs = mask_events & (nleps == 1) & (scalars[metstruct+"_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
+    mask_events = mask_events & (nleps == 1) & (scalars[metstruct+"_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags'])# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
 
 ############# calculate weights for MC samples
     weights = {}
@@ -181,9 +186,10 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     vars_to_plot = {
       'nleps'             : nleps,
       'njets'             : njets,
+      'ngoodjets'         : ngoodjets,
       'btags'             : btags,
       'nfatjets'          : nfatjets,
-      'met'               : scalars['MET_pt'],
+      'met'               : scalars[metstruct+'_pt'],
       'leading_jet_pt'    : leading_jet_pt,
       'leading_jet_eta'   : leading_jet_eta,
       'leadAK8JetMass'    : leading_fatjet_SDmass,
@@ -210,7 +216,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     #var_name, var = 'leadAK8JetMass', leading_fatjet_SDmass
     vars_split = ['leadAK8JetMass', 'leadAK8JetRho']
-    ptbins = NUMPY_LIB.append( NUMPY_LIB.arange(200,600,50), [600, 1000, 5000] )
+    ptbins = NUMPY_LIB.append( NUMPY_LIB.arange(250,600,50), [600, 1000, 5000] )
     for var_name in vars_split:
       var = vars_to_plot[var_name]
       for ipt in range( len(ptbins)-1 ):
@@ -255,7 +261,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #    print('fatjet mass', leading_fatjet_SDmass[mask])
 #    print('fatjet pt', leading_fatjet_pt[mask])
 #    print('fatjet eta', leading_fatjet_eta[mask])
-#    print('met', scalars['MET_pt'][mask])
+#    print('met', scalars[metstruct+'_pt'][mask])
 #    print('lep_pt', leading_lepton_pt[mask])
 #    print('lep_eta', leading_lepton_eta[mask])
 #    print('pu_weight', pu_weights[mask])
@@ -485,9 +491,11 @@ if __name__ == "__main__":
     arrays_event = [
         "PV_npvsGood", "PV_ndof", "PV_npvs", "PV_score", "PV_x", "PV_y", "PV_z", "PV_chi2",
         "Flag_goodVertices", "Flag_globalSuperTightHalo2016Filter", "Flag_HBHENoiseFilter", "Flag_HBHENoiseIsoFilter", "Flag_EcalDeadCellTriggerPrimitiveFilter", "Flag_BadPFMuonFilter", "Flag_BadChargedCandidateFilter", "Flag_eeBadScFilter", "Flag_ecalBadCalibFilter",
-        "MET_pt", "MET_phi", "MET_sumEt",
         "run", "luminosityBlock", "event"
     ]
+
+    if args.year.startswith('2017'): arrays_event += ["METFixEE2017_pt", "METFixEE2017_phi", "METFixEE2017_sumEt"]
+    else: arrays_event += ["MET_pt", "MET_phi", "MET_sumEt"]
 
     if args.year.startswith('2016'): arrays_event += [ "HLT_Ele27_WPTight_Gsf", "HLT_IsoMu24", "HLT_IsoTkMu24" ]
     elif args.year.startswith('2017'):
@@ -521,11 +529,11 @@ if __name__ == "__main__":
     #results = Results()
     WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
     WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
-    bbtags   = {'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTagMD_bbvsLight': WPs_DAK8, 'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
+    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
     pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
-    #for p in pars.copy():
-    #    pars[f'{p}_1btag'] = pars[p] + (1,)
-    #    pars[p]            = pars[p] + (0,)
+    for p in pars.copy():
+        pars[f'{p}_1btag'] = pars[p] + (1,)
+        pars[p]            = pars[p] + (0,)
 
     results  = {p : Results() for p in pars}
 
@@ -576,7 +584,7 @@ if __name__ == "__main__":
             print(dataset.printout())
 
         for p in pars:
-          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p]
+          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p]
         #### this is where the magic happens: run the main analysis
           results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
 
