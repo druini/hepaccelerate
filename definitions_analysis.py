@@ -23,13 +23,13 @@ parameters = {
     "dr": 0.4,
     "pt": 30,
     "eta": 2.4,
-    "jetId": 2,
+    "jetId": 4,#2,
     "puId": 4
   },
   "fatjets": {
     "type": "fatjet",
     "dr": 0.8,
-    "pt": 200,
+    "pt": 250,
     "eta": 2.4,
     "jetId": 2,
     "tau32cut": 0.4,
