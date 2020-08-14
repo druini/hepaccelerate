@@ -23,12 +23,13 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     #Should be relatively small.
     ret = Results()
 
-    muons = data["Muon"]
+    muons     = data["Muon"]
     electrons = data["Electron"]
-    scalars = data["eventvars"]
-    jets = data["Jet"]
-    jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
-    fatjets = data["FatJet"]
+    scalars   = data["eventvars"]
+    jets      = data["Jet"]
+    jets.p4   = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
+    fatjets   = data["FatJet"]
+    genparts  = data['GenPart']
 
     if args.year=='2017':
       metstruct = 'METFixEE2017'
@@ -243,6 +244,23 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
             ret[f'hist_{var_name}_{mask_name+weight_name}'] = get_histogram( var[mask], weights[w][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
           except KeyError:
             print(f'!!!!!!!!!!!!!!!!!!!!!!!! Please add variable {var_name} to the histogram settings')
+
+############# genPart study: where are the b quarks?
+    for mask in ['basic','2J2WdeltaR_Pass']:
+        genb_fromtop = ha.genPart_from_mother(genparts, 5, 6, mask_events[mask])
+        genb_vars = {}
+        genb_vars['pt']  = genparts.pt[genb_fromtop]
+        genb_vars['phi'] = genparts.phi[genb_fromtop]
+        genb_vars['eta'] = genparts.eta[genb_fromtop]
+        nevs = NUMPY_LIB.sum(mask_events[mask])
+        dr_b1fatjet = ha.calc_dr(genb_vars['phi'][::2], genb_vars['eta'][::2],leading_fatjet_phi[mask_events[mask]],leading_fatjet_eta[mask_events[mask]],NUMPY_LIB.ones(nevs))
+        dr_b2fatjet = ha.calc_dr(genb_vars['phi'][1::2], genb_vars['eta'][1::2],leading_fatjet_phi[mask_events[mask]],leading_fatjet_eta[mask_events[mask]],NUMPY_LIB.ones(nevs))
+        for weight_name, w in weight_names.items():
+            ret[f'hist_dr_b1fatjet_{mask+weight_name}'] = get_histogram( dr_b1fatjet, weights[w][mask_events[mask]], NUMPY_LIB.linspace(0,10,101) )
+            ret[f'hist_dr_b2fatjet_{mask+weight_name}'] = get_histogram( dr_b2fatjet, weights[w][mask_events[mask]], NUMPY_LIB.linspace(0,10,101) )
+            for var in ['pt','eta']:
+                ret[f'hist_genb_{var}_{mask+weight_name}'] = get_histogram( genb_vars[var], weights[w][mask_events[mask]], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) )
+
     ### next lines are to write event numbers of very high pt events
     #mask = mask_events['2J2WdeltaR'] & (leading_fatjet_pt>1500)
     #if 'Single' in sample:
