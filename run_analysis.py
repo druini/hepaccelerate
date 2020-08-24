@@ -96,7 +96,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     mask_events_res = mask_events & (nleps == 1) & (lepton_veto == 0) & (ngoodjets >= 4) & (btags_resolved > 2) & (scalars[metstruct+"_pt"] > 20)
     # apply basic event selection
     #mask_events_higgs = mask_events & (nleps == 1) & (scalars[metstruct+"_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
-    mask_events = mask_events & (nleps == 1) & (scalars[metstruct+"_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags']) & (btags_resolved < 3)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
+    mask_events = mask_events & (nleps == 1) & (scalars[metstruct+"_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags']) # & (btags_resolved < 3)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  ) & (lepton_veto == 0)
 
 ############# calculate weights for MC samples
     weights = {}
@@ -183,7 +183,39 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         mask_events[f'{m}_Fail'] = mask_events[m] & (leading_fatjet_Hbb<=parameters['bbtagging_WP'])
 
     #mask_events['overlap'] = mask_events['2J2WdeltaR'] & mask_events['resolved']
-    mask_events['overlap'] = mask_events['2J2WdeltaR_Pass'] & mask_events['resolved']
+    #mask_events['overlap'] = mask_events['2J2WdeltaR_Pass'] & mask_events['resolved']
+
+############# overlap study
+    for m in mask_events.copy():
+        if m=='resolved': continue
+        mask_events[m+'_orthogonal'] = mask_events[m] & (btags_resolved < 3)
+        mask_events[m+'_overlap']    = mask_events[m] & mask_events['resolved']
+    for mn,m in mask_events.items():
+        ret['nevts_'+mn] = Histogram([sum(weights['nominal'][m])], 0,0)
+
+    vars2d = {
+            'ngoodjets' : ngoodjets,
+            'njets'     : njets
+            }
+    for mn,m in mask_events.items():
+        if 'overlap' in mn:
+            #hist, binsx, binsy = NUMPY_LIB.histogram2d(njets[m], btags_resolved[m],\
+            #        bins=(\
+            #            NUMPY_LIB.linspace(*histogram_settings['njets']),\
+            #            NUMPY_LIB.linspace(*histogram_settings['btags_resolved']),\
+            #        ),\
+            #        weights=weights["nominal"][m]\
+            #        )
+            #ret[f'hist2d_njetsVSbtags_{mn}'] = Histogram( hist, hist, (binsx[0],binsx[-1], binsy[0],binsy[-1]) )
+            for vn,v in vars2d.items():
+                hist, binsx, binsy = NUMPY_LIB.histogram2d(v[m], btags_resolved[m],\
+                        bins=(\
+                        NUMPY_LIB.linspace(*histogram_settings[vn]),\
+                        NUMPY_LIB.linspace(*histogram_settings['btags_resolved']),\
+                        ),\
+                        weights=weights["nominal"][m]\
+                        )
+                ret[f'hist2d_{vn}VSbtags_{mn}'] = Histogram( hist, hist, (*histogram_settings[vn],*histogram_settings['btags_resolved']) )
 
 ############# histograms
     vars_to_plot = {
@@ -226,40 +258,55 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
       for ipt in range( len(ptbins)-1 ):
         for m in ['2J2WdeltaR']:#, '2J2WdeltaRTau21']:#, '2J2WdeltaRTau21DDT']:
           for r in ['Pass','Fail']:
-            mask_name = f'{m}_{r}'
-            mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
-            #ret[f'hist_leadAK8JetMass_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( leading_fatjet_SDmass[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
-            ret[f'hist_{var_name}_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( var[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
+            for o in ['','_orthogonal']:
+              mask_name = f'{m}_{r}{o}'
+              if not mask_name in mask_events: continue
+              mask = mask_events[mask_name] & (leading_fatjet_pt>ptbins[ipt]) & (leading_fatjet_pt<ptbins[ipt+1])
+              ret[f'hist_{var_name}_{mask_name}_pt{ptbins[ipt]}to{ptbins[ipt+1]}'] = get_histogram( var[mask], weights['nominal'][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
 
     weight_names = {'' : 'nominal', '_NoWeights' : 'ones'}
     for weight_name, w in weight_names.items():
-      ret[f'nevts_overlap{weight_name}'] = Histogram( [sum(weights[w]), sum(weights[w][mask_events['2J2WdeltaR']]), sum(weights[w][mask_events['resolved']]), sum(weights[w][mask_events['overlap']])], 0,0 )
+      if w=='ones': continue
+      #ret[f'nevts_overlap{weight_name}'] = Histogram( [sum(weights[w]), sum(weights[w][mask_events['2J2WdeltaR']]), sum(weights[w][mask_events['resolved']]), sum(weights[w][mask_events['overlap']])], 0,0 )
       for mask_name, mask in mask_events.items():
 #        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/tests/events_pass_selection_{sample}_{mask_name}.txt','a+') as f:
 #          for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
 #            f.write(f'{nevt}, {run}, {lumiBlock}\n')
         for var_name, var in vars_to_plot.items():
-          if (not is_mc) and (mask_name=='2J2WdeltaRTau21_Pass') and (var_name=='leadAK8JetMass') : continue
+          if (not is_mc) and ('Pass' in mask_name) and (var_name=='leadAK8JetMass') : continue
           try:
             ret[f'hist_{var_name}_{mask_name+weight_name}'] = get_histogram( var[mask], weights[w][mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
           except KeyError:
             print(f'!!!!!!!!!!!!!!!!!!!!!!!! Please add variable {var_name} to the histogram settings')
 
 ############# genPart study: where are the b quarks?
-    for mask in ['basic','2J2WdeltaR_Pass']:
-        genb_fromtop = ha.genPart_from_mother(genparts, 5, 6, mask_events[mask])
-        genb_vars = {}
-        genb_vars['pt']  = genparts.pt[genb_fromtop]
-        genb_vars['phi'] = genparts.phi[genb_fromtop]
-        genb_vars['eta'] = genparts.eta[genb_fromtop]
-        nevs = NUMPY_LIB.sum(mask_events[mask])
-        dr_b1fatjet = ha.calc_dr(genb_vars['phi'][::2], genb_vars['eta'][::2],leading_fatjet_phi[mask_events[mask]],leading_fatjet_eta[mask_events[mask]],NUMPY_LIB.ones(nevs))
-        dr_b2fatjet = ha.calc_dr(genb_vars['phi'][1::2], genb_vars['eta'][1::2],leading_fatjet_phi[mask_events[mask]],leading_fatjet_eta[mask_events[mask]],NUMPY_LIB.ones(nevs))
-        for weight_name, w in weight_names.items():
-            ret[f'hist_dr_b1fatjet_{mask+weight_name}'] = get_histogram( dr_b1fatjet, weights[w][mask_events[mask]], NUMPY_LIB.linspace(0,10,101) )
-            ret[f'hist_dr_b2fatjet_{mask+weight_name}'] = get_histogram( dr_b2fatjet, weights[w][mask_events[mask]], NUMPY_LIB.linspace(0,10,101) )
-            for var in ['pt','eta']:
-                ret[f'hist_genb_{var}_{mask+weight_name}'] = get_histogram( genb_vars[var], weights[w][mask_events[mask]], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) )
+    if sample=='ttHTobb':
+        genH = (abs(genparts.pdgId)==25) & (genparts.status==22)
+        nH   = ha.sum_in_offsets(genparts,genH,NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.bool),genparts.masks["all"], NUMPY_LIB.int8)
+        if not NUMPY_LIB.all(nH==1):
+          import pdb
+          pdb.set_trace()
+        for mn,m in mask_events.items():
+            genH_pt = ha.get_in_offsets(genparts.pt, genparts.offsets, indices['leading'], m, genH)
+            ret[f'hist_genH_pt_{mn}'] = get_histogram(genH_pt[m], weights['nominal'][m], NUMPY_LIB.linspace(*histogram_settings['leading_jet_pt']))
+            genb = {}
+            genb['top'] = ha.genPart_from_mother(genparts, 5, 6, m)
+            genb['H']   = ha.genPart_from_mother(genparts, 5, 25, m)
+            for mom,genmask in genb.items():
+                genb_vars = {}
+                genb_vars['pt']  = genparts.pt[genmask]
+                genb_vars['phi'] = genparts.phi[genmask]
+                genb_vars['eta'] = genparts.eta[genmask]
+                nevs = NUMPY_LIB.sum(m)
+                dr_b1fatjet = ha.calc_dr(genb_vars['phi'][::2], genb_vars['eta'][::2],leading_fatjet_phi[m],leading_fatjet_eta[m],NUMPY_LIB.ones(nevs))
+                dr_b2fatjet = ha.calc_dr(genb_vars['phi'][1::2], genb_vars['eta'][1::2],leading_fatjet_phi[m],leading_fatjet_eta[m],NUMPY_LIB.ones(nevs))
+                for weight_name, w in weight_names.items():
+                    if w=='ones': continue
+                    #ret[f'hist_dr_b1fatjet_{mn+weight_name}'] = get_histogram( dr_b1fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
+                    #ret[f'hist_dr_b2fatjet_{mn+weight_name}'] = get_histogram( dr_b2fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
+                    ret[f'hist_dr_genbfrom{mom}_fatjet_{mn+weight_name}'] = get_histogram( dr_b1fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) ) + get_histogram( dr_b2fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
+                    for var in ['pt','eta']:
+                        ret[f'hist_genbfrom{mom}_{var}_{mn+weight_name}'] = get_histogram( genb_vars[var][::2], weights[w][m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) ) + get_histogram( genb_vars[var][1::2], weights[w][m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) )
 
     ### next lines are to write event numbers of very high pt events
     #mask = mask_events['2J2WdeltaR'] & (leading_fatjet_pt>1500)
@@ -552,9 +599,9 @@ if __name__ == "__main__":
     WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
     bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
     pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
-    for p in pars.copy():
-        pars[f'{p}_1btag'] = pars[p] + (1,)
-        pars[p]            = pars[p] + (0,)
+#    for p in pars.copy():
+#        pars[f'{p}_1btag'] = pars[p] + (1,)
+#        pars[p]            = pars[p] + (0,)
 
     results  = {p : Results() for p in pars}
 
@@ -580,8 +627,8 @@ if __name__ == "__main__":
             dataset.make_objects()
 
             #save arrays for future use in cache
-            print("preparing dataset cache")
-            dataset.to_cache(verbose=True, nthreads=args.nthreads)  ###ALE: comment to run without cache
+#            print("preparing dataset cache")
+#            dataset.to_cache(verbose=True, nthreads=args.nthreads)  ###ALE: comment to run without cache
 
 
         #Optionally, load the dataset from an uncompressed format
@@ -605,7 +652,7 @@ if __name__ == "__main__":
             print(dataset.printout())
 
         for p in pars:
-          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p]
+          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p] #, parameters['btags']
         #### this is where the magic happens: run the main analysis
           results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
 
