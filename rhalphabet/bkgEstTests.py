@@ -377,6 +377,7 @@ def bias(base,alt,ntoys,mu,iLabel,options):
             generate_base ="combine -M GenerateOnly %s %s "%(alt, toysOptString)
         generate_base += " -t %s -s %s "%(ntoys,options.seed)
         generate_base += " --saveToys -n %s --redefineSignalPOIs %s"%(iLabel,options.poi)
+        generate_base += " --expectSignal %s"%(options.r)
         generate_base += " --freezeParameters %s "%(options.freezeNuisances)
         generate_base += " --setParameterRange r=%s,%s "%(options.rMin,options.rMax)
         generate_base += " --setParameters %s "%(options.setParameters)
@@ -512,7 +513,7 @@ if __name__ == "__main__":
     if options.p2 is None:
       options.p2 = (options.pt2+1)*(options.rho2+1) +1
 
-    
+
     str_polylims = ''
     if options.datacard is None:
       str_polylims = "_polylims%ito%i"%(-options.poly_limit,options.poly_limit)
@@ -591,8 +592,8 @@ if __name__ == "__main__":
           options.seed += 1 #run each set of 100 toys with a different seed
 
         for fh in to_hadd:
-            cmd = 'hadd {odir}/{fh}_merged.root {fh}*root'.format(odir=options.odir, fh=fh)
-            exec_me(cmd,options.dryRun) 
+            cmd = 'hadd -f {odir}/{fh}_merged.root {fh}*root'.format(odir=options.odir, fh=fh)
+            exec_me(cmd,options.dryRun)
 
         options.justPlot = True
         options.seed     = 'merged'
