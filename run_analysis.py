@@ -29,7 +29,8 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     jets      = data["Jet"]
     jets.p4   = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
     fatjets   = data["FatJet"]
-    genparts  = data['GenPart']
+    if is_mc:
+      genparts  = data['GenPart']
 
     if args.year=='2017':
       metstruct = 'METFixEE2017'
@@ -612,8 +613,10 @@ if __name__ == "__main__":
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
         #define our dataset
         structs = ["Jet", "Muon", "Electron"]#, "selectedPatJetsAK4PFPuppi"]
+        if is_mc:
+          structs += ['GenPart']
         if args.boosted:
-          structs += ["FatJet", "GenPart"]#, "MET"]
+          structs += ["FatJet"]#, "MET"]
 #          if is_mc:
 #            structs += ['GenPart']
         dataset = NanoAODDataset(files_in_batch, arrays_objects + arrays_event, "Events", structs, arrays_event)
