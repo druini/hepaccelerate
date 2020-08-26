@@ -382,6 +382,7 @@ def bias(base,alt,ntoys,mu,iLabel,options):
             generate_base ="combine -M GenerateOnly %s %s "%(alt, toysOptString)
         generate_base += " -t %s -s %s "%(ntoys,options.seed)
         generate_base += " --saveToys -n %s --redefineSignalPOIs %s"%(iLabel,options.poi)
+        generate_base += " --expectSignal %s"%(options.r)
         generate_base += " --freezeParameters %s "%(options.freezeNuisances)
         generate_base += " --setParameterRange r=%s,%s "%(options.rMin,options.rMax)
         generate_base += " --setParameters %s "%(options.setParameters)
@@ -520,7 +521,7 @@ if __name__ == "__main__":
     if options.p2 is None:
       options.p2 = (options.pt2+1)*(options.rho2+1) +1
 
-    
+
     str_polylims = ''
     pref = ('data' if options.isData else 'mc'+( 'SB' if options.sig_and_bkg else '' ) )
     if options.datacard is None:
@@ -578,6 +579,7 @@ if __name__ == "__main__":
         options.toys = 50
 
         for _ in range(splits):
+          options.seed -= 1 #run each batch of toys with a different seed
           try:
             if options.method=='GoodnessOfFit':
               goodness(options.datacard, options.toys, iLabel, options)
@@ -592,8 +594,6 @@ if __name__ == "__main__":
               bias(options.datacard, options.datacardAlt, options.toys, options.r, iLabel, options)
           except:
                 print 'batch failed'
-
-          options.seed -= 1 #run each batch of toys with a different seed
 
         options.justPlot = True
     options.seed     = 'merged'
