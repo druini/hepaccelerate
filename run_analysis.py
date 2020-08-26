@@ -18,7 +18,7 @@ from lib_analysis import vertex_selection, lepton_selection, jet_selection, load
 
 
 #This function will be called for every file in the dataset
-def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False):
+def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None):
     #Output structure that will be returned and added up among the files.
     #Should be relatively small.
     ret = Results()
@@ -27,10 +27,20 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     electrons = data["Electron"]
     scalars   = data["eventvars"]
     jets      = data["Jet"]
-    jets.p4   = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
     fatjets   = data["FatJet"]
     if is_mc:
       genparts  = data['GenPart']
+
+    if uncertainty is not None:
+        for struct,oldBranch,newBranch in zip(uncertainty[::3],uncertainty[1::3],uncertainty[2::3]):
+            if struct=='FatJet':
+                setattr(fatjets, oldBranch, getattr(fatjets,newBranch))
+            elif struct=='Jet':
+                setattr(jets, oldBranch, getattr(jets,newBranch))
+            else:
+                raise Exception(f'Problem with uncertainty on {struct}, {oldBranch}, {newBranch}')
+
+    jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
 
     if args.year=='2017':
       metstruct = 'METFixEE2017'
@@ -510,6 +520,7 @@ if __name__ == "__main__":
     parser.add_argument('--boosted', action='store_true', help='Flag to include boosted objects', default=False)
     parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
     parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
+    parser.add_argument('--uncertainty', nargs='+', help='replace a branch with another, syntax: struct oldBranch newBranch, e.g. FatJet pt pt_jerUp', default=None)
     parser.add_argument('filenames', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
@@ -581,6 +592,10 @@ if __name__ == "__main__":
         arrays_objects += [ "Jet_hadronFlavour", #"selectedPatJetsAK4PFPuppi_hadronFlavor",
                            "GenPart_eta","GenPart_genPartIdxMother","GenPart_mass","GenPart_pdgId","GenPart_phi","GenPart_pt","GenPart_status","GenPart_statusFlags"
                          ]
+
+    if len(args.uncertainty)%3 is not 0:
+        raise Exception('invalid uncertainty argument, quitting.')
+    arrays_objects += [f'{struct}_{newBranch}' for struct,newBranch in zip(args.uncertainty[::3], args.uncertainty[2::3])]
 
     filenames = None
     if not args.filelist is None:
@@ -657,7 +672,7 @@ if __name__ == "__main__":
         for p in pars:
           parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p] #, parameters['btags']
         #### this is where the magic happens: run the main analysis
-          results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
+          results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=args.uncertainty)
 
     #print(results)
 
