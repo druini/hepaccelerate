@@ -39,9 +39,10 @@ def load_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, 
 def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs):
   #filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2018/v05/'+ver+'/out_'+sample+'_merged.json'
   if sample.startswith('back'):
-      if args.year.startswith('2016'): tmpName = '_noQCD_noDY'
-      elif args.year.startswith('2017'): tmpName = ''
+      #if args.year.startswith('2016'): tmpName = '_noQCD_noDY'
+      if args.year.startswith('2017'): tmpName = ''
       elif args.year.startswith('2018'): tmpName = '_noDY'
+      else: tmpName = '_noQCD_noDY'
   else: tmpName = ''
   filepath = os.path.join(indir, 'out_'+sample+tmpName+'_merged.json')
   if ptStop==2000: ptStop = 5000
@@ -53,6 +54,8 @@ def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_id
   tmpHisto = ROOT.TH1F( obs.name, 'hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop), len(obs.binning)-1, data['edges'][msd_start_idx], data['edges'][msd_stop_idx])
   for nBin in range( len( data['contents'][msd_start_idx:msd_stop_idx] ) ):
       #print( data['contents'][msd_start_idx+nBin], ROOT.TMath.Sqrt(data['contents'][msd_start_idx+nBin]), ROOT.TMath.Sqrt(data['contents_w2'][msd_start_idx+nBin] ) )
+      #if args.simpleFit and sample.startswith('data'):
+      #      if tmpHisto.GetBinLowEdge(nBin+1)>110 and tmpHisto.GetBinLowEdge(nBin+1)<140: continue
       tmpHisto.SetBinContent( nBin+1, data['contents'][msd_start_idx+nBin] )
       tmpHisto.SetBinError( nBin+1, ROOT.TMath.Sqrt(data['contents_w2'][msd_start_idx+nBin] ) )
 
@@ -299,17 +302,38 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
     }
     if not isData and args.sig_and_bkg: templates['background'].Add( templates['signal'] )
 
-    msd = ROOT.RooRealVar('msd', 'msd', msd_start, msd_stop)
+    msd = ROOT.RooRealVar('msd', 'msd', 125., msd_start, msd_stop)
     data_obs = ROOT.RooDataHist('data_obs', 'data_obs', ROOT.RooArgList(msd), templates['background'] )
     signal = ROOT.RooDataHist('signal', 'signal', ROOT.RooArgList(msd), templates['signal'] )
 
     polyArgList = ROOT.RooArgList( )
+    ###polyArgList.add(msd)
     rooDict = {}
     for i in range( int(polyDegPt) ):
-        rooDict[ 'a'+str(i) ] = ROOT.RooRealVar('a'+str(i), 'a'+str(i), 1, -1000, 1000 )
+        if args.pdf.startswith('Cheb'): rooDict[ 'a'+str(i) ] = ROOT.RooRealVar('a'+str(i), 'a'+str(i), 1./ROOT.TMath.Power(10,i), -1000., 1000. )
+        #else: rooDict[ 'a'+str(i) ] = ROOT.RooRealVar('a'+str(i), 'a'+str(i), 10000., 0, 100000 )
+        else: rooDict[ 'a'+str(i) ] = ROOT.RooRealVar('a'+str(i), 'a'+str(i), 1000./ROOT.TMath.Power(10,i), 0, 100000./ROOT.TMath.Power(10,i) )
         polyArgList.add( rooDict[ 'a'+str(i) ] )
-    rooDict['bkgFunc'] = ROOT.RooBernstein("bkg", "bkg", msd, polyArgList ) if not args.runExp else ROOT.RooChebychev('bkg', 'bkg', msd, polyArgList)
-    rooDict['bkg_norm'] = ROOT.RooRealVar( 'bkg_norm', 'bkg_norm', int(templates['background'].Integral()), 0, 100000 )
+#################2016
+#    rooDict[ 'a0' ] = ROOT.RooRealVar('a0', 'a0', 800., 0., 2000. )
+#    polyArgList.add( rooDict[ 'a0' ] )
+#    rooDict[ 'a1' ] = ROOT.RooRealVar('a1', 'a1', 40., 0., 200. )
+#    polyArgList.add( rooDict[ 'a1' ] )
+#    rooDict[ 'a2' ] = ROOT.RooRealVar('a2', 'a2', 10., 0., 100. )
+#    polyArgList.add( rooDict[ 'a2' ] )
+#################allyears
+#    rooDict[ 'a0' ] = ROOT.RooRealVar('a0', 'a0', 10000., 0., 100000. )
+#    polyArgList.add( rooDict[ 'a0' ] )
+#    rooDict[ 'a1' ] = ROOT.RooRealVar('a1', 'a1', 1000., 0., 10000. )
+#    polyArgList.add( rooDict[ 'a1' ] )
+#    rooDict[ 'a2' ] = ROOT.RooRealVar('a2', 'a2', 100., 0., 1000. )
+#    polyArgList.add( rooDict[ 'a2' ] )
+#    rooDict[ 'a3' ] = ROOT.RooRealVar('a3', 'a3', 10., 0., 100. )
+#    polyArgList.add( rooDict[ 'a3' ] )
+    polyArgList.Print()
+    rooDict['bkgFunc'] = ROOT.RooBernstein("bkg", "bkg", msd, polyArgList ) if args.pdf.startswith('Bern') else ROOT.RooChebychev('bkg', 'bkg', msd, polyArgList)
+    #rooDict['bkgFunc'] = ROOT.RooGenericPdf("bkg", "pow(1-@0/13000,@1)/pow(@0/13000,@2+@3*log(@0/13000))", polyArgList )
+    ##rooDict['bkg_norm'] = ROOT.RooRealVar( 'bkg_norm', 'bkg_norm', int(templates['background'].Integral()), 0, 100000 )
 
     #simpdf, obs = bkgmodel.renderRoofit(bkgfit_ws)
     bkgfit = rooDict['bkgFunc'].fitTo(data_obs,
@@ -317,16 +341,28 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
                           ROOT.RooFit.SumW2Error(True),
                           ROOT.RooFit.Strategy(2),
                           ROOT.RooFit.Save(),
-                          #ROOT.RooFit.Minimizer('Minuit2', 'migrad'),
-                          ROOT.RooFit.PrintLevel(-1),
+                          ROOT.RooFit.Minimizer('Minuit2', 'Migrad'),
+                          ROOT.RooFit.PrintLevel(3),
                           )
     bkgfit.Print()
     prefit_bkgpar = [ bkgfit.floatParsFinal().find('a'+str(i)).getVal() for i in range(polyDegPt) ]
     prefit_bkgparerror = [ bkgfit.floatParsFinal().find('a'+str(i)).getError() for i in range(polyDegPt) ]
 
+    mean = ROOT.RooRealVar("mean","Mean of Gaussian",110,140)
+    sigma = ROOT.RooRealVar("sigma","Width of Gaussian",1,-30,30)
+    gauss = ROOT.RooGaussian("gauss","gauss(msd,mean,sigma)",msd,mean,sigma)
+    sigfit = gauss.fitTo(signal,
+                          #ROOT.RooFit.Extended(True),
+                          ROOT.RooFit.SumW2Error(True),
+                          ROOT.RooFit.Strategy(2),
+                          ROOT.RooFit.Save(),
+                          ROOT.RooFit.Minimizer('Minuit2', 'Migrad'),
+                          ROOT.RooFit.PrintLevel(3),
+                          )
+
 
     pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
-    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_%spolyDegs%d'%(msd_start,msd_stop,rebin_factor,('exp' if args.runExp else ''), polyDegPt))
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_%spolyDegs%d'%(msd_start,msd_stop,rebin_factor,args.pdf, polyDegPt))
     try: os.makedirs(combineFolder)
     except OSError: print('|===>'+combineFolder+' Folder already exist')
 
@@ -345,11 +381,26 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
     c1.SaveAs( combineFolder+'/test_simpleFit_rootfit.png')
     del c1
 
+    ##### simple plot of fit
+    c1 = ROOT.TCanvas('c1', 'c1',  10, 10, 750, 500 )
+    #c1.SetLogy()
+    xframe = msd.frame()
+    signal.plotOn( xframe )
+    xframe.Draw()
+    xframe.GetXaxis().SetTitle("Leading Jet Mass [GeV]")
+    gauss.plotOn( xframe )
+    gauss.paramOn( xframe, ROOT.RooFit.Layout(0.6,0.9,0.94))
+    xframe.Draw()
+    #xframe.SetMaximum(100000)
+    #xframe.SetMinimum(0.00001)
+    c1.SaveAs( combineFolder+'/test_simpleFit_signal_rootfit.png')
+    del c1
+
     ws = ROOT.RooWorkspace('ws')
     getattr(ws, 'import')( data_obs )
     getattr(ws, 'import')( signal )
     getattr(ws, 'import')( rooDict['bkgFunc'] )
-    getattr(ws, 'import')( rooDict['bkg_norm'] )
+    #getattr(ws, 'import')( rooDict['bkg_norm'] )
     ws.writeToFile( combineFolder+'/ws_ttHbb.root' )
     ws.Print()
 
@@ -368,11 +419,12 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
     datacard.write("bin           pass      pass\n")
     datacard.write("process       bkg       signal\n")
     datacard.write("process       1         0\n")
-    datacard.write('rate          1         -1\n')
+    #datacard.write('rate          1         -1\n')
+    datacard.write('rate          '+str(round(templates['background'].Integral(),2))+'         '+str(round(templates['signal'].Integral(),2))+'\n')
     datacard.write("-------------------------------\n")
-    datacard.write("lumi    lnN     1.025         -     \n")
+    datacard.write("lumi    lnN     -        1.025\n")
     for q in range( int(polyDegPt) ):
-        #datacard.write('a'+str(q)+"    flatParam\n")
+#        datacard.write('a'+str(q)+"    flatParam\n")
         datacard.write('a'+str(q)+"    param    "+str(prefit_bkgpar[q])+"     "+str(prefit_bkgparerror[q])+"\n")
     datacard.close()
 
@@ -385,7 +437,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
         exec_me( 'plotImpacts.py -i impacts.json -o impacts' )
 
     ##### Priting parameters
-    rootFile = ROOT.TFile.Open(os.getcwd()+'/fitDiagnostics_r'+str(int(args.rMin))+'to'+str(int(args.rMax))+'.root')
+    rootFile = ROOT.TFile.Open(os.getcwd()+'/fitDiagnostics_r'+str(args.rMin)+'to'+str(args.rMax)+'.root')
     par_names = rootFile.Get('fit_s').floatParsFinal().contentsString().split(',')
     par_names = [p for p in par_names if 'a' in p]
     for pn in par_names:
@@ -405,7 +457,7 @@ if __name__ == '__main__':
   parser.add_argument('-f', '--runPrefit', action='store_true', help='Run prefit on MC.' )
   parser.add_argument('-i', '--runImpacts', action='store_true', help='Run impacts.' )
   #parser.add_argument('-e', '--runExp', action='store_true', help='Run with exponential Bernstein.' )
-  parser.add_argument('--pdf', default='poly', choices=['poly','exp'])
+  parser.add_argument('--pdf', default='Cheb', choices=['poly','exp', 'Cheb', 'Bern'])
   parser.add_argument('-smr', '--scanMassRange', action='store_true', default=False, help='option to scan mass range')
   parser.add_argument('-spd', '--scanPolyDeg', action='store_true', default=False, help='option to scan degree of polynomial')
   parser.add_argument('--msd_start', default=90, type=int, help='start of the mass range')
