@@ -593,9 +593,11 @@ if __name__ == "__main__":
                            "GenPart_eta","GenPart_genPartIdxMother","GenPart_mass","GenPart_pdgId","GenPart_phi","GenPart_pt","GenPart_status","GenPart_statusFlags"
                          ]
 
-    if len(args.uncertainty)%3 is not 0:
-        raise Exception('invalid uncertainty argument, quitting.')
-    arrays_objects += [f'{struct}_{newBranch}' for struct,newBranch in zip(args.uncertainty[::3], args.uncertainty[2::3])]
+#    if len(args.uncertainty)%3 is not 0:
+#        raise Exception('invalid uncertainty argument, quitting.')
+#    arrays_objects += [f'{struct}_{newBranch}' for struct,newBranch in zip(args.uncertainty[::3], args.uncertainty[2::3])]
+    arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer','jesTotal'] for ud in ['Up','Down']]
+    arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
 
     filenames = None
     if not args.filelist is None:
@@ -611,18 +613,28 @@ if __name__ == "__main__":
             raise Exception("Must supply ROOT filename, but got {0}".format(fn))
 
     #results = Results()
-    WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
-    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
-    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
-    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
-#    for p in pars.copy():
-#        pars[f'{p}_1btag'] = pars[p] + (1,)
-#        pars[p]            = pars[p] + (0,)
+#    WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
+#    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
+#    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
+#    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
+##    for p in pars.copy():
+##        pars[f'{p}_1btag'] = pars[p] + (1,)
+##        pars[p]            = pars[p] + (0,)
+#
+#    results  = {p : Results() for p in pars}
 
-    results  = {p : Results() for p in pars}
+    uncertainties = {
+            'jerUp'        : ['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp'],
+            'jerDown'      : ['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown'],
+            'jesTotalUp'   : ['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp'],
+            'jesTotalDown' : ['FatJet','pt','pt_jesTotalDown','FatJet','mass','mass_jesTotalDown'],
+            'jmrUp'        : ['FatJet','msoftdrop','msoftdrop_jmrUp'],
+            'jmrDown'      : ['FatJet','msoftdrop','msoftdrop_jmrDown'],
+            'jmsUp'        : ['FatJet','msoftdrop','msoftdrop_jmsUp'],
+            'jmsDown'      : ['FatJet','msoftdrop','msoftdrop_jmsDown'],
+            }
 
-    #results = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : Results() for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
-    #pars    = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
+    results = {u : Results() for u in uncertainties}
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
@@ -669,10 +681,11 @@ if __name__ == "__main__":
         if ibatch == 0:
             print(dataset.printout())
 
-        for p in pars:
-          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p] #, parameters['btags']
+#        for p in pars:
+#          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p] #, parameters['btags']
+        for un,u in uncertainties.items():
         #### this is where the magic happens: run the main analysis
-          results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=args.uncertainty)
+          results[un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u)
 
     #print(results)
 
@@ -681,7 +694,8 @@ if __name__ == "__main__":
       outdir = args.outdir
       if args.version!='':
         outdir = os.path.join(outdir,args.version)
-      outdir = os.path.join(outdir,r)
+      auxdir = f"met{parameters['met']}_{parameters['bbtagging_algorithm']}0{str(parameters['bbtagging_WP']).split('.')[-1]}"
+      outdir = os.path.join(outdir,auxdir,r)
       if not os.path.exists(outdir):
         os.makedirs(outdir)
 
