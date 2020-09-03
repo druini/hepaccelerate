@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import mplhep as hep
 from glob import glob
 
-def load_mc(indir,histToLoad):
-    json_file = glob( os.path.join(indir,'*ttHTobb*json') )
+def load_mc(indir,uncName,histToLoad):
+    json_file = glob( os.path.join(indir,f'*ttHTobb_{uncName}.json') )
     if len(json_file)>1:
         json_file = input('Which file?\n'+'\n'.join(map(str,json_file))+'\n')
     elif len(json_file)==0:
@@ -23,11 +23,18 @@ def rebin(bins, counts, yerr, rebin_factor):
     return new_bins, new_counts, new_yerr
 
 def plot_unc(indir, histName, uncName, outdir):
-    hist = {
-            'nominal' : load_mc(indir, histName),
-            'up'      : load_mc(os.path.join(indir,f'{uncName}Up'), histName),
-            'down'    : load_mc(os.path.join(indir,f'{uncName}Down'), histName)
-            }
+    if uncName=='msd':
+        hist = {
+                'nominal' : load_mc(indir, 'msd_nanoAOD', histName),
+                'up'      : load_mc(indir, 'msd_nom',     histName),
+                'down'    : load_mc(indir, 'msd_raw',     histName)
+                }
+    else:
+        hist = {
+                'nominal' : load_mc(indir,  'msd_nom',   histName),
+                'up'      : load_mc(indir, f'{uncName}Up',   histName),
+                'down'    : load_mc(indir, f'{uncName}Down', histName)
+                }
 
     color = {
             'nominal' : 'k',
@@ -44,14 +51,28 @@ def plot_unc(indir, histName, uncName, outdir):
 
     plt.style.use([hep.cms.style.ROOT, {'font.size': 24}])
     f, ax = plt.subplots()
-    #ax = hep.cms.label(data=False, paper=False, year=args.year, ax=ax, loc=1)
+    hep.cms.label(data=False, paper=False, year=args.year, ax=ax, loc=0)
     for hn,h in hist.items():
         h['edges'], h['contents'], h['contents_w2'] = rebin(h['edges'], h['contents'], h['contents_w2'], rebin_factor)
-        hep.histplot(h['contents'], h['edges'], edges=True, label=(hn if hn=='nominal' else f'{uncName} {hn}'),ls=ls[hn],color=color[hn])
+        if uncName=='msd':
+            if   hn=='nominal': label = 'nanoAOD'
+            elif hn=='up':      label = 'nom'
+            elif hn=='down':    label = 'raw'
+        else:
+            if    hn=='nominal': label = hn
+            else: label = f'{uncName} {hn}'
+
+        hep.histplot(h['contents'], h['edges'], edges=True, label=label,ls=ls[hn],color=color[hn])
+        #print(uncName, hn, h['contents'][-3:])
     plt.xlim(90,170)
+    #plt.xlim(0,1000)
+    #ax.set_ylim(ymin=.5e-1)
+    #plt.semilogy()
     plt.legend()
-    plt.xlabel('Leading AK8 jet softdrop mass [GeV]')
-    plt.ylabel(f'Events / {rebin_factor} GeV')
+    #import pdb
+    #pdb.set_trace()
+    ax.set_xlabel('Leading AK8 jet softdrop mass [GeV]', ha='right', x=1)
+    ax.set_ylabel(f'Events / {rebin_factor} GeV', ha='right', y=1)
     for ext in ['.png','.pdf']:
          plt.savefig(os.path.join(outdir,f'{args.variable}_{args.mask}_{uncName}{ext}'))
     #plt.show()
@@ -72,7 +93,7 @@ if __name__ == '__main__':
     parser.print_help()
     sys.exit(0)
     
-  for unc in ['jer','jesTotal','jmr','jms']:
+  for unc in ['jer','jesTotal','jmr','jms', 'puWeight']:
       if args.path is not None:
           indir  = args.path
           outdir = os.path.join('plots', *args.path.split(os.path.sep)[1:])
