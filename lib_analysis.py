@@ -128,7 +128,7 @@ def compute_lepton_weights(leps, lepton_x, lepton_y, mask_rows, mask_content, ev
 
 
 # btagging scale factor 
-def compute_btag_weights(jets, mask_rows, mask_content, sf, jets_met_corrected, btagalgorithm):
+def compute_btag_weights(jets, mask_rows, mask_content, sf, btagalgorithm):
 
     pJet_weight = NUMPY_LIB.ones(len(mask_content))
 

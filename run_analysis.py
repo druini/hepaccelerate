@@ -64,21 +64,19 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     mask_events = NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.bool)
 
-    # apply event cleaning, PV selection and trigger selection
+    # apply event cleaning and  PV selection
     flags = [
         "Flag_goodVertices", "Flag_globalSuperTightHalo2016Filter", "Flag_HBHENoiseFilter", "Flag_HBHENoiseIsoFilter", "Flag_EcalDeadCellTriggerPrimitiveFilter", "Flag_BadPFMuonFilter"]#, "Flag_BadChargedCandidateFilter", "Flag_ecalBadCalibFilter"]
     if not is_mc:
         flags.append("Flag_eeBadScFilter")
     for flag in flags:
         mask_events = mask_events & scalars[flag]
-    if args.year.startswith('2016'):
-        trigger = (scalars["HLT_Ele27_WPTight_Gsf"] | scalars["HLT_IsoMu24"]  | scalars["HLT_IsoTkMu24"])
-    elif args.year.startswith('2017'):
-        trigger = (scalars["HLT_Ele35_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu27"] | scalars["HLT_IsoMu24_eta2p1"]) #FIXME for different runs
-    elif args.year.startswith('2018'):
-        trigger = (scalars["HLT_Ele32_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu24"] )
-    mask_events = mask_events & trigger
     mask_events = mask_events & (scalars["PV_npvsGood"]>0)
+
+    #in case of data: check if event is in golden lumi file
+    if not is_mc and not (lumimask is None):
+        mask_lumi = lumimask(scalars["run"], scalars["luminosityBlock"])
+        mask_events = mask_events & mask_lumi
 
     # apply object selection for muons, electrons, jets
     good_muons, veto_muons = lepton_selection(muons, parameters["muons"])
@@ -101,7 +99,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     nonbjets = good_jets_nohiggs & (getattr(jets, parameters["btagging_algorithm"]) < parameters["btagging_WP"])
 
     # apply basic event selection -> individual categories cut later
-    nleps          = NUMPY_LIB.add(ha.sum_in_offsets(muons, good_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, good_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
+    nmuons         = ha.sum_in_offsets(muons, good_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8) 
+    nelectrons     = ha.sum_in_offsets(electrons, good_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8)
+    nleps          = NUMPY_LIB.add(nmuons, nelectrons)
     lepton_veto    = NUMPY_LIB.add(ha.sum_in_offsets(muons, veto_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, veto_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
     njets          = ha.sum_in_offsets(jets, nonbjets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
     ngoodjets      = ha.sum_in_offsets(jets, good_jets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
@@ -109,6 +109,28 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     btags_resolved = ha.sum_in_offsets(jets, bjets_resolved, mask_events, jets.masks["all"], NUMPY_LIB.int8)
     nfatjets       = ha.sum_in_offsets(fatjets, good_fatjets, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
     #nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
+
+    # trigger logic
+    trigger_el = (nleps==1) & (nelectrons==1)
+    trigger_mu = (nleps==1) & (nmuons==1)
+    if args.year.startswith('2016'):
+        trigger_el &= scalars["HLT_Ele27_WPTight_Gsf"]
+        trigger_mu &= (scalars["HLT_IsoMu24"] | scalars["HLT_IsoTkMu24"])
+    elif args.year.startswith('2017'):
+        #trigger = (scalars["HLT_Ele35_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu27"] | scalars["HLT_IsoMu24_eta2p1"]) #FIXME for different runs
+        if sample.endswith(('2017B','2017C')):
+            trigger_tmp = scalars["HLT_Ele32_WPTight_Gsf_L1DoubleEG"] & any([scalars[f'L1_SingleEG{n}er2p5'] for n in (10,15,26,34,36,38,40,42,45,8)])
+        else:
+            trigger_tmp = scalars["HLT_Ele32_WPTight_Gsf"]
+        trigger_el &= (trigger_tmp | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"])
+        trigger_mu &= scalars["HLT_IsoMu27"]
+    elif args.year.startswith('2018'):
+        trigger = (scalars["HLT_Ele32_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu24"] )
+        trigger_el &= (scalars["HLT_Ele32_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"])
+        trigger_mu &= scalars["HLT_IsoMu24"]
+    if "SingleMuon" in sample: trigger_el = NUMPY_LIB.zeros(nEvents, dtype=NUMPY_LIB.bool)
+    if "SingleElectron" in sample: trigger_mu = NUMPY_LIB.zeros(nEvents, dtype=NUMPY_LIB.bool)
+    mask_events = mask_events & (trigger_el | trigger_mu)
 
     # for reference, this is the selection for the resolved analysis
     mask_events_res = mask_events & (nleps == 1) & (lepton_veto == 0) & (ngoodjets >= 4) & (btags_resolved > 2) & (scalars[metstruct+"_pt"] > 20)
@@ -133,12 +155,12 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         weights["nominal"] = weights["nominal"] * pu_weights
 
         # lepton SF corrections
-        #electron_weights = compute_lepton_weights(electrons, electrons.pt, (electrons.deltaEtaSC + electrons.eta), mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
+        #electron_weights = compute_lepton_weights(electrons, (electrons.deltaEtaSC + electrons.eta), electrons.pt, mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
         #muon_weights = compute_lepton_weights(muons, muons.pt, NUMPY_LIB.abs(muons.eta), mask_events, good_muons, evaluator, ["mu_triggerSF", "mu_isoSF", "mu_idSF"])
         #weights["nominal"] = weights["nominal"] * muon_weights * electron_weights
 
         # btag SF corrections
-#        btag_weights = compute_btag_weights(jets, mask_events, good_jets, evaluator)
+#        btag_weights = compute_btag_weights(jets, mask_events, good_jets, parameters["btag_SF_target"], parameters["btagging algorithm"])
 #        weights["nominal"] = weights["nominal"] * btag_weights
 
 ############# calculate basic variables
@@ -422,11 +444,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #    var['deltaR_Wlep_H'] = ha.calc_dr(lepW.phi, lepW.eta, H_phi, H_eta)
 ##    var['deltaR_H_WhadBoosted'] = ha.calc_dr(Whad_phi, Whad_eta, H_phi, H_eta)
 #    var['deltaR_H_WhadResolved'] = ha.calc_dr(H_phi, H_eta, hadW.phi, hadW.eta)
-#
-#    #in case of data: check if event is in golden lumi file
-#    if not is_mc and not (lumimask is None):
-#        mask_lumi = lumimask(scalars["run"], scalars["luminosityBlock"])
-#        mask_events = mask_events & mask_lumi
 ##
 #    # in case of tt+jets -> split in ttbb, tt2b, ttb, ttcc, ttlf
 #    processes = {}
@@ -547,6 +564,7 @@ if __name__ == "__main__":
     from coffea.util import USE_CUPY
     from coffea.lumi_tools import LumiMask, LumiData
     from coffea.lookup_tools import extractor
+    from coffea.btag_tools import BTagScaleFactor
 
     # load definitions
     from definitions_analysis import parameters, eraDependentParameters, samples_info
@@ -592,7 +610,10 @@ if __name__ == "__main__":
     if args.year.startswith('2016'): arrays_event += [ "HLT_Ele27_WPTight_Gsf", "HLT_IsoMu24", "HLT_IsoTkMu24" ]
     elif args.year.startswith('2017'):
       arrays_event += [ "HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_IsoMu27", "HLT_IsoMu24_eta2p1" ]
-      if not (args.sample.endswith('2017B') or args.sample.endswith('2017C')):
+      if args.sample.endswith(('2017B','2017C')):
+          arrays_event += ["HLT_Ele32_WPTight_Gsf_L1DoubleEG"]
+          arrays_event += [f'L1_SingleEG{n}er2p5' for n in (10,15,26,34,36,38,40,42,45,8)]
+      else:
         arrays_event += ["HLT_Ele32_WPTight_Gsf"] #FIXME
     elif args.year.startswith('2018'): arrays_event += [ "HLT_Ele32_WPTight_Gsf", 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150', "HLT_IsoMu24" ]
 
@@ -699,6 +720,7 @@ if __name__ == "__main__":
 
             # add information needed for MC corrections
             parameters["pu_corrections_target"] = load_puhist_target(parameters["pu_corrections_file"])
+            parameters["btag_SF_target"] = BTagScaleFactor(parameters["btag_SF_{}".format(parameters["btagging algorithm"])], BTagScaleFactor.RESHAPE, 'iterativefit,iterativefit,iterativefit', keep_df=True)
 
             ext = extractor()
             print(parameters["corrections"])
