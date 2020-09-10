@@ -9,6 +9,7 @@
 import ROOT as r,sys,math,array,os
 import CMS_lumi
 import numpy as np
+import random
 from optparse import OptionParser
 
 #from tools import *
@@ -107,8 +108,10 @@ def plotgaus(iFName,injet,iLabel,options):
     l.SetTextSize(0.045)
 
 
-    l.DrawLatex(0.15,0.82,'gen. pdf = %s(n_{#rho}=%i,n_{p_{T}}=%i)'%(options.pdf2, options.rho2,options.pt2))
-    l.DrawLatex(0.15,0.75,'fit pdf = %s(n_{#rho}=%i,n_{p_{T}}=%i)'%(options.pdf1, options.rho1,options.pt1))
+    genLabel = 'gen. def = '+( options.pdf2+str(options.pt2) if options.pdf2.startswith(('Bern', 'Cheb')) else '%s(n_{#rho}=%i,n_{p_{T}}=%i)'%(options.pdf2, options.rho2,options.pt2) )
+    fitLabel = 'fit. def = '+( options.pdf1+str(options.pt1) if options.pdf1.startswith(('Bern', 'Cheb')) else '%s(n_{#rho}=%i,n_{p_{T}}=%i)'%(options.pdf1, options.rho1,options.pt1) )
+    l.DrawLatex(0.15,0.82, genLabel)
+    l.DrawLatex(0.15,0.75, fitLabel)
 
     lCan.Modified()
     lCan.Update()
@@ -136,7 +139,7 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
         #lH = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+100)
         #lH_cut = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,max(max(iToys),iCentral)+100)
         x_max = max(max(iToys),iCentral)+100
-        if x_max>100: x_max=100
+        #if x_max>100: x_max=100
         lH = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,x_max)
         lH_cut = r.TH1F(iLabel+"hist",iLabel+"hist",70,0,x_max)
     elif options.method=='GoodnessOfFit' and options.algo=='KS':
@@ -206,28 +209,27 @@ def plotftest(iToys,iCentral,prob,iLabel,options):
 
     tLeg.Draw("same")
 
-    CMS_lumi.cmsTextSize = 0.5
+#    l = r.TLatex()
+#    l.SetTextAlign(11)
+#    l.SetTextSize(0.06)
+#    l.SetTextFont(62)
+#    l.SetNDC()
+#    l.DrawLatex(0.12,0.91,"CMS")
+#    l.SetTextSize(0.05)
+#    l.SetTextFont(52)
+#    if options.isData:
+#        l.DrawLatex(0.23,0.91,"Preliminary")
+#    else:
+#        l.DrawLatex(0.23,0.91,"Simulation Preliminary")
+#    l.SetTextFont(42)
+#    l.DrawLatex(0.70,0.91,"%.1f fb^{-1} (13 TeV)"%options.lumi)
+#    l.SetTextFont(52)
+#    l.SetTextSize(0.045)
+
+    CMS_lumi.cmsTextSize = 0.6
     CMS_lumi.lumiTextSize = .75*CMS_lumi.cmsTextSize
     CMS_lumi.relPosX = 0.13
     CMS_lumi.CMS_lumi(lCan, 4, 0)
-
-    l = r.TLatex()
-    l.SetTextAlign(11)
-    #l.SetTextSize(0.06)
-    #l.SetTextFont(62)
-    l.SetNDC()
-    #l.DrawLatex(0.12,0.91,"CMS")
-    #l.SetTextSize(0.05)
-    #l.SetTextFont(52)
-    #if options.isData:
-    #    l.DrawLatex(0.23,0.91,"Preliminary")
-    #else:
-    #    l.DrawLatex(0.23,0.91,"Simulation Preliminary")
-    #l.SetTextFont(42)
-    #l.DrawLatex(0.70,0.91,"%.1f fb^{-1} (13 TeV)"%options.lumi)
-    l.SetTextFont(52)
-    l.SetTextSize(0.045)
-
 
 
     lCan.SaveAs(options.odir+'/'+iLabel+".png")
@@ -493,8 +495,8 @@ if __name__ == "__main__":
     parser.add_option('--rMax',dest='rMax', default=20,type='float',help='maximum of r (signal strength) in profile likelihood plot')
     parser.add_option('--freezeNuisances'   ,action='store',type='string',dest='freezeNuisances'   ,default='None', help='freeze nuisances')
     parser.add_option('--setParameters'   ,action='store',type='string',dest='setParameters'   ,default='None', help='setParameters')
-    parser.add_option('--pdf1',dest='pdf1'   ,default='poly', choices=['poly','exp'], help='fit pdf1')
-    parser.add_option('--pdf2',dest='pdf2'   ,default='poly', choices=['poly','exp'], help='gen pdf2')
+    parser.add_option('--pdf1',dest='pdf1'   ,default='poly', choices=['poly','exp', 'Bern', 'Cheb'], help='fit pdf1')
+    parser.add_option('--pdf2',dest='pdf2'   ,default='poly', choices=['poly','exp', 'Bern', 'Cheb'], help='gen pdf2')
     parser.add_option('--poly-limit', default=2, type=int, help='limit for the parameters of the Bernsetin polynomial in the base datacard')
     parser.add_option('--polyAlt-limit', default=2, type=int, help='limit for the parameters of the Bernsetin polynomial in the alt datacard')
     #parser.add_option('--nr1','--NR1' ,action='store',type='int',dest='NR1'   ,default=2, help='order of rho polynomial for fit pdf')
@@ -555,6 +557,9 @@ if __name__ == "__main__":
     if options.year.endswith('2016'): lumi = 35920.
     elif options.year.endswith('2017'): lumi = 41530.
     elif options.year.endswith('2018'): lumi = 59740.
+    else:
+        lumi = 130000.
+        options.year=''
     CMS_lumi.extraText = "Preliminary" if options.isData else "Simulation Preliminary"
     CMS_lumi.lumi_13TeV = str( round( (lumi/1000.), 2 ) )+" fb^{-1}, "+options.year+" (13 TeV)"
 
@@ -590,10 +595,19 @@ if __name__ == "__main__":
             elif options.method=='FTest':
               ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
 
-            elif options.method=='Bias':
-              bias(options.datacard, options.datacardAlt, options.toys, options.r, iLabel, options)
-          except:
-                print 'batch failed'
+          elif options.method=='Bias':
+            iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.rho1, options.pt1, options.pdf2, options.rho2, options.pt2,
+                                                  options.poi, options.r)
+            bias(options.datacard, options.datacardAlt, options.toys, options.r, iLabel, options)
+            to_hadd = ['biastoys_%s'%iLabel]
+
+          #options.seed += 1 #run each set of 100 toys with a different seed
+          random.seed(options.seed)
+          options.seed = random.randint(0,100000)
+
+        for fh in to_hadd:
+            cmd = 'hadd -f {odir}/{fh}_merged.root {fh}*root'.format(odir=options.odir, fh=fh)
+            exec_me(cmd,options.dryRun)
 
         options.justPlot = True
     options.seed     = 'merged'
@@ -601,11 +615,14 @@ if __name__ == "__main__":
     for fh in to_hadd:
         if os.path.isfile('{odir}/{fh}_merged.root'.format(odir=options.odir, fh=fh)): os.system('rm {odir}/{fh}_merged.root'.format(odir=options.odir, fh=fh))
         cmd = 'hadd {odir}/{fh}_merged.root {odir}/{fh}*root'.format(odir=options.odir, fh=fh)
-        exec_me(cmd,options.dryRun) 
+        exec_me(cmd,options.dryRun)
 
     if options.method=='GoodnessOfFit':
         goodness(options.datacard, options.toys, iLabel, options)
     elif options.method=='FTest':
+        ptrho_base = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
+        ptrho_alt  = os.path.dirname(os.path.abspath(options.datacardAlt)).split('polyDegs')[1]
+        iLabel= 'ftest_ptrho%s_vs_ptrho%s'%(ptrho_base, ptrho_alt)
         ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
     elif options.method=='Bias':
         bias(options.datacard, options.datacardAlt, options.toys, options.r, iLabel, options)
