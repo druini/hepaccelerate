@@ -23,13 +23,13 @@ parameters = {
     "dr": 0.4,
     "pt": 30,
     "eta": 2.4,
-    "jetId": 2,
+    "jetId": 4,#2,
     "puId": 4
   },
   "fatjets": {
     "type": "fatjet",
     "dr": 0.8,
-    "pt": 200,
+    "pt": 250,
     "eta": 2.4,
     "jetId": 2,
     "tau32cut": 0.4,
@@ -532,7 +532,9 @@ samples_info = {
 histogram_settings = {
   'nleps'             : (0,5,6),
   'njets'             : (0,25,26),
+  'ngoodjets'         : (0,25,26),
   'btags'             : (0,20,21),
+  'btags_resolved'    : (0,20,21),
   'nfatjets'          : (0,10,11),
   'met'               : (0,2000,201),
   'leading_jet_pt'    : (0,1500,151),

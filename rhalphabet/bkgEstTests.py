@@ -260,7 +260,7 @@ def fStat(iFName1,iFName2,p1,p2,n):
     for i0 in range(0,lTree1.GetEntries()):
         lTree1.GetEntry(i0)
         lTree2.GetEntry(i0)
-        if lTree1.limit-lTree2.limit>0:
+        if lTree1.limit-lTree2.limit>=0:
             F = (lTree1.limit-lTree2.limit)/(p2-p1)/(lTree2.limit/(n-p2))
             print i0, ":", lTree1.limit, "-", lTree2.limit, "=", lTree1.limit-lTree2.limit, "F =", F
             lDiffs.append(F)
@@ -487,6 +487,7 @@ if __name__ == "__main__":
     parser.add_option('-o','--odir', dest='odir', default=None ,help='directory to write plots and output toys', metavar='odir')
     parser.add_option('--just-plot', action='store_true', dest='justPlot', default=False, help='just plot')
     parser.add_option('--data', action='store_true', dest='isData', default=False, help='is data')
+    parser.add_option('--sig-and-bkg', action='store_true', default=False, help='sum signal and background samples when running on MC')
     parser.add_option('-l','--lumi'   ,action='store',type='float',dest='lumi'   ,default=36.4, help='lumi')
     parser.add_option('--scaleLumi'   ,action='store',type='float',dest='scaleLumi'   ,default=-1, help='scale nuisances by scaleLumi')
     parser.add_option('-r','--r',dest='r', default=0 ,type='float',help='default value of r')
@@ -513,6 +514,8 @@ if __name__ == "__main__":
 
     (options,args) = parser.parse_args()
 
+    print options
+
     if options.n is None:
       options.n = options.nptbins*options.nmsdbins -1
     if options.p1 is None:
@@ -522,17 +525,15 @@ if __name__ == "__main__":
 
 
     str_polylims = ''
+    pref = ('data' if options.isData else 'mc'+( 'SB' if options.sig_and_bkg else '' ) )
     if options.datacard is None:
       str_polylims = "_polylims%ito%i"%(-options.poly_limit,options.poly_limit)
       msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
-      options.datacard = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if (options.runExp or options.pdf1=='exp') else ''),options.pt1,options.rho1)+'/ttHbb%s_combined.root'%str_polylims
+      options.datacard = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/%s_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(pref,options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if (options.runExp or options.pdf1=='exp') else ''),options.pt1,options.rho1)+'/ttHbb%s_combined.root'%(('data_' if options.isData else ('sig_' if options.sig_and_bkg else ''))+str_polylims)
     if options.datacardAlt is None:
       str_polylimsAlt = "_polylims%ito%i"%(-options.polyAlt_limit,options.polyAlt_limit)
       msdbinsize = int( (options.msd_stop - options.msd_start)/options.nmsdbins )
-      if options.method=='FTest':
-        options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if options.runExp else ''),options.pt2,options.rho2)+'/ttHbb%s_combined.root'%str_polylimsAlt
-      elif options.method=='Bias':
-        options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/mc_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if options.pdf2=='exp' else ''),options.pt2,options.rho2)+'/ttHbb%s_combined.root'%str_polylimsAlt
+      options.datacardAlt = 'output/'+options.year+'/'+options.version+'/'+options.selection+'/%s_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(pref,options.msd_start,options.msd_stop,msdbinsize,options.nptbins,('exp' if options.runExp or options.pdf2=='exp' else ''),options.pt2,options.rho2)+'/ttHbb%s_combined.root'%(('data_' if options.isData else ('sig_' if options.sig_and_bkg else ''))+str_polylimsAlt)
 
     options.datacard    = os.path.abspath(options.datacard)
     if options.datacardAlt is not None:
@@ -562,36 +563,37 @@ if __name__ == "__main__":
     CMS_lumi.extraText = "Preliminary" if options.isData else "Simulation Preliminary"
     CMS_lumi.lumi_13TeV = str( round( (lumi/1000.), 2 ) )+" fb^{-1}, "+options.year+" (13 TeV)"
 
-    #if options.toys=='merged':
-    #  splits = 1
-    #  options.justPlot == True
-    #else:
+    if options.method=='GoodnessOfFit':
+      ptrho = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
+      iLabel= 'goodness_%s_%s_ptrho%s'%(options.algo,options.datacard.split('/')[-1].replace('.root',''),ptrho)
+      combineLabelBase = options.datacard.split('/')[-2].replace('.root','').replace('/','_')
+      to_hadd = ['goodbase_%s'%combineLabelBase,'goodtoys_%s'%combineLabelBase]
+    elif options.method=='FTest':
+      ptrho_base = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
+      ptrho_alt  = os.path.dirname(os.path.abspath(options.datacardAlt)).split('polyDegs')[1]
+      iLabel= 'ftest_ptrho%s_vs_ptrho%s'%(ptrho_base, ptrho_alt)
+      baseName = options.datacard.split('/')[-2] #base.split('/')[-1].replace('.root','')
+      altName  = options.datacardAlt.split('/')[-2] #alt.split('/')[-1].replace('.root','')
+      to_hadd = ['%s_%s'%(bt,ba) for bt in ['base','toys'] for ba in [baseName, altName]]
+    elif options.method=='Bias':
+      iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.rho1, options.pt1, options.pdf2, options.rho2, options.pt2, options.poi, options.r)
+      to_hadd = ['biastoys_%s'%iLabel]
+
     if not options.justPlot:
         splits = options.toys//50 #run the toys in batches of 50
         options.toys = 50
 
         for _ in range(splits):
-          if options.method=='GoodnessOfFit':
-            ptrho = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
-            iLabel= 'goodness_%s_%s_ptrho%s'%(options.algo,options.datacard.split('/')[-1].replace('.root',''),ptrho)
-            goodness(options.datacard, options.toys, iLabel, options)
+          options.seed -= 1 #run each batch of toys with a different seed
+          try:
+            if options.method=='GoodnessOfFit':
+              goodness(options.datacard, options.toys, iLabel, options)
 
-            combineLabelBase = options.datacard.split('/')[-2].replace('.root','').replace('/','_')
-            to_hadd = ['goodbase_%s'%combineLabelBase,'goodtoys_%s'%combineLabelBase]
+            elif options.method=='MaxLikelihoodFit':
+              fit(options.datacard,options)
 
-          elif options.method=='MaxLikelihoodFit':
-            fit(options.datacard,options)
-
-          elif options.method=='FTest':
-            ptrho_base = os.path.dirname(os.path.abspath(options.datacard)).split('polyDegs')[1]
-            ptrho_alt  = os.path.dirname(os.path.abspath(options.datacardAlt)).split('polyDegs')[1]
-            iLabel= 'ftest_ptrho%s_vs_ptrho%s'%(ptrho_base, ptrho_alt)
-            #iLabel= 'ftest_%s_vs_%s'%(options.datacard.split('/')[-1].replace('.root',''),options.datacardAlt.split('/')[-1].replace('.root',''))
-            ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
-
-            baseName = options.datacard.split('/')[-2] #base.split('/')[-1].replace('.root','')
-            altName  = options.datacardAlt.split('/')[-2] #alt.split('/')[-1].replace('.root','')
-            to_hadd = ['%s_%s'%(bt,ba) for bt in ['base','toys'] for ba in [baseName, altName]]
+            elif options.method=='FTest':
+              ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
 
           elif options.method=='Bias':
             iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.rho1, options.pt1, options.pdf2, options.rho2, options.pt2,
@@ -608,7 +610,12 @@ if __name__ == "__main__":
             exec_me(cmd,options.dryRun)
 
         options.justPlot = True
-        options.seed     = 'merged'
+    options.seed     = 'merged'
+
+    for fh in to_hadd:
+        if os.path.isfile('{odir}/{fh}_merged.root'.format(odir=options.odir, fh=fh)): os.system('rm {odir}/{fh}_merged.root'.format(odir=options.odir, fh=fh))
+        cmd = 'hadd {odir}/{fh}_merged.root {odir}/{fh}*root'.format(odir=options.odir, fh=fh)
+        exec_me(cmd,options.dryRun)
 
     if options.method=='GoodnessOfFit':
         goodness(options.datacard, options.toys, iLabel, options)

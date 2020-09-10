@@ -599,3 +599,25 @@ def calc_dr(objs1_phi, objs1_eta, objs2_phi, objs2_eta, mask):
   out = np.zeros_like(objs1_phi)
   calc_dr_kernel(objs1_phi, objs1_eta, objs2_phi, objs2_eta, mask, out)
   return out
+
+@numba.njit(parallel=True)
+def genPart_from_mother_kernel(daughters, offsets, pdgId, genPartIdxMother, motherPdgId, mask_rows, mask_out):
+    for iev in numba.prange(offsets.shape[0]-1):
+        if not mask_rows[iev]: continue
+
+        start = offsets[iev]
+        end   = offsets[iev+1]
+        if end==start: continue
+
+        _daughters    = daughters[start:end]
+        _motherIds    = genPartIdxMother[start:end][_daughters]
+        hasGoodMother = np.abs(pdgId[start:end][_motherIds])==motherPdgId
+
+        mask_out[start:end][_daughters] = hasGoodMother
+
+def genPart_from_mother(genparts, daughterPdgId, motherPdgId, mask_rows):
+    mask_out = np.zeros_like(genparts.pdgId, dtype=np.bool)
+    daughters = (abs(genparts.pdgId)==daughterPdgId) & (genparts.genPartIdxMother>0) & (genparts.status==23)
+
+    genPart_from_mother_kernel(daughters, genparts.offsets, genparts.pdgId, genparts.genPartIdxMother, motherPdgId, mask_rows, mask_out)
+    return mask_out
