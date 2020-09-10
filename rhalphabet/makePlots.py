@@ -108,7 +108,7 @@ def plotRhalphaShapes(rootFilePath, nptbins):
 
   for ibin in range(nptbins):
     for region in listRegion:
-      for SorB in ['s','b']:
+      for SorB in ['s' ]: #,'b']:
         try:
           p = f'pass_msd_fit_{SorB}' if args.simpleFit else f'ptbin{ibin}{region}_msd_fit_{SorB}'
           can = rt.TCanvas('c2', 'c1',  10, 10, 750, 750 )
@@ -132,6 +132,13 @@ def plotRhalphaShapes(rootFilePath, nptbins):
             'sigPlusBkg' : plot.getCurve( 'pdf_binpass_Norm[msd]' if args.simpleFit else f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]')
           }
 
+          if args.isData:
+              for ibin in range(RooObj['data'].GetXaxis().GetNbins()):
+                if RooObj['data'].GetXaxis().GetBinLowEdge(ibin+1)>110 and RooObj['data'].GetXaxis().GetBinLowEdge(ibin+1)<140:
+                    #continue
+                    RooObj['data'].GetHistogram().SetBinContent( ibin+1, 0 )
+                    RooObj['data'].GetHistogram().SetBinError( ibin+1, 0 )
+
           rmin = RooObj['data'].GetXaxis().GetXmin()
           rmax = RooObj['data'].GetXaxis().GetXmax()
           xmin = (rmax+rmin)/2 - (rmax-rmin)/2.4
@@ -140,7 +147,9 @@ def plotRhalphaShapes(rootFilePath, nptbins):
           #RooObj['errs'].GetYaxis().SetTitleOffset( 0.5 )
           #RooObj['errs'].GetYaxis().SetLabelSize(0.12)
           #RooObj['errs'].GetYaxis().SetTitleSize(0.12)
-          for s in ['errs', 'signal', 'bkg', 'sigPlusBkg', 'data']:
+          histos =  ['errs', 'bkg', 'data'] if args.isData else ['errs', 'signal', 'bkg', 'sigPlusBkg', 'data']
+          for s in histos:
+            print(histos)
             RooObj[s].GetXaxis().SetLabelOffset(999)
             RooObj[s].GetXaxis().SetLabelSize(0)
             RooObj[s].GetXaxis().SetLimits(xmin,xmax)
@@ -148,6 +157,7 @@ def plotRhalphaShapes(rootFilePath, nptbins):
             if s in leglab:
               leg.AddEntry( RooObj[s], leglab[s], legopts[s] )
 
+          print('3')
           CMS_lumi.cmsTextOffset = 0.0
           CMS_lumi.relPosX = 0.13
           CMS_lumi.CMS_lumi(pad1, 4, 0)
@@ -158,7 +168,7 @@ def plotRhalphaShapes(rootFilePath, nptbins):
 
           hRatio = rt.TGraphAsymmErrors()
           data_h = TH1fromRooObj(RooObj['data'])
-          sigPlusBkg_h = TH1fromRooObj(RooObj['sigPlusBkg'],RooObj['errs'])
+          sigPlusBkg_h = TH1fromRooObj(RooObj['bkg'],RooObj['errs'])
           hRatio.Divide( data_h,sigPlusBkg_h, 'pois' )
           hRatioStatErr = sigPlusBkg_h.Clone()
           hRatioStatErr.Divide( sigPlusBkg_h )
