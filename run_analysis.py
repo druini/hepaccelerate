@@ -309,6 +309,12 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
                     for var in ['pt','eta']:
                         ret[f'hist_genbfrom{mom}_{var}_{mn+weight_name}'] = get_histogram( genb_vars[var][::2], weights[w][m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) ) + get_histogram( genb_vars[var][1::2], weights[w][m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) )
 
+    ####### printout event numbers 
+    #with open(f'boosted_evts/{sample}ext.txt','a+') as f:
+    #  f.write('run, lumi, event\n')
+    #  for run,lumi,nevt in zip(scalars['run'][mask_events['2J2WdeltaR_Pass']],scalars['luminosityBlock'][mask_events['2J2WdeltaR_Pass']],scalars['event'][mask_events['2J2WdeltaR_Pass']]):
+    #    f.write(f'{run}, {lumi}, {nevt}\n')
+
     ### next lines are to write event numbers of very high pt events
     #mask = mask_events['2J2WdeltaR'] & (leading_fatjet_pt>1500)
     #if 'Single' in sample:
@@ -596,8 +602,8 @@ if __name__ == "__main__":
             raise Exception("Must supply ROOT filename, but got {0}".format(fn))
 
     #results = Results()
-    WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
-    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
+    WPs_DAK8 = [0.8695]#, 0.9795]0.5845,
+    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7,
     bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
     pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
 #    for p in pars.copy():
