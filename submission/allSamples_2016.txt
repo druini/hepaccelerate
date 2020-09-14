@@ -1,3 +1,6 @@
+signal
+background_noQCD
+background_noQCD_noDY
 DYJetsToLL
 QCD_HT1000to1500
 QCD_HT1500to2000
