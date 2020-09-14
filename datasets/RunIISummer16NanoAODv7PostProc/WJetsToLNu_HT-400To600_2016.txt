@@ -1,0 +1,3 @@
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/WJetsToLNu_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/WJetsToLNu_HT-400To600_nanoAODPostProcessor_2016_v03/200909_130046/0000/nano_postprocessed_1.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/WJetsToLNu_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/WJetsToLNu_HT-400To600_nanoAODPostProcessor_2016_v03/200909_130046/0000/nano_postprocessed_2.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/WJetsToLNu_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/WJetsToLNu_HT-400To600_nanoAODPostProcessor_2016_v03/200909_130046/0000/nano_postprocessed_3.root
