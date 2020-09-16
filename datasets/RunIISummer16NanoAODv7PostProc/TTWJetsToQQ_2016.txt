@@ -1,0 +1,2 @@
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTWJetsToQQ_TuneCUETP8M1_13TeV-amcatnloFXFX-madspin-pythia8/TTWJetsToQQ_nanoAODPostProcessor_2016_v03/200909_114955/0000/nano_postprocessed_1.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTWJetsToQQ_TuneCUETP8M1_13TeV-amcatnloFXFX-madspin-pythia8/TTWJetsToQQ_nanoAODPostProcessor_2016_v03/200909_114955/0000/nano_postprocessed_2.root
