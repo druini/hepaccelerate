@@ -68,8 +68,8 @@ eraDependentParameters = {
         ],
         "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
         "btagging_WP" : 0.3093,
-        "bbtagging_algorithm" :  "deepTagMD_bbvsLight",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
-        "bbtagging_WP" : 0.8945,
+        "bbtagging_algorithm" :  "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
+        "bbtagging_WP" : 0.86,
     },
     "2017" : {
         "lumi":  41529.0,
@@ -86,8 +86,8 @@ eraDependentParameters = {
         ],
         "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
         "btagging_WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
-        "bbtagging_algorithm" :  "deepTagMD_bbvsLight",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
-        "bbtagging_WP" : 0.8695, ### https://indico.cern.ch/event/853828/contributions/3723593/attachments/1977626/3292045/lg-btv-deepak8v2-sf-20200127.pdf
+        "bbtagging_algorithm" :  "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
+        "bbtagging_WP" : 0.86,## https://indico.cern.ch/event/853828/contributions/3723593/attachments/1977626/3292045/lg-btv-deepak8v2-sf-20200127.pdf
     },
     "2018" : {
         "lumi":  58830.0,
@@ -104,8 +104,8 @@ eraDependentParameters = {
         ],
         "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
         "btagging_WP" : 0.2770, # medium working point for btagDeepB
-        "bbtagging_algorithm" :  "deepTagMD_bbvsLight",#"deepTagMD_HbbvsQCD", #"btagDDBvL",
-        "bbtagging_WP" : 0.8365,
+        "bbtagging_algorithm" :  "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
+        "bbtagging_WP" : 0.86,
     },
 
 }
