@@ -18,7 +18,7 @@ from lib_analysis import vertex_selection, lepton_selection, jet_selection, load
 
 
 #This function will be called for every file in the dataset
-def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False):
+def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None):
     #Output structure that will be returned and added up among the files.
     #Should be relatively small.
     ret = Results()
@@ -27,7 +27,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     electrons = data["Electron"]
     scalars   = data["eventvars"]
     jets      = data["Jet"]
-    jets.p4   = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
     fatjets   = data["FatJet"]
     if is_mc:
       genparts  = data['GenPart']
@@ -36,6 +35,24 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
       metstruct = 'METFixEE2017'
     else:
       metstruct = 'MET'
+
+    if uncertainty is not None:
+        if len(uncertainty)!=2: raise Exception(f'Invalid uncertainty {uncertainty}')
+        evUnc, objUnc = uncertainty
+        if len(evUnc)%2!=0: raise Exception(f'Invalid uncertainty for events {evUnc}')
+        for oldVar,newVar in zip(evUnc[::2],evUnc[1::2]):
+            scalars[oldVar] = scalars[newVar]
+
+        if len(objUnc)%3!=0: raise Exception(f'Invalid uncertainty for objects {objUnc}')
+        for struct,oldBranch,newBranch in zip(objUnc[::3],objUnc[1::3],objUnc[2::3]):
+            if struct=='FatJet':
+                setattr(fatjets, oldBranch, getattr(fatjets,newBranch))
+            elif struct=='Jet':
+                setattr(jets, oldBranch, getattr(jets,newBranch))
+            else:
+                raise Exception(f'Problem with uncertainty on {struct}, {oldBranch}, {newBranch}')
+
+    jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
 
     METp4 = TLorentzVectorArray.from_ptetaphim(scalars[metstruct+"_pt"], 0, scalars[metstruct+"_phi"], 0)
     nEvents = muons.numevents()
@@ -47,26 +64,24 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
     mask_events = NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.bool)
 
-    # apply event cleaning, PV selection and trigger selection
+    # apply event cleaning and  PV selection
     flags = [
         "Flag_goodVertices", "Flag_globalSuperTightHalo2016Filter", "Flag_HBHENoiseFilter", "Flag_HBHENoiseIsoFilter", "Flag_EcalDeadCellTriggerPrimitiveFilter", "Flag_BadPFMuonFilter"]#, "Flag_BadChargedCandidateFilter", "Flag_ecalBadCalibFilter"]
     if not is_mc:
         flags.append("Flag_eeBadScFilter")
     for flag in flags:
         mask_events = mask_events & scalars[flag]
-    if args.year.startswith('2016'):
-        trigger = (scalars["HLT_Ele27_WPTight_Gsf"] | scalars["HLT_IsoMu24"]  | scalars["HLT_IsoTkMu24"])
-    elif args.year.startswith('2017'):
-        trigger = (scalars["HLT_Ele35_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu27"] | scalars["HLT_IsoMu24_eta2p1"]) #FIXME for different runs
-    elif args.year.startswith('2018'):
-        trigger = (scalars["HLT_Ele32_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu24"] )
-    mask_events = mask_events & trigger
     mask_events = mask_events & (scalars["PV_npvsGood"]>0)
 
+    #in case of data: check if event is in golden lumi file
+    if not is_mc and not (lumimask is None):
+        mask_lumi = lumimask(scalars["run"], scalars["luminosityBlock"])
+        mask_events = mask_events & mask_lumi
+
     # apply object selection for muons, electrons, jets
-    good_muons, veto_muons = lepton_selection(muons, parameters["muons"])
-    good_electrons, veto_electrons = lepton_selection(electrons, parameters["electrons"])
-    good_jets = jet_selection(jets, muons, good_muons, parameters["jets"]) & jet_selection(jets, electrons, good_electrons, parameters["jets"])
+    good_muons, veto_muons = lepton_selection(muons, parameters["muons"], args.year)
+    good_electrons, veto_electrons = lepton_selection(electrons, parameters["electrons"], args.year)
+    good_jets = jet_selection(jets, muons, (good_muons|veto_muons), parameters["jets"]) & jet_selection(jets, electrons, (good_electrons|veto_electrons), parameters["jets"])
 #    good_jets = jet_selection(jets, muons, (veto_muons | good_muons), parameters["jets"]) & jet_selection(jets, electrons, (veto_electrons | good_electrons) , parameters["jets"])
     bjets_resolved = good_jets & (getattr(jets, parameters["btagging_algorithm"]) > parameters["btagging_WP"])
     good_fatjets = jet_selection(fatjets, muons, good_muons, parameters["fatjets"]) & jet_selection(fatjets, electrons, good_electrons, parameters["fatjets"])
@@ -84,7 +99,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     nonbjets = good_jets_nohiggs & (getattr(jets, parameters["btagging_algorithm"]) < parameters["btagging_WP"])
 
     # apply basic event selection -> individual categories cut later
-    nleps          = NUMPY_LIB.add(ha.sum_in_offsets(muons, good_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, good_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
+    nmuons         = ha.sum_in_offsets(muons, good_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8) 
+    nelectrons     = ha.sum_in_offsets(electrons, good_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8)
+    nleps          = NUMPY_LIB.add(nmuons, nelectrons)
     lepton_veto    = NUMPY_LIB.add(ha.sum_in_offsets(muons, veto_muons, mask_events, muons.masks["all"], NUMPY_LIB.int8), ha.sum_in_offsets(electrons, veto_electrons, mask_events, electrons.masks["all"], NUMPY_LIB.int8))
     njets          = ha.sum_in_offsets(jets, nonbjets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
     ngoodjets      = ha.sum_in_offsets(jets, good_jets, mask_events, jets.masks["all"], NUMPY_LIB.int8)
@@ -93,11 +110,33 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     nfatjets       = ha.sum_in_offsets(fatjets, good_fatjets, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
     #nhiggs = ha.sum_in_offsets(fatjets, higgs_candidates, mask_events, fatjets.masks['all'], NUMPY_LIB.int8)
 
+    # trigger logic
+    trigger_el = (nleps==1) & (nelectrons==1)
+    trigger_mu = (nleps==1) & (nmuons==1)
+    if args.year.startswith('2016'):
+        trigger_el &= scalars["HLT_Ele27_WPTight_Gsf"]
+        trigger_mu &= (scalars["HLT_IsoMu24"] | scalars["HLT_IsoTkMu24"])
+    elif args.year.startswith('2017'):
+        #trigger = (scalars["HLT_Ele35_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu27"] | scalars["HLT_IsoMu24_eta2p1"]) #FIXME for different runs
+        if sample.endswith(('2017B','2017C')):
+            trigger_tmp = scalars["HLT_Ele32_WPTight_Gsf_L1DoubleEG"] & any([scalars[f'L1_SingleEG{n}er2p5'] for n in (10,15,26,34,36,38,40,42,45,8)])
+        else:
+            trigger_tmp = scalars["HLT_Ele32_WPTight_Gsf"]
+        trigger_el &= (trigger_tmp | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"])
+        trigger_mu &= scalars["HLT_IsoMu27"]
+    elif args.year.startswith('2018'):
+        trigger = (scalars["HLT_Ele32_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu24"] )
+        trigger_el &= (scalars["HLT_Ele32_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"])
+        trigger_mu &= scalars["HLT_IsoMu24"]
+    if "SingleMuon" in sample: trigger_el = NUMPY_LIB.zeros(nEvents, dtype=NUMPY_LIB.bool)
+    if "SingleElectron" in sample: trigger_mu = NUMPY_LIB.zeros(nEvents, dtype=NUMPY_LIB.bool)
+    mask_events = mask_events & (trigger_el | trigger_mu)
+
     # for reference, this is the selection for the resolved analysis
     mask_events_res = mask_events & (nleps == 1) & (lepton_veto == 0) & (ngoodjets >= 4) & (btags_resolved > 2) & (scalars[metstruct+"_pt"] > 20)
     # apply basic event selection
     #mask_events_higgs = mask_events & (nleps == 1) & (scalars[metstruct+"_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
-    mask_events = mask_events & (nleps == 1) & (lepton_veto == 0) & (scalars[metstruct+"_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags']) # & (btags_resolved < 3)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  )
+    mask_events_boost = mask_events & (nleps == 1) & (lepton_veto == 0) & (scalars[metstruct+"_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags']) # & (btags_resolved < 3)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  )
 
 ############# calculate weights for MC samples
     weights = {}
@@ -108,20 +147,24 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"][args.year]
 
         # pu corrections
-#        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
-        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["Pileup_nTrueInt"])
+        if 'puWeight' in scalars:
+            pu_weights = scalars['puWeight']
+        else:
+    #        pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["PV_npvsGood"])
+            pu_weights = compute_pu_weights(parameters["pu_corrections_target"], weights["nominal"], scalars["Pileup_nTrueInt"], scalars["Pileup_nTrueInt"])
         weights["nominal"] = weights["nominal"] * pu_weights
 
         # lepton SF corrections
-        #electron_weights = compute_lepton_weights(electrons, electrons.pt, (electrons.deltaEtaSC + electrons.eta), mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
+        #electron_weights = compute_lepton_weights(electrons, (electrons.deltaEtaSC + electrons.eta), electrons.pt, mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
         #muon_weights = compute_lepton_weights(muons, muons.pt, NUMPY_LIB.abs(muons.eta), mask_events, good_muons, evaluator, ["mu_triggerSF", "mu_isoSF", "mu_idSF"])
         #weights["nominal"] = weights["nominal"] * muon_weights * electron_weights
 
         # btag SF corrections
-#        btag_weights = compute_btag_weights(jets, mask_events, good_jets, evaluator)
+#        btag_weights = compute_btag_weights(jets, mask_events, good_jets, parameters["btag_SF_target"], parameters["btagging algorithm"])
 #        weights["nominal"] = weights["nominal"] * btag_weights
 
 ############# calculate basic variables
+    mask_events = mask_events_res | mask_events_boost
     leading_jet_pt        = ha.get_in_offsets(jets.pt, jets.offsets, indices['leading'], mask_events, nonbjets)
     leading_jet_eta       = ha.get_in_offsets(jets.eta, jets.offsets, indices['leading'], mask_events, nonbjets)
     leading_fatjet_SDmass = ha.get_in_offsets(fatjets.msoftdrop, fatjets.offsets, indices['leading'], mask_events, good_fatjets)
@@ -140,7 +183,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 ############# masks for different selections
     mask_events = {
       'resolved' : mask_events_res,
-      'basic'    : mask_events
+      'basic'    : mask_events_boost
     }
     mask_events['2J']   = mask_events['basic'] & (njets>1)
 
@@ -362,6 +405,38 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #        f.write(str(nevt)+'\n')
 #    import pdb
 #    pdb.set_trace()
+    
+
+    ###### synch with resolved analysis
+#    if sample in ['SingleMuon_Run2018A','SingleElectron_Run2018A','ttHTobb']:
+#      if sample=='SingleMuon_Run2018A':
+#        f = 'resolved2018/SingleMuonA.txt'
+#      elif sample=='SingleElectron_Run2018A':
+#        f = 'resolved2018/EGammaA.txt'
+#      elif sample=='ttHTobb':
+#        f = 'resolved2018/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8_2018.txt'
+#
+#      evtsToSynch = NUMPY_LIB.genfromtxt(f,skip_header=3,delimiter='*')
+#      events = NUMPY_LIB.array(evtsToSynch[:,3],dtype=int)
+#      run    = NUMPY_LIB.array(evtsToSynch[:,4],dtype=int)
+#      lumi   = NUMPY_LIB.array(evtsToSynch[:,5],dtype=int)
+#
+#      mask = NUMPY_LIB.zeros_like(mask_events_res)
+#      for iev,ir,il in zip(events,run,lumi):
+#        mask |= ((scalars["event"] == iev) & (scalars['run']==ir) & (scalars['luminosityBlock']==il))
+#      leading_goodjet_pt = ha.get_in_offsets(jets.pt, jets.offsets, indices['leading'], mask, good_jets)
+#      leading_goodjet_eta = ha.get_in_offsets(jets.eta, jets.offsets, indices['leading'], mask, good_jets)
+#      leading_goodjet_phi = ha.get_in_offsets(jets.phi, jets.offsets, indices['leading'], mask, good_jets)
+#
+#      leading_lepton_pt   = NUMPY_LIB.maximum(ha.get_in_offsets(muons.pt, muons.offsets, indices["leading"], mask, good_muons), ha.get_in_offsets(electrons.pt, electrons.offsets, indices["leading"], mask, good_electrons))
+#      leading_lepton_eta  = NUMPY_LIB.maximum(ha.get_in_offsets(muons.eta, muons.offsets, indices["leading"], mask, good_muons), ha.get_in_offsets(electrons.eta, electrons.offsets, indices["leading"], mask, good_electrons))
+#      outf = f'resolved2018/{sample}_hepaccelerate.txt'
+#      exists = os.path.isfile(outf)
+#      with open(outf,'a+') as f:
+#        if not exists: f.write('pass_hepaccelerate, nevt, run, lumi, ngoodjets, nbtags, leading_jet_pt, leading_jet_eta,  leading_jet_phi, nelectrons, nmuons, lep_pt, lep_eta, met, vetoLep\n')
+#        for pass_hepaccelerate,nev,r,l,nj,nb,jpt,jeta,jphi,nel,nmu,lpt,leta,met,vetoLep in zip(mask_events_res[mask],scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock'][mask], ngoodjets[mask], btags_resolved[mask], leading_goodjet_pt[mask], leading_goodjet_eta[mask], leading_goodjet_phi[mask], nelectrons[mask], nmuons[mask], leading_lepton_pt[mask], leading_lepton_eta[mask], scalars[metstruct+'_pt'][mask], lepton_veto[mask]):
+#          f.write(f'{pass_hepaccelerate}, {nev}, {r}, {l}, {nj}, {nb}, {jpt}, {jeta}, {jphi}, {nel}, {nmu}, {lpt}, {leta}, {met}, {vetoLep}\n')
+
 
 ##
 #    variables = [
@@ -408,11 +483,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #    var['deltaR_Wlep_H'] = ha.calc_dr(lepW.phi, lepW.eta, H_phi, H_eta)
 ##    var['deltaR_H_WhadBoosted'] = ha.calc_dr(Whad_phi, Whad_eta, H_phi, H_eta)
 #    var['deltaR_H_WhadResolved'] = ha.calc_dr(H_phi, H_eta, hadW.phi, hadW.eta)
-#
-#    #in case of data: check if event is in golden lumi file
-#    if not is_mc and not (lumimask is None):
-#        mask_lumi = lumimask(scalars["run"], scalars["luminosityBlock"])
-#        mask_events = mask_events & mask_lumi
 ##
 #    # in case of tt+jets -> split in ttbb, tt2b, ttb, ttcc, ttlf
 #    processes = {}
@@ -516,6 +586,7 @@ if __name__ == "__main__":
     parser.add_argument('--boosted', action='store_true', help='Flag to include boosted objects', default=False)
     parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
     parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
+    parser.add_argument('--corrections', action='store_true', help='Flag to include corrections')
     parser.add_argument('filenames', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
@@ -532,6 +603,7 @@ if __name__ == "__main__":
     from coffea.util import USE_CUPY
     from coffea.lumi_tools import LumiMask, LumiData
     from coffea.lookup_tools import extractor
+    from coffea.btag_tools import BTagScaleFactor
 
     # load definitions
     from definitions_analysis import parameters, eraDependentParameters, samples_info
@@ -569,13 +641,18 @@ if __name__ == "__main__":
         "run", "luminosityBlock", "event"
     ]
 
-    if args.year.startswith('2017'): arrays_event += ["METFixEE2017_pt", "METFixEE2017_phi", "METFixEE2017_sumEt"]
-    else: arrays_event += ["MET_pt", "MET_phi", "MET_sumEt"]
+    metstruct = 'METFixEE2017' if args.year=='2017' else 'MET'
+    arrays_event += [f'{metstruct}_{var}' for var in ['pt','phi','sumEt']]
+    #if args.year.startswith('2017'): arrays_event += ["METFixEE2017_pt", "METFixEE2017_phi", "METFixEE2017_sumEt"]
+    #else: arrays_event += ["MET_pt", "MET_phi", "MET_sumEt"]
 
     if args.year.startswith('2016'): arrays_event += [ "HLT_Ele27_WPTight_Gsf", "HLT_IsoMu24", "HLT_IsoTkMu24" ]
     elif args.year.startswith('2017'):
       arrays_event += [ "HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_IsoMu27", "HLT_IsoMu24_eta2p1" ]
-      if not (args.sample.endswith('2017B') or args.sample.endswith('2017C')):
+      if args.sample.endswith(('2017B','2017C')):
+          arrays_event += ["HLT_Ele32_WPTight_Gsf_L1DoubleEG"]
+          arrays_event += [f'L1_SingleEG{n}er2p5' for n in (10,15,26,34,36,38,40,42,45,8)]
+      else:
         arrays_event += ["HLT_Ele32_WPTight_Gsf"] #FIXME
     elif args.year.startswith('2018'): arrays_event += [ "HLT_Ele32_WPTight_Gsf", 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150', "HLT_IsoMu24" ]
 
@@ -587,6 +664,14 @@ if __name__ == "__main__":
         arrays_objects += [ "Jet_hadronFlavour", #"selectedPatJetsAK4PFPuppi_hadronFlavor",
                            "GenPart_eta","GenPart_genPartIdxMother","GenPart_mass","GenPart_pdgId","GenPart_phi","GenPart_pt","GenPart_status","GenPart_statusFlags"
                          ]
+
+    if args.corrections: 
+        arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer','jesTotal'] for ud in ['Up','Down']]
+        arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
+        arrays_objects += [f'FatJet_{var}_{corr}' for var in ['msoftdrop','pt','mass'] for corr in ['raw','nom']]
+        arrays_objects += [f'Jet_pt_nom']
+        arrays_event   += [f'{metstruct}_{var}_nom' for var in ['pt','phi']]
+        arrays_event   += [f'puWeight{var}' for var in ['','Up','Down']]
 
     filenames = None
     if not args.filelist is None:
@@ -602,18 +687,48 @@ if __name__ == "__main__":
             raise Exception("Must supply ROOT filename, but got {0}".format(fn))
 
     #results = Results()
-    WPs_DAK8 = [0.8695]#, 0.9795]0.5845,
-    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7,
-    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
-    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
-#    for p in pars.copy():
-#        pars[f'{p}_1btag'] = pars[p] + (1,)
-#        pars[p]            = pars[p] + (0,)
 
-    results  = {p : Results() for p in pars}
+#    WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
+#    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
+#    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
+#    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
+##    for p in pars.copy():
+##        pars[f'{p}_1btag'] = pars[p] + (1,)
+##        pars[p]            = pars[p] + (0,)
+#
+#    results  = {p : Results() for p in pars}
 
-    #results = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : Results() for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
-    #pars    = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20,30,40] for bbAlg,bbWP in zip(['deepTagMD_bbvsLight','deepTag_H','btagDDBvL','btagDDBvL_noMD'],[.8695,.8695,.89,.89])}
+    if args.corrections: 
+      uncertainties = {
+#            'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
+#            'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
+#            'jesTotalUp'   : [[],['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp']],
+#            'jesTotalDown' : [[],['FatJet','pt','pt_jesTotalDown','FatJet','mass','mass_jesTotalDown']],
+#            'jmrUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmrUp']],
+#            'jmrDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmrDown']],
+#            'jmsUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmsUp']],
+#            'jmsDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmsDown']],
+            'msd_nom'      : [[],['FatJet','msoftdrop','msoftdrop_nom']],
+#            #'msd_raw'      : ['FatJet','msoftdrop','msoftdrop_raw'],
+#            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
+#            'puWeightUp'   : [['puWeight','puWeightUp'],[]],
+#            'puWeightDown' : [['puWeight','puWeightDown'],[]],
+            }
+      for u in uncertainties.values():
+        u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_nom',
+            f'{metstruct}_phi',f'{metstruct}_phi_nom'
+            ]
+        u[1] += ['Jet','pt','pt_nom']
+        if 'msoftdrop' not in u[1]:
+            u[1] += ['FatJet','msoftdrop','msoftdrop_nom']
+        if not (('FatJet' in u[1]) and ('pt' in u[1])):
+            u[1] += ['FatJet','pt','pt_nom',
+                'FatJet','mass','mass_nom'
+                ]
+      results = {u : Results() for u in uncertainties}
+    else:
+      uncertainties = {'' : None}
+      results       = {'' : Results()}
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
@@ -649,6 +764,7 @@ if __name__ == "__main__":
 
             # add information needed for MC corrections
             parameters["pu_corrections_target"] = load_puhist_target(parameters["pu_corrections_file"])
+            #parameters["btag_SF_target"] = BTagScaleFactor(parameters["btag_SF_{}".format(parameters["btagging_algorithm"])], BTagScaleFactor.RESHAPE, 'iterativefit,iterativefit,iterativefit', keep_df=True)
 
             ext = extractor()
             print(parameters["corrections"])
@@ -660,20 +776,22 @@ if __name__ == "__main__":
         if ibatch == 0:
             print(dataset.printout())
 
-        for p in pars:
-          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p] #, parameters['btags']
+#        for p in pars:
+#          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p] #, parameters['btags']
+        for un,u in uncertainties.items():
         #### this is where the magic happens: run the main analysis
-          results[p] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted)
+          results[un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u)
 
     #print(results)
 
     #Save the results
-    for r in results:
-      outdir = args.outdir
-      if args.version!='':
-        outdir = os.path.join(outdir,args.version)
-      outdir = os.path.join(outdir,r)
-      if not os.path.exists(outdir):
-        os.makedirs(outdir)
+    outdir = args.outdir
+    if args.version!='':
+      outdir = os.path.join(outdir,args.version)
+    auxdir = f"met{parameters['met']}_{parameters['bbtagging_algorithm']}0{str(parameters['bbtagging_WP']).split('.')[-1]}"
+    outdir = os.path.join(outdir,auxdir)
+    if not os.path.exists(outdir):
+      os.makedirs(outdir)
 
-      results[r].save_json(os.path.join(outdir,f"out_{args.sample}{args.outtag}.json"))
+    for r in results:
+      results[r].save_json(os.path.join(outdir,f"out_{args.sample}_{r}{args.outtag}.json"))
