@@ -5,26 +5,10 @@ import os
 import numpy as np
 
 parser = argparse.ArgumentParser(description='Runs a simple array-based analysis')
-#parser.add_argument('--datasets', help='directory with list of inputs', type=str, default='datasets')
-#parser.add_argument('--samples', nargs='+', help='List of samples to process', type=str, default=None, required=True)
-#parser.add_argument('--files-per-job', action='store', help='Number of files to process per job', type=int, default=10, required=False)
-#parser.add_argument('--batchSystem', help='batch system to submit to', type=str, default='slurm_cpu', required=False)
-#
-#parser.add_argument('--from-cache', action='store_true', help='Load from cache (otherwise create it)')
-#parser.add_argument('--files-per-batch', action='store', help='Number of files to process per batch', type=int, default=1, required=False)
-#parser.add_argument('--nthreads', action='store', help='Number of CPU threads to use', type=int, default=4, required=False)
-#parser.add_argument('--cache-location', action='store', help='Path prefix for the cache, must be writable', type=str, default=os.path.join(os.getcwd(), 'cache'))
-#parser.add_argument('--outdir', action='store', help='directory to store outputs', type=str, default=os.path.join(os.getcwd(),'results'))
-#parser.add_argument('--DNN', action='store', choices=['save-arrays','cmb_binary', 'cmb_multiclass', 'ffwd_binary', 'ffwd_multiclass',False, 'mass_fit'], help='options for DNN evaluation / preparation', default=False)
-#parser.add_argument('--categories', nargs='+', help='categories to be processed (default: all)', default="all")
-#parser.add_argument('--path-to-model', action='store', help='path to DNN model', type=str, default=None, required=False)
-#parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
-#args = parser.parse_args()
-
 parser.add_argument('--datasets', help='directory with list of inputs', type=str, default='datasets')
 parser.add_argument('--samples', nargs='+', help='List of samples to process', type=str, default=None)
 parser.add_argument('--files-per-job', action='store', help='Number of files to process per job', type=int, default=5)
-parser.add_argument('--condor-job-flavour', choices=['espresso','microcentury','longlunch','workday','tomorrow','testmatch','nextweek'], help='condor queue flavour as in https://twiki.cern.ch/twiki/bin/view/ABPComputing/LxbatchHTCondor#Queue_Flavours', default='tomorrow')
+parser.add_argument('--postproc', action='store_true', help='Flag for running on postprocessed datasets')
 
 parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
 parser.add_argument('--from-cache', action='store_true', help='Load from cache (otherwise create it)')
@@ -76,9 +60,10 @@ for s in samples:
       if args.year=='2016':
         subdir = 'RunIISummer16NanoAODv7'
       elif args.year=='2017':
-        subdir = 'RunIIFall17NanoAODv7PostProc'
+        subdir = 'RunIIFall17NanoAODv7'
       else:
         subdir = 'RunIIAutumn18NanoAODv7'
+    if args.postproc: subdir += 'PostProc'
     filelist = os.path.join(args.datasets,subdir,f'{s}_{args.year}.txt')
     if not os.path.isfile(filelist):
       print(f'cannot find {filelist}, skipping...')
@@ -97,17 +82,6 @@ for s in samples:
 
             #fh.write("mkdir /scratch/c/\n")
             fh.write(f'echo sample: {s}\n') 
-            #fh.write(f"PYTHONPATH=hepaccelerate:coffea:. python {os.getcwd()}/run_analysis.py ")
-            #fh.write("--categories ")
-            #fh.write(' '.join(map(str, categories)))
-            #fh.write(f" --boosted --sample {s} --files-per-batch {args.files_per_batch} --nthread {args.nthreads}  --outdir {os.path.join(args.outdir,args.year)} --year {args.year} --outtag _{njob} ")
-            #if args.DNN:
-            #    fh.write(f"--DNN {args.DNN} ")
-            #if args.from_cache:
-            #    fh.write("--from-cache ")
-            #fh.write(' '.join(map(str, f)))
-            #fh.write('\n')
-            #fh.write('rm -r /scratch/c/')
             fh.write(f"time PYTHONPATH=hepaccelerate:coffea:. python {os.getcwd()}/run_analysis.py ")
             fh.write("--categories ")
             fh.write(' '.join(map(str, categories)))
@@ -121,7 +95,9 @@ for s in samples:
             fh.write(f" --boosted --sample {s} --files-per-batch {args.files_per_batch} --nthread {args.nthreads}  --year {args.year} --outtag _{njob} --outdir {os.path.join(args.outdir,args.year)} ")
             for fi in f:
               local = fi.replace('root://xrootd-cms.infn.it/','/pnfs/psi.ch/cms/trivcat')
-              fh.write(f"{local if os.path.isfile(local) else fi} ")
+              if os.path.isfile(local):
+                fh.write(f'{local} ')
+              else:
+                fh.write(f'{fi.replace("xrootd-cms.infn.it","cms-xrd-global.cern.ch")} ')
 
-
-        os.system(f"sbatch {job_file}")
+        os.system(f"sbatch --mem=4000 {job_file}")
