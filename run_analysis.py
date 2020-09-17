@@ -31,6 +31,11 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     if is_mc:
       genparts  = data['GenPart']
 
+    if args.year=='2017':
+      metstruct = 'METFixEE2017'
+    else:
+      metstruct = 'MET'
+
     if uncertainty is not None:
         if len(uncertainty)!=2: raise Exception(f'Invalid uncertainty {uncertainty}')
         evUnc, objUnc = uncertainty
@@ -48,11 +53,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
                 raise Exception(f'Problem with uncertainty on {struct}, {oldBranch}, {newBranch}')
 
     jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
-
-    if args.year=='2017':
-      metstruct = 'METFixEE2017'
-    else:
-      metstruct = 'MET'
 
     METp4 = TLorentzVectorArray.from_ptetaphim(scalars[metstruct+"_pt"], 0, scalars[metstruct+"_phi"], 0)
     nEvents = muons.numevents()
@@ -79,8 +79,8 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         mask_events = mask_events & mask_lumi
 
     # apply object selection for muons, electrons, jets
-    good_muons, veto_muons = lepton_selection(muons, parameters["muons"])
-    good_electrons, veto_electrons = lepton_selection(electrons, parameters["electrons"])
+    good_muons, veto_muons = lepton_selection(muons, parameters["muons"], args.year)
+    good_electrons, veto_electrons = lepton_selection(electrons, parameters["electrons"], args.year)
     good_jets = jet_selection(jets, muons, (good_muons|veto_muons), parameters["jets"]) & jet_selection(jets, electrons, (good_electrons|veto_electrons), parameters["jets"])
 #    good_jets = jet_selection(jets, muons, (veto_muons | good_muons), parameters["jets"]) & jet_selection(jets, electrons, (veto_electrons | good_electrons) , parameters["jets"])
     bjets_resolved = good_jets & (getattr(jets, parameters["btagging_algorithm"]) > parameters["btagging_WP"])
@@ -136,7 +136,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     mask_events_res = mask_events & (nleps == 1) & (lepton_veto == 0) & (ngoodjets >= 4) & (btags_resolved > 2) & (scalars[metstruct+"_pt"] > 20)
     # apply basic event selection
     #mask_events_higgs = mask_events & (nleps == 1) & (scalars[metstruct+"_pt"] > 20) & (nhiggs > 0) & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4) & (btags >=2) ) & (lepton_veto == 0)
-    mask_events = mask_events & (nleps == 1) & (lepton_veto == 0) & (scalars[metstruct+"_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags']) # & (btags_resolved < 3)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  )
+    mask_events_boost = mask_events & (nleps == 1) & (lepton_veto == 0) & (scalars[metstruct+"_pt"] > parameters['met']) & (nfatjets > 0) & (btags >= parameters['btags']) # & (btags_resolved < 3)# & (njets > 1)  # & NUMPY_LIB.invert( (njets >= 4)  )
 
 ############# calculate weights for MC samples
     weights = {}
@@ -164,6 +164,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #        weights["nominal"] = weights["nominal"] * btag_weights
 
 ############# calculate basic variables
+    mask_events = mask_events_res | mask_events_boost
     leading_jet_pt        = ha.get_in_offsets(jets.pt, jets.offsets, indices['leading'], mask_events, nonbjets)
     leading_jet_eta       = ha.get_in_offsets(jets.eta, jets.offsets, indices['leading'], mask_events, nonbjets)
     leading_fatjet_SDmass = ha.get_in_offsets(fatjets.msoftdrop, fatjets.offsets, indices['leading'], mask_events, good_fatjets)
@@ -182,7 +183,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 ############# masks for different selections
     mask_events = {
       'resolved' : mask_events_res,
-      'basic'    : mask_events
+      'basic'    : mask_events_boost
     }
     mask_events['2J']   = mask_events['basic'] & (njets>1)
 
@@ -398,6 +399,38 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #        f.write(str(nevt)+'\n')
 #    import pdb
 #    pdb.set_trace()
+    
+
+    ###### synch with resolved analysis
+#    if sample in ['SingleMuon_Run2018A','SingleElectron_Run2018A','ttHTobb']:
+#      if sample=='SingleMuon_Run2018A':
+#        f = 'resolved2018/SingleMuonA.txt'
+#      elif sample=='SingleElectron_Run2018A':
+#        f = 'resolved2018/EGammaA.txt'
+#      elif sample=='ttHTobb':
+#        f = 'resolved2018/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8_2018.txt'
+#
+#      evtsToSynch = NUMPY_LIB.genfromtxt(f,skip_header=3,delimiter='*')
+#      events = NUMPY_LIB.array(evtsToSynch[:,3],dtype=int)
+#      run    = NUMPY_LIB.array(evtsToSynch[:,4],dtype=int)
+#      lumi   = NUMPY_LIB.array(evtsToSynch[:,5],dtype=int)
+#
+#      mask = NUMPY_LIB.zeros_like(mask_events_res)
+#      for iev,ir,il in zip(events,run,lumi):
+#        mask |= ((scalars["event"] == iev) & (scalars['run']==ir) & (scalars['luminosityBlock']==il))
+#      leading_goodjet_pt = ha.get_in_offsets(jets.pt, jets.offsets, indices['leading'], mask, good_jets)
+#      leading_goodjet_eta = ha.get_in_offsets(jets.eta, jets.offsets, indices['leading'], mask, good_jets)
+#      leading_goodjet_phi = ha.get_in_offsets(jets.phi, jets.offsets, indices['leading'], mask, good_jets)
+#
+#      leading_lepton_pt   = NUMPY_LIB.maximum(ha.get_in_offsets(muons.pt, muons.offsets, indices["leading"], mask, good_muons), ha.get_in_offsets(electrons.pt, electrons.offsets, indices["leading"], mask, good_electrons))
+#      leading_lepton_eta  = NUMPY_LIB.maximum(ha.get_in_offsets(muons.eta, muons.offsets, indices["leading"], mask, good_muons), ha.get_in_offsets(electrons.eta, electrons.offsets, indices["leading"], mask, good_electrons))
+#      outf = f'resolved2018/{sample}_hepaccelerate.txt'
+#      exists = os.path.isfile(outf)
+#      with open(outf,'a+') as f:
+#        if not exists: f.write('pass_hepaccelerate, nevt, run, lumi, ngoodjets, nbtags, leading_jet_pt, leading_jet_eta,  leading_jet_phi, nelectrons, nmuons, lep_pt, lep_eta, met, vetoLep\n')
+#        for pass_hepaccelerate,nev,r,l,nj,nb,jpt,jeta,jphi,nel,nmu,lpt,leta,met,vetoLep in zip(mask_events_res[mask],scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock'][mask], ngoodjets[mask], btags_resolved[mask], leading_goodjet_pt[mask], leading_goodjet_eta[mask], leading_goodjet_phi[mask], nelectrons[mask], nmuons[mask], leading_lepton_pt[mask], leading_lepton_eta[mask], scalars[metstruct+'_pt'][mask], lepton_veto[mask]):
+#          f.write(f'{pass_hepaccelerate}, {nev}, {r}, {l}, {nj}, {nb}, {jpt}, {jeta}, {jphi}, {nel}, {nmu}, {lpt}, {leta}, {met}, {vetoLep}\n')
+
 
 ##
 #    variables = [
@@ -547,7 +580,6 @@ if __name__ == "__main__":
     parser.add_argument('--boosted', action='store_true', help='Flag to include boosted objects', default=False)
     parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
     parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
-    parser.add_argument('--uncertainty', nargs='+', help='replace a branch with another, syntax: struct oldBranch newBranch, e.g. FatJet pt pt_jerUp', default=None)
     parser.add_argument('filenames', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
@@ -626,15 +658,15 @@ if __name__ == "__main__":
                            "GenPart_eta","GenPart_genPartIdxMother","GenPart_mass","GenPart_pdgId","GenPart_phi","GenPart_pt","GenPart_status","GenPart_statusFlags"
                          ]
 
-#    if len(args.uncertainty)%3 is not 0:
-#        raise Exception('invalid uncertainty argument, quitting.')
-#    arrays_objects += [f'{struct}_{newBranch}' for struct,newBranch in zip(args.uncertainty[::3], args.uncertainty[2::3])]
-    arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer','jesTotal'] for ud in ['Up','Down']]
-    arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
-    arrays_objects += [f'FatJet_{var}_{corr}' for var in ['msoftdrop','pt','mass'] for corr in ['raw','nom']]
-    arrays_objects += [f'Jet_pt_nom']
-    arrays_event   += [f'{metstruct}_{var}_nom' for var in ['pt','phi']]
-    arrays_event   += [f'puWeight{var}' for var in ['','Up','Down']]
+        #if len(args.uncertainty)%3 is not 0:
+        #    raise Exception('invalid uncertainty argument, quitting.')
+        #arrays_objects += [f'{struct}_{newBranch}' for struct,newBranch in zip(args.uncertainty[::3], args.uncertainty[2::3])]
+        arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer','jesTotal'] for ud in ['Up','Down']]
+        arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
+        arrays_objects += [f'FatJet_{var}_{corr}' for var in ['msoftdrop','pt','mass'] for corr in ['raw','nom']]
+        arrays_objects += [f'Jet_pt_nom']
+        arrays_event   += [f'{metstruct}_{var}_nom' for var in ['pt','phi']]
+        arrays_event   += [f'puWeight{var}' for var in ['','Up','Down']]
 
     filenames = None
     if not args.filelist is None:
@@ -661,21 +693,24 @@ if __name__ == "__main__":
 #    results  = {p : Results() for p in pars}
 
     uncertainties = {
-            'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
-            'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
-            'jesTotalUp'   : [[],['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp']],
-            'jesTotalDown' : [[],['FatJet','pt','pt_jesTotalDown','FatJet','mass','mass_jesTotalDown']],
-            'jmrUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmrUp']],
-            'jmrDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmrDown']],
-            'jmsUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmsUp']],
-            'jmsDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmsDown']],
+#            'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
+#            'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
+#            'jesTotalUp'   : [[],['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp']],
+#            'jesTotalDown' : [[],['FatJet','pt','pt_jesTotalDown','FatJet','mass','mass_jesTotalDown']],
+#            'jmrUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmrUp']],
+#            'jmrDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmrDown']],
+#            'jmsUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmsUp']],
+#            'jmsDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmsDown']],
             'msd_nom'      : [[],['FatJet','msoftdrop','msoftdrop_nom']],
-            #'msd_raw'      : ['FatJet','msoftdrop','msoftdrop_raw'],
-            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
-            'puWeightUp'   : [['puWeight','puWeightUp'],[]],
-            'puWeightDown' : [['puWeight','puWeightDown'],[]],
+#            #'msd_raw'      : ['FatJet','msoftdrop','msoftdrop_raw'],
+#            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
+#            'puWeightUp'   : [['puWeight','puWeightUp'],[]],
+#            'puWeightDown' : [['puWeight','puWeightDown'],[]],
             }
     for u in uncertainties.values():
+        u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_nom',
+            f'{metstruct}_phi',f'{metstruct}_phi_nom'
+            ]
         u[1] += ['Jet','pt','pt_nom']
         if 'msoftdrop' not in u[1]:
             u[1] += ['FatJet','msoftdrop','msoftdrop_nom']
@@ -720,7 +755,7 @@ if __name__ == "__main__":
 
             # add information needed for MC corrections
             parameters["pu_corrections_target"] = load_puhist_target(parameters["pu_corrections_file"])
-            parameters["btag_SF_target"] = BTagScaleFactor(parameters["btag_SF_{}".format(parameters["btagging algorithm"])], BTagScaleFactor.RESHAPE, 'iterativefit,iterativefit,iterativefit', keep_df=True)
+            #parameters["btag_SF_target"] = BTagScaleFactor(parameters["btag_SF_{}".format(parameters["btagging_algorithm"])], BTagScaleFactor.RESHAPE, 'iterativefit,iterativefit,iterativefit', keep_df=True)
 
             ext = extractor()
             print(parameters["corrections"])
