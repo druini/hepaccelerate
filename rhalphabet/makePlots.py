@@ -104,31 +104,41 @@ def plotRhalphaShapes(rootFilePath, nptbins):
     'sigPlusBkg' : 'lp',
   }
 
+  listRegion = ['Pass'] if args.simpleFit else ['Pass','Fail']
+
   for ibin in range(nptbins):
-    for region in ['Pass','Fail']:
-      for SorB in ['s','b']:
+    for region in listRegion:
+      for SorB in ['s' ]: #,'b']:
         try:
-          p = f'ptbin{ibin}{region}_msd_fit_{SorB}'
+          p = f'pass_msd_fit_{SorB}' if args.simpleFit else f'ptbin{ibin}{region}_msd_fit_{SorB}'
           can = rt.TCanvas('c2', 'c1',  10, 10, 750, 750 )
           pad1 = rt.TPad("pad1", "Fit",0,0.207,1.00,1.00,-1)
           pad2 = rt.TPad("pad2", "Pull",0,0.00,1.00,0.28,-1)
           pad1.Draw()
           pad2.Draw()
           pad1.cd()
-  
+
           leg = rt.TLegend(0.70,0.7,0.90,0.87)
           leg.SetFillStyle(0)
           leg.SetTextSize(0.04)
           plot   = rootfile.Get(p)
+          plot.Print()
           b_suffix = '_model_bonly__' if SorB=='b' else ''
           RooObj = {
-            'data'       : plot.getHist(f'h_ptbin{ibin}{region}'),
-            'errs'       : plot.getCurve(f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]_errorband'),
-            'signal'     : plot.getCurve(f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]_Comp[shapeSig*]'),
-            'bkg'        : plot.getCurve(f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]_Comp[shapeBkg*]'),
-            'sigPlusBkg' : plot.getCurve(f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]')
+            'data'       : plot.getHist( 'h_pass' if args.simpleFit else f'h_ptbin{ibin}{region}'),
+            'errs'       : plot.getCurve( 'pdf_binpass_Norm[msd]_errorband' if args.simpleFit else f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]_errorband'),
+            'signal'     : plot.getCurve( 'pdf_binpass_Norm[msd]_Comp[shapeSig*]' if args.simpleFit else f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]_Comp[shapeSig*]'),
+            'bkg'        : plot.getCurve( 'pdf_binpass_Norm[msd]_Comp[shapeBkg*]' if args.simpleFit else f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]_Comp[shapeBkg*]'),
+            'sigPlusBkg' : plot.getCurve( 'pdf_binpass_Norm[msd]' if args.simpleFit else f'pdf_binptbin{ibin}{region}_{b_suffix}Norm[msd]')
           }
-  
+
+          if args.isData:
+              for ibin in range(RooObj['data'].GetXaxis().GetNbins()):
+                if RooObj['data'].GetXaxis().GetBinLowEdge(ibin+1)>110 and RooObj['data'].GetXaxis().GetBinLowEdge(ibin+1)<140:
+                    #continue
+                    RooObj['data'].GetHistogram().SetBinContent( ibin+1, 0 )
+                    RooObj['data'].GetHistogram().SetBinError( ibin+1, 0 )
+
           rmin = RooObj['data'].GetXaxis().GetXmin()
           rmax = RooObj['data'].GetXaxis().GetXmax()
           xmin = (rmax+rmin)/2 - (rmax-rmin)/2.4
@@ -137,38 +147,41 @@ def plotRhalphaShapes(rootFilePath, nptbins):
           #RooObj['errs'].GetYaxis().SetTitleOffset( 0.5 )
           #RooObj['errs'].GetYaxis().SetLabelSize(0.12)
           #RooObj['errs'].GetYaxis().SetTitleSize(0.12)
-          for s in ['errs', 'signal', 'bkg', 'sigPlusBkg', 'data']:
+          histos =  ['errs', 'bkg', 'data'] if args.isData else ['errs', 'signal', 'bkg', 'sigPlusBkg', 'data']
+          for s in histos:
+            print(histos)
             RooObj[s].GetXaxis().SetLabelOffset(999)
             RooObj[s].GetXaxis().SetLabelSize(0)
             RooObj[s].GetXaxis().SetLimits(xmin,xmax)
             RooObj[s].Draw(drawOpts[s])
             if s in leglab:
               leg.AddEntry( RooObj[s], leglab[s], legopts[s] )
-  
+
+          print('3')
           CMS_lumi.cmsTextOffset = 0.0
           CMS_lumi.relPosX = 0.13
           CMS_lumi.CMS_lumi(pad1, 4, 0)
           leg.Draw()
       #    #ymax = h['data_obs'].GetMaximum() + 1.5*sqrt(h['data_obs'].GetMaximum())
       #    #h[namesInRoot[0]].GetYaxis().SetRangeUser(0, ymax)
-  
-  
+
+
           hRatio = rt.TGraphAsymmErrors()
           data_h = TH1fromRooObj(RooObj['data'])
-          sigPlusBkg_h = TH1fromRooObj(RooObj['sigPlusBkg'],RooObj['errs'])
+          sigPlusBkg_h = TH1fromRooObj(RooObj['bkg'],RooObj['errs'])
           hRatio.Divide( data_h,sigPlusBkg_h, 'pois' )
           hRatioStatErr = sigPlusBkg_h.Clone()
           hRatioStatErr.Divide( sigPlusBkg_h )
           hRatioStatErr.SetFillColor(rt.kBlack)
           hRatioStatErr.SetFillStyle(3004)
-  
+
           pad2.cd()
           rt.gStyle.SetOptFit(1)
           pad2.SetGrid()
           pad2.SetTopMargin(0)
           pad2.SetBottomMargin(0.3)
           tmpPad2= pad2.DrawFrame(xmin, 0.5, xmax,1.5)
-          tmpPad2.GetXaxis().SetTitle( 'softdrop mass [GeV]' )
+          tmpPad2.GetXaxis().SetTitle( 'Leading AK8 softdrop jet mass [GeV]' )
           tmpPad2.GetYaxis().SetTitle( "Data/Bkg" )
           tmpPad2.GetYaxis().SetTitleOffset( 0.5 )
           tmpPad2.GetYaxis().CenterTitle()
@@ -182,8 +195,9 @@ def plotRhalphaShapes(rootFilePath, nptbins):
           hRatio.SetMarkerStyle(8)
           hRatio.Draw('P')
           hRatioStatErr.Draw('same e2')
-  
+
           for ext in ['pdf','png']:
+            print(ext)
             can.SaveAs( os.path.join(outdir,f'{p}.{ext}') )
           del can
         except: continue
@@ -294,6 +308,7 @@ if __name__ == '__main__':
   parser.add_argument('-n', '--nptbins', action='store', default=2, type=int, dest='nptbins', help='number of pt bins')
   parser.add_argument('-y', '--year', default='2017', type=str, help='year to process, in file paths')
   parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
+  parser.add_argument('--simpleFit', action='store_true', default=False, help='sum signal and background samples when running on MC')
 
   try: args = parser.parse_args()
   except:
@@ -303,10 +318,12 @@ if __name__ == '__main__':
   if args.year.endswith('2016'): args.lumi = 35920.
   elif args.year.endswith('2017'): args.lumi = 41530.
   elif args.year.endswith('2018'): args.lumi = 59740.
+  else: args.lumi = 130000
   CMS_lumi.extraText = "Preliminary" if args.isData else "Simulation Preliminary"
   CMS_lumi.lumi_13TeV = str( round( (args.lumi/1000.), 2 ) )+" fb^{-1}, "+args.year+" (13 TeV)"
 
-  plotTF(args.rootfile, args.nptbins)
+  if not args.simpleFit: plotTF(args.rootfile, args.nptbins)
+  else: args.nptbins = 1
   plotRhalphaShapes(args.rootfile, args.nptbins)
   #for f in glob('output/201*/v05/*/mc_msd100to150*/fitDiagnostics.root'):
   #  try:

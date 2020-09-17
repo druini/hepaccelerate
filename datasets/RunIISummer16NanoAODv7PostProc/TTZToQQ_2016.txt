@@ -1,0 +1,3 @@
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTZToQQ_TuneCUETP8M1_13TeV-amcatnlo-pythia8/TTZToQQ_nanoAODPostProcessor_2016_v03/200909_114753/0000/nano_postprocessed_2.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTZToQQ_TuneCUETP8M1_13TeV-amcatnlo-pythia8/TTZToQQ_nanoAODPostProcessor_2016_v03/200909_114753/0000/nano_postprocessed_3.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTZToQQ_TuneCUETP8M1_13TeV-amcatnlo-pythia8/TTZToQQ_nanoAODPostProcessor_2016_v03/200909_114753/0000/nano_postprocessed_1.root

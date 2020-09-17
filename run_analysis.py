@@ -352,6 +352,12 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
                     for var in ['pt','eta']:
                         ret[f'hist_genbfrom{mom}_{var}_{mn+weight_name}'] = get_histogram( genb_vars[var][::2], weights[w][m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) ) + get_histogram( genb_vars[var][1::2], weights[w][m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) )
 
+    ####### printout event numbers 
+    #with open(f'boosted_evts/{sample}ext.txt','a+') as f:
+    #  f.write('run, lumi, event\n')
+    #  for run,lumi,nevt in zip(scalars['run'][mask_events['2J2WdeltaR_Pass']],scalars['luminosityBlock'][mask_events['2J2WdeltaR_Pass']],scalars['event'][mask_events['2J2WdeltaR_Pass']]):
+    #    f.write(f'{run}, {lumi}, {nevt}\n')
+
     ### next lines are to write event numbers of very high pt events
     #mask = mask_events['2J2WdeltaR'] & (leading_fatjet_pt>1500)
     #if 'Single' in sample:
@@ -580,6 +586,7 @@ if __name__ == "__main__":
     parser.add_argument('--boosted', action='store_true', help='Flag to include boosted objects', default=False)
     parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
     parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
+    parser.add_argument('--corrections', action='store_true', help='Flag to include corrections')
     parser.add_argument('filenames', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
@@ -658,9 +665,7 @@ if __name__ == "__main__":
                            "GenPart_eta","GenPart_genPartIdxMother","GenPart_mass","GenPart_pdgId","GenPart_phi","GenPart_pt","GenPart_status","GenPart_statusFlags"
                          ]
 
-        #if len(args.uncertainty)%3 is not 0:
-        #    raise Exception('invalid uncertainty argument, quitting.')
-        #arrays_objects += [f'{struct}_{newBranch}' for struct,newBranch in zip(args.uncertainty[::3], args.uncertainty[2::3])]
+    if args.corrections: 
         arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer','jesTotal'] for ud in ['Up','Down']]
         arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
         arrays_objects += [f'FatJet_{var}_{corr}' for var in ['msoftdrop','pt','mass'] for corr in ['raw','nom']]
@@ -682,6 +687,7 @@ if __name__ == "__main__":
             raise Exception("Must supply ROOT filename, but got {0}".format(fn))
 
     #results = Results()
+
 #    WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
 #    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
 #    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
@@ -692,7 +698,8 @@ if __name__ == "__main__":
 #
 #    results  = {p : Results() for p in pars}
 
-    uncertainties = {
+    if args.corrections: 
+      uncertainties = {
 #            'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
 #            'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
 #            'jesTotalUp'   : [[],['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp']],
@@ -707,7 +714,7 @@ if __name__ == "__main__":
 #            'puWeightUp'   : [['puWeight','puWeightUp'],[]],
 #            'puWeightDown' : [['puWeight','puWeightDown'],[]],
             }
-    for u in uncertainties.values():
+      for u in uncertainties.values():
         u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_nom',
             f'{metstruct}_phi',f'{metstruct}_phi_nom'
             ]
@@ -718,8 +725,10 @@ if __name__ == "__main__":
             u[1] += ['FatJet','pt','pt_nom',
                 'FatJet','mass','mass_nom'
                 ]
-
-    results = {u : Results() for u in uncertainties}
+      results = {u : Results() for u in uncertainties}
+    else:
+      uncertainties = {'' : None}
+      results       = {'' : Results()}
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
