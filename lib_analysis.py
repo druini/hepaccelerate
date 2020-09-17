@@ -26,11 +26,11 @@ def vertex_selection(scalars, mask_events):
 
 
 ### Lepton selection
-def lepton_selection(leps, cuts):
+def lepton_selection(leps, cuts, year):
 
     passes_eta = (NUMPY_LIB.abs(leps.eta) < cuts["eta"])
     passes_subleading_pt = (leps.pt > cuts["subleading_pt"])
-    passes_leading_pt = (leps.pt > cuts["leading_pt"])
+    passes_leading_pt = (leps.pt > cuts["leading_pt"][year])
 
     if cuts["type"] == "el":
         sca = NUMPY_LIB.abs(leps.deltaEtaSC + leps.eta)

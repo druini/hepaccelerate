@@ -5,7 +5,11 @@
 parameters = {
   "muons": {
     "type": "mu",
-    "leading_pt": 29,
+    "leading_pt": {
+      '2016' : 26,
+      '2017' : 29,
+      '2018' : 26,
+      },
     "subleading_pt": 15,
     "eta": 2.4,
     "leading_iso": 0.15,
@@ -14,7 +18,11 @@ parameters = {
 
   "electrons" : {
     "type": "el",
-    "leading_pt": 30,
+    "leading_pt": {
+      '2016' : 29,
+      '2017' : 30,
+      '2018' : 30,
+      },
     "subleading_pt": 15,
     "eta": 2.4
   },
@@ -90,6 +98,7 @@ eraDependentParameters = {
             "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta ./data/RunBCDEF_SF_ISO.histo.root",
             "mu_idSF NUM_TightID_DEN_genTracks_pt_abseta ./data/RunBCDEF_SF_ID.histo.root",
             "BTagSF * data/deepCSV_sfs_v2_btag.csv"
+            #FIXME add BTagSF for different algorithms
         ],
         "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
         "btagging_WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
@@ -98,7 +107,8 @@ eraDependentParameters = {
     },
     "2018" : {
         "lumi":  58830.0,
-        "lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/PromptReco/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt",
+        "lumimask": "data/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt",
+        #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/PromptReco/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt",
         "pu_corrections_file" : "data/PileupHistogram-goldenJSON-13tev-2018-100bins_withVar.root",
         "corrections" : [
             "el_triggerSF SFs_ele_pt_ele_sceta_ele28_ht150_OR_ele35_2017BCDEF data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Data_MC_v5_0.root",
