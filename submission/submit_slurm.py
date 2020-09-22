@@ -5,26 +5,10 @@ import os
 import numpy as np
 
 parser = argparse.ArgumentParser(description='Runs a simple array-based analysis')
-#parser.add_argument('--datasets', help='directory with list of inputs', type=str, default='datasets')
-#parser.add_argument('--samples', nargs='+', help='List of samples to process', type=str, default=None, required=True)
-#parser.add_argument('--files-per-job', action='store', help='Number of files to process per job', type=int, default=10, required=False)
-#parser.add_argument('--batchSystem', help='batch system to submit to', type=str, default='slurm_cpu', required=False)
-#
-#parser.add_argument('--from-cache', action='store_true', help='Load from cache (otherwise create it)')
-#parser.add_argument('--files-per-batch', action='store', help='Number of files to process per batch', type=int, default=1, required=False)
-#parser.add_argument('--nthreads', action='store', help='Number of CPU threads to use', type=int, default=4, required=False)
-#parser.add_argument('--cache-location', action='store', help='Path prefix for the cache, must be writable', type=str, default=os.path.join(os.getcwd(), 'cache'))
-#parser.add_argument('--outdir', action='store', help='directory to store outputs', type=str, default=os.path.join(os.getcwd(),'results'))
-#parser.add_argument('--DNN', action='store', choices=['save-arrays','cmb_binary', 'cmb_multiclass', 'ffwd_binary', 'ffwd_multiclass',False, 'mass_fit'], help='options for DNN evaluation / preparation', default=False)
-#parser.add_argument('--categories', nargs='+', help='categories to be processed (default: all)', default="all")
-#parser.add_argument('--path-to-model', action='store', help='path to DNN model', type=str, default=None, required=False)
-#parser.add_argument('--year', action='store', choices=['2016', '2017', '2018'], help='Year of data/MC samples', default='2017')
-#args = parser.parse_args()
-
 parser.add_argument('--datasets', help='directory with list of inputs', type=str, default='datasets')
 parser.add_argument('--samples', nargs='+', help='List of samples to process', type=str, default=None)
 parser.add_argument('--files-per-job', action='store', help='Number of files to process per job', type=int, default=5)
-parser.add_argument('--postproc', action='store_true', help='Flag for running on postprocessed datasets')
+parser.add_argument('--postproc', action='store_true', help='Flag for running on postprocessed datasets and include corrections')
 
 parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
 parser.add_argument('--from-cache', action='store_true', help='Load from cache (otherwise create it)')
@@ -44,13 +28,13 @@ def mkdir_p(dir):
         os.makedirs(dir)
 
 def partitionFileList(filelist, chunkSize=1):
-    sampleFileList = np.loadtxt(filelist, dtype=str)
+    sampleFileList = np.loadtxt(filelist, dtype=str, ndmin=1)
     return [sampleFileList[i:i+chunkSize] for i in range(0, len(sampleFileList), chunkSize)]   
 
 import time
 timestr = time.strftime("%Y%m%d-%H%M%S")
 ver = '' if args.version=='' else f'{args.version}_'
-job_directory = os.path.join(os.getcwd(),'logs_submission',f'{ver}{timestr}')
+job_directory = os.path.join(os.getcwd(),'logs_submission',f'{ver}{args.year}_{timestr}')
 
 # Make top level directories
 mkdir_p(job_directory)
@@ -83,7 +67,7 @@ for s in samples:
     filelist = os.path.join(args.datasets,subdir,f'{s}_{args.year}.txt')
     
     if not os.path.isfile(filelist):
-      print(f'cannot find {filelist}, skipping...')
+      print(f'cannot find {filelist}, skipping...\n')
       continue
     par_files = partitionFileList(filelist, args.files_per_job * args.files_per_batch)
 
@@ -109,6 +93,8 @@ for s in samples:
                 fh.write(f' --version {args.version} ')
             if args.from_cache:
                 fh.write(" --from-cache ")
+            if args.postproc:
+              fh.write(' --corrections ')
             fh.write(f" --boosted --sample {s} --files-per-batch {args.files_per_batch} --nthread {args.nthreads}  --year {args.year} --outtag _{njob} --outdir {os.path.join(args.outdir,args.year)} ")
             for fi in f:
               local = fi.replace('root://xrootd-cms.infn.it/','/pnfs/psi.ch/cms/trivcat')
@@ -117,4 +103,4 @@ for s in samples:
               else:
                 fh.write(f'{fi.replace("xrootd-cms.infn.it","cms-xrd-global.cern.ch")} ')
 
-        os.system(f"sbatch --mem=4000 {job_file}")
+        os.system(f"sbatch -p quick --time 01:00:00 --mem=4000 {job_file}")

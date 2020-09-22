@@ -18,7 +18,7 @@ from lib_analysis import vertex_selection, lepton_selection, jet_selection, load
 
 
 #This function will be called for every file in the dataset
-def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None):
+def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None, extraCorrection=None):
     #Output structure that will be returned and added up among the files.
     #Should be relatively small.
     ret = Results()
@@ -52,6 +52,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
             else:
                 raise Exception(f'Problem with uncertainty on {struct}, {oldBranch}, {newBranch}')
 
+    if extraCorrection is not None:
+      for e in extraCorrection:
+          fatjets.msoftdrop /= getattr(fatjets, f'msoftdrop_corr_{e}')
     jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
 
     METp4 = TLorentzVectorArray.from_ptetaphim(scalars[metstruct+"_pt"], 0, scalars[metstruct+"_phi"], 0)
@@ -700,19 +703,19 @@ if __name__ == "__main__":
 
     if args.corrections: 
       uncertainties = {
-#            'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
-#            'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
-#            'jesTotalUp'   : [[],['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp']],
-#            'jesTotalDown' : [[],['FatJet','pt','pt_jesTotalDown','FatJet','mass','mass_jesTotalDown']],
-#            'jmrUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmrUp']],
-#            'jmrDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmrDown']],
-#            'jmsUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmsUp']],
-#            'jmsDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmsDown']],
+            #'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
+            #'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
+            #'jesTotalUp'   : [[],['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp']],
+            #'jesTotalDown' : [[],['FatJet','pt','pt_jesTotalDown','FatJet','mass','mass_jesTotalDown']],
+            #'jmrUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmrUp']],
+            #'jmrDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmrDown']],
+            #'jmsUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmsUp']],
+            #'jmsDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmsDown']],
             'msd_nom'      : [[],['FatJet','msoftdrop','msoftdrop_nom']],
-#            #'msd_raw'      : ['FatJet','msoftdrop','msoftdrop_raw'],
-#            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
-#            'puWeightUp'   : [['puWeight','puWeightUp'],[]],
-#            'puWeightDown' : [['puWeight','puWeightDown'],[]],
+            'msd_raw'      : [[],['FatJet','msoftdrop','msoftdrop_raw']],
+            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
+            #'puWeightUp'   : [['puWeight','puWeightUp'],[]],
+            #'puWeightDown' : [['puWeight','puWeightDown'],[]],
             }
       for u in uncertainties.values():
         u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_nom',
@@ -725,7 +728,17 @@ if __name__ == "__main__":
             u[1] += ['FatJet','pt','pt_nom',
                 'FatJet','mass','mass_nom'
                 ]
-      results = {u : Results() for u in uncertainties}
+      extraCorrections = {
+          'no_PUPPI'         : ['PUPPI'],
+          'no_JMS_JMR'       : ['JMS','JMR'],
+          'no_JMR'           : ['JMR'],
+          'no_JMS'           : ['JMS'],
+          'no_PUPPI_JMS_JMR' : ['PUPPI','JMS','JMR']
+          }
+      arrays_objects += [f'FatJet_msoftdrop_corr_{e}' for e in sum(extraCorrections.values(),[])]
+      combinations = [('msd_nom',e) for e in extraCorrections]
+      combinations += [('msd_raw',None)]
+      results = {(u[0] if u[1] is None else u[1]) : Results() for u in combinations}
     else:
       uncertainties = {'' : None}
       results       = {'' : Results()}
@@ -766,21 +779,23 @@ if __name__ == "__main__":
             parameters["pu_corrections_target"] = load_puhist_target(parameters["pu_corrections_file"])
             #parameters["btag_SF_target"] = BTagScaleFactor(parameters["btag_SF_{}".format(parameters["btagging_algorithm"])], BTagScaleFactor.RESHAPE, 'iterativefit,iterativefit,iterativefit', keep_df=True)
 
-            ext = extractor()
-            print(parameters["corrections"])
-            for corr in parameters["corrections"]:
-                ext.add_weight_sets([corr])
-            ext.finalize()
-            evaluator = ext.make_evaluator()
+            ### this computes the lepton weights
+            #ext = extractor()
+            #print(parameters["corrections"])
+            #for corr in parameters["corrections"]:
+            #    ext.add_weight_sets([corr])
+            #ext.finalize()
+            #evaluator = ext.make_evaluator()
 
         if ibatch == 0:
             print(dataset.printout())
 
 #        for p in pars:
 #          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p] #, parameters['btags']
-        for un,u in uncertainties.items():
+        #for un,u in extraCorrections.items():
+        for u,e in combinations:
         #### this is where the magic happens: run the main analysis
-          results[un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u)
+          results[u if e is None else e] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=uncertainties[u], extraCorrection=extraCorrection[e])
 
     #print(results)
 
