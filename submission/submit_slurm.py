@@ -9,6 +9,7 @@ parser.add_argument('--datasets', help='directory with list of inputs', type=str
 parser.add_argument('--samples', nargs='+', help='List of samples to process', type=str, default=None)
 parser.add_argument('--files-per-job', action='store', help='Number of files to process per job', type=int, default=5)
 parser.add_argument('--postproc', action='store_true', help='Flag for running on postprocessed datasets and include corrections')
+parser.add_argument('-q','--quick', action='store_true', help='submit jobs to the quick queue')
 
 parser.add_argument('--parameters', nargs='+', help='change default parameters, syntax: name value, eg --parameters met 40 bbtagging_algorithm btagDDBvL', default=None)
 parser.add_argument('--from-cache', action='store_true', help='Load from cache (otherwise create it)')
@@ -40,9 +41,9 @@ job_directory = os.path.join(os.getcwd(),'logs_submission',f'{ver}{args.year}_{t
 mkdir_p(job_directory)
 
 if args.samples is None: 
-  args.samples = [f'submission/allSamples_{args.year}.txt']
+  args.samples = [f'submission/allSamples_2018.txt']
 if len(args.samples)==1 and args.samples[0].endswith('.txt'):
-  samples = [l.strip() for l in open(args.samples[0]).readlines()]
+  samples = [l.strip() for l in open(args.samples[0]).readlines() if not l.startswith(('#','Single'))]
 else:
   samples = args.samples
 
@@ -54,8 +55,9 @@ else:
 for s in samples:
     sample_directory = os.path.join(job_directory,s)
     mkdir_p(sample_directory)
-    if 'Run' in s:
-      subdir = 'Nano02Apr2020'
+    if 'Single' in s:
+      #subdir = 'Nano02Apr2020'
+      subdir = 'Nano25Oct2019'
     else:
       if args.year=='2016':
         subdir = 'RunIISummer16NanoAODv7'
@@ -103,4 +105,4 @@ for s in samples:
               else:
                 fh.write(f'{fi.replace("xrootd-cms.infn.it","cms-xrd-global.cern.ch")} ')
 
-        os.system(f"sbatch -p quick --time 01:00:00 --mem=4000 {job_file}")
+        os.system(f"sbatch {'-p quick' if args.quick else ''} --mem=4000 {job_file}")

@@ -8,7 +8,8 @@ import uproot
 def count_weighted(filenames):
     sumw = 0
     for fi in filenames:
-        ff = uproot.open(fi)
+        #ff = uproot.open(fi)
+        ff = uproot.open(fi.replace('root://xrootd-cms.infn.it/','/pnfs/psi.ch/cms/trivcat'))
         bl = ff.get("Runs")
         sumw += bl.array("genEventSumw").sum()
     return sumw
@@ -29,4 +30,4 @@ if __name__ == "__main__":
         filenames = args.filenames
 
     genWeight = count_weighted(filenames)
-    print("Number of events (weighted)", genWeight, args.filelist[:-4])
+    print("Number of events (weighted)", genWeight)

@@ -5,9 +5,9 @@ import mplhep as hep
 from glob import glob
 from itertools import cycle
 
-def load_mc(indir,uncName,histToLoad):
+def load_mc(indir,uncName,histToLoad,sample):
     #json_file = glob( os.path.join(indir,f'*ttHTobb_{uncName}.json') )
-    json_file = glob( os.path.join(indir,f'*signal_{uncName}*json') )
+    json_file = glob( os.path.join(indir,f'*{sample}_{uncName}*json') )
     if len(json_file)>1:
         json_file = input('Which file?\n'+'\n'.join(map(str,json_file))+'\n')
     elif len(json_file)==0:
@@ -24,24 +24,24 @@ def rebin(bins, counts, yerr, rebin_factor):
     new_yerr   = np.add.reduceat(yerr, range(0, len(yerr), rebin_factor))
     return new_bins, new_counts, new_yerr
 
-def prepare_removeCorrections(indir, histName, correctionList):
+def prepare_removeCorrections(indir, histName, correctionList, sample):
   linestyle = cycle(["--","-.",":"])
 
-  hist  = { name : load_mc(indir, f'{name}_merged', histName) for name in correctionList }
+  hist  = { name : load_mc(indir, f'{name}_merged', histName, sample) for name in correctionList }
   color = { name : plt.cm.tab10(i) for i,name in enumerate(hist.keys()) }
   ls    = { name : next(linestyle) for name in hist }
 
-  hist['msoftdrop_nom']  = load_mc(indir.replace(args.version, 'v10'), 'msd_nom_merged', histName)
+  hist['msoftdrop_nom']  = load_mc(indir, 'msd_nom_merged', histName, sample)
   color['msoftdrop_nom'] = 'k'
   ls['msoftdrop_nom']    = '-'
 
-  hist['msoftdrop_raw']  = load_mc(indir.replace(args.version, 'v09'), 'merged', histName)
+  hist['msoftdrop_raw']  = load_mc(indir, 'msd_raw_merged', histName, sample)
   color['msoftdrop_raw'] = 'b'
   ls['msoftdrop_raw']    = '-' 
 
   return (hist, color, ls)
 
-def plot_removeCorrections(hist, color, ls, outdir):
+def plot_removeCorrections(hist, color, ls, outdir, sample):
     rebin_factor = 5
 
     plt.style.use([hep.cms.style.ROOT, {'font.size': 24}])
@@ -62,7 +62,7 @@ def plot_removeCorrections(hist, color, ls, outdir):
     ax.set_xlabel('Leading AK8 jet softdrop mass [GeV]', ha='right', x=1)
     ax.set_ylabel(f'Events / {rebin_factor} GeV', ha='right', y=1)
     for ext in ['.png','.pdf']:
-      plt.savefig(os.path.join(outdir,f'{args.variable}_{args.mask}{ext}'))
+      plt.savefig(os.path.join(outdir,f'{args.variable}_{args.mask}_{sample}{ext}'))
 
 def prepare_unc(indir, histName, uncName, outdir):
     if uncName=='msd':
@@ -129,6 +129,7 @@ if __name__ == '__main__':
   parser.add_argument('-p', '--path', default=None, help='path to target directory, overrides the r,y,v,s options')
   parser.add_argument('--variable', default='leadAK8JetMass')
   parser.add_argument('--mask', default='2J2WdeltaR_Pass')
+  parser.add_argument('--sample', default='signal')
 
   try: args = parser.parse_args()
   except:
@@ -148,9 +149,9 @@ if __name__ == '__main__':
 
   histName = f'hist_{args.variable}_{args.mask}'
 
-  corrList = ['no_PUPPI', 'no_JMS_JMR', 'no_JMS', 'no_PUPPI_JMS_JMR', 'no_JMR']
-  hist, col, ls = prepare_removeCorrections(indir, histName, corrList)
-  plot_removeCorrections(hist, col, ls, outdir) 
+  corrList = ['no_PUPPI_JMS_JMR','no_PUPPI', 'no_JMS_JMR']#, 'no_JMS', 'no_JMR']
+  hist, col, ls = prepare_removeCorrections(indir, histName, corrList, args.sample)
+  plot_removeCorrections(hist, col, ls, outdir, args.sample)
 
 #  for unc in ['jer','jesTotal','jmr','jms', 'puWeight']:
 #      plot_unc(indir,histName, unc, outdir)

@@ -18,9 +18,12 @@ if __name__ == "__main__":
     nouts = len(outs)
     if njobs!=nouts:
       print(f'{s}: {njobs} jobs and {nouts} outputs.')
-      #nouts = [int(o.split('_')[-1].split('.')[0]) for o in outs]
-      #failed = [j for j in jobs if not int(os.path.basename(j).split('.')[0]) in nouts]
-      #print(failed)
+      nouts = [int(o.split('_')[-1].split('.')[0]) for o in outs]
+      failed = [j for j in jobs if not int(os.path.basename(j).split('.')[0]) in nouts]
+      for f in failed:
+        print(f.split('/')[-1])
+        #os.system(f'sbatch --mem=4000 {f}')
+
       #submit_script = [l.strip() for l in open(os.path.join(args.job_directory, s, f'{s}_condor.sub')).readlines()]
       #new_submit = os.path.join(args.job_directory, s, f'{s}_condor_resubmit.sub')
       #with open(new_submit, 'w') as ns:
