@@ -64,7 +64,8 @@ eraDependentParameters = {
     "2016" : {
         "lumi":  36773.0,
         #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/ReReco/Final/Cert_271036-284044_13TeV_ReReco_07Aug2017_Collisions16_JSON.txt",
-        "lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/Final/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt",
+        #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/Final/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt",
+        'lumimask': 'data/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt',
         "pu_corrections_file" : "data/PileupData_GoldenJSON_Full2016.root",
         "corrections" : [
             "el_triggerSF Ele27_WPTight_Gsf data/TriggerSF_Run2016All_v1.root",
@@ -82,7 +83,8 @@ eraDependentParameters = {
     },
     "2017" : {
         "lumi":  41529.0,
-        "lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt",
+        #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt",
+        "lumimask": "data/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt",
         "pu_corrections_file" : "data/pileup_Cert_294927-306462_13TeV_PromptReco_Collisions17_withVar.root",
         "corrections" : [
             #"el_triggerSF SFs_ele_pt_ele_sceta_ele28_ht150_OR_ele35_2017BCDEF data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Data_MC_v5_0_histo.root",
@@ -154,7 +156,7 @@ samples_info = {
             "ngen_weight": {
                 '2016' : 5253482.85,
                 '2017' : 4216319.31,
-                '2018' : 11231808.09,
+                '2018' : 4996147.01 #11231808.09,
                 },
             },
     "THW": {

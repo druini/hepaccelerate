@@ -16,9 +16,10 @@ from definitions_analysis import histogram_settings
 import lib_analysis
 from lib_analysis import vertex_selection, lepton_selection, jet_selection, load_puhist_target, compute_pu_weights, compute_lepton_weights, compute_btag_weights, chunks, calculate_variable_features, select_lepton_p4, hadronic_W, get_histogram
 
+from pdb import set_trace
 
 #This function will be called for every file in the dataset
-def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None):
+def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None, extraCorrection=None):
     #Output structure that will be returned and added up among the files.
     #Should be relatively small.
     ret = Results()
@@ -41,17 +42,20 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         evUnc, objUnc = uncertainty
         if len(evUnc)%2!=0: raise Exception(f'Invalid uncertainty for events {evUnc}')
         for oldVar,newVar in zip(evUnc[::2],evUnc[1::2]):
-            scalars[oldVar] = scalars[newVar]
+            scalars[oldVar] = scalars[newVar].copy()
 
         if len(objUnc)%3!=0: raise Exception(f'Invalid uncertainty for objects {objUnc}')
         for struct,oldBranch,newBranch in zip(objUnc[::3],objUnc[1::3],objUnc[2::3]):
             if struct=='FatJet':
-                setattr(fatjets, oldBranch, getattr(fatjets,newBranch))
+                setattr(fatjets, oldBranch, getattr(fatjets,newBranch).copy())
             elif struct=='Jet':
-                setattr(jets, oldBranch, getattr(jets,newBranch))
+                setattr(jets, oldBranch, getattr(jets,newBranch).copy())
             else:
                 raise Exception(f'Problem with uncertainty on {struct}, {oldBranch}, {newBranch}')
-
+    
+    if extraCorrection is not None:
+      for e in extraCorrection:
+          fatjets.msoftdrop /= getattr(fatjets, f'msoftdrop_corr_{e}')
     jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
 
     METp4 = TLorentzVectorArray.from_ptetaphim(scalars[metstruct+"_pt"], 0, scalars[metstruct+"_phi"], 0)
@@ -328,7 +332,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         genH = (abs(genparts.pdgId)==25) & (genparts.status==22)
         nH   = ha.sum_in_offsets(genparts,genH,NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.bool),genparts.masks["all"], NUMPY_LIB.int8)
         if not NUMPY_LIB.all(nH==1):
-          import pdb
           pdb.set_trace()
         for mn,m in mask_events.items():
             genH_pt = ha.get_in_offsets(genparts.pt, genparts.offsets, indices['leading'], m, genH)
@@ -403,7 +406,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #    with open('events_pass_selection.txt','w+') as f:
 #      for nevt in scalars['event'][mask_events['2J']]:
 #        f.write(str(nevt)+'\n')
-#    import pdb
 #    pdb.set_trace()
     
 
@@ -615,7 +617,7 @@ if __name__ == "__main__":
         try: parameters[p] = type(parameters[p])(v) #convert the string v to the type of the parameter already in the dictionary
         except: print(f'invalid parameter specified: {p} {v}')
 
-    if "Run" in args.sample:
+    if "Single" in args.sample:
         is_mc = False
         lumimask = LumiMask(parameters["lumimask"])
     else:
@@ -666,11 +668,12 @@ if __name__ == "__main__":
                          ]
 
     if args.corrections: 
+      arrays_objects += [f'FatJet_{var}_{corr}' for var in ['msoftdrop','pt','mass'] for corr in ['raw','nom']]
+      arrays_objects += [f'Jet_pt_nom']
+      arrays_event   += [f'{metstruct}_{var}_nom' for var in ['pt','phi']]
+      if is_mc:
         arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer','jesTotal'] for ud in ['Up','Down']]
         arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
-        arrays_objects += [f'FatJet_{var}_{corr}' for var in ['msoftdrop','pt','mass'] for corr in ['raw','nom']]
-        arrays_objects += [f'Jet_pt_nom']
-        arrays_event   += [f'{metstruct}_{var}_nom' for var in ['pt','phi']]
         arrays_event   += [f'puWeight{var}' for var in ['','Up','Down']]
 
     filenames = None
@@ -700,19 +703,19 @@ if __name__ == "__main__":
 
     if args.corrections: 
       uncertainties = {
-#            'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
-#            'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
-#            'jesTotalUp'   : [[],['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp']],
-#            'jesTotalDown' : [[],['FatJet','pt','pt_jesTotalDown','FatJet','mass','mass_jesTotalDown']],
-#            'jmrUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmrUp']],
-#            'jmrDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmrDown']],
-#            'jmsUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmsUp']],
-#            'jmsDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmsDown']],
+            'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
+            'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
+            'jesTotalUp'   : [[],['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp']],
+            'jesTotalDown' : [[],['FatJet','pt','pt_jesTotalDown','FatJet','mass','mass_jesTotalDown']],
+            'jmrUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmrUp']],
+            'jmrDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmrDown']],
+            'jmsUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmsUp']],
+            'jmsDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmsDown']],
             'msd_nom'      : [[],['FatJet','msoftdrop','msoftdrop_nom']],
-#            #'msd_raw'      : ['FatJet','msoftdrop','msoftdrop_raw'],
-#            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
-#            'puWeightUp'   : [['puWeight','puWeightUp'],[]],
-#            'puWeightDown' : [['puWeight','puWeightDown'],[]],
+            'msd_raw'      : [[],['FatJet','msoftdrop','msoftdrop_raw']],
+            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
+            #'puWeightUp'   : [['puWeight','puWeightUp'],[]],
+            #'puWeightDown' : [['puWeight','puWeightDown'],[]],
             }
       for u in uncertainties.values():
         u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_nom',
@@ -725,7 +728,24 @@ if __name__ == "__main__":
             u[1] += ['FatJet','pt','pt_nom',
                 'FatJet','mass','mass_nom'
                 ]
-      results = {u : Results() for u in uncertainties}
+      if is_mc:
+        extraCorrections = {
+            'no_PUPPI_JMS_JMR' : ['PUPPI','JMS','JMR'],
+            'no_JMS_JMR'       : ['JMS','JMR'],
+            'no_PUPPI'         : ['PUPPI'],
+            #'no_JMR'           : ['JMR'],
+            #'no_JMS'           : ['JMS'],
+            }
+      else:
+        extraCorrections = {
+            'no_PUPPI'         : ['PUPPI'],
+            }
+      arrays_objects += [f'FatJet_msoftdrop_corr_{e}' for e in sum(extraCorrections.values(),[])]
+
+      extraCorrections[''] = None
+      combinations = [('msd_nom',e) for e in extraCorrections]
+      combinations += [('msd_raw','')]
+      results = {(u[0] if u[1]=='' else u[1]) : Results() for u in combinations}
     else:
       uncertainties = {'' : None}
       results       = {'' : Results()}
@@ -766,21 +786,23 @@ if __name__ == "__main__":
             parameters["pu_corrections_target"] = load_puhist_target(parameters["pu_corrections_file"])
             #parameters["btag_SF_target"] = BTagScaleFactor(parameters["btag_SF_{}".format(parameters["btagging_algorithm"])], BTagScaleFactor.RESHAPE, 'iterativefit,iterativefit,iterativefit', keep_df=True)
 
-            ext = extractor()
-            print(parameters["corrections"])
-            for corr in parameters["corrections"]:
-                ext.add_weight_sets([corr])
-            ext.finalize()
-            evaluator = ext.make_evaluator()
+            ### this computes the lepton weights
+            #ext = extractor()
+            #print(parameters["corrections"])
+            #for corr in parameters["corrections"]:
+            #    ext.add_weight_sets([corr])
+            #ext.finalize()
+            #evaluator = ext.make_evaluator()
 
         if ibatch == 0:
             print(dataset.printout())
 
 #        for p in pars:
 #          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p] #, parameters['btags']
-        for un,u in uncertainties.items():
+        #for un,u in extraCorrections.items():
+        for u,e in combinations:
         #### this is where the magic happens: run the main analysis
-          results[un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u)
+          results[u if e=='' else e] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=uncertainties[u], extraCorrection=extraCorrections[e])
 
     #print(results)
 
