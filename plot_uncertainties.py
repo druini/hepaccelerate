@@ -64,18 +64,19 @@ def plot_removeCorrections(hist, color, ls, outdir, sample):
     for ext in ['.png','.pdf']:
       plt.savefig(os.path.join(outdir,f'{args.variable}_{args.mask}_{sample}{ext}'))
 
-def prepare_unc(indir, histName, uncName, outdir):
+def plot_unc(indir, histName, uncName, outdir):
+    sample = 'ttHTobb'
     if uncName=='msd':
         hist = {
-                'nominal' : load_mc(indir, 'msd_nanoAOD', histName),
-                'up'      : load_mc(indir, 'msd_nom',     histName),
-                'down'    : load_mc(indir, 'msd_raw',     histName)
+                'nominal' : load_mc(indir, 'msd_nanoAOD', histName, sample),
+                'up'      : load_mc(indir, 'msd_nom',     histName, sample),
+                'down'    : load_mc(indir, 'msd_raw',     histName, sample)
                 }
     else:
         hist = {
-                'nominal' : load_mc(indir,  'msd_nom',   histName),
-                'up'      : load_mc(indir, f'{uncName}Up',   histName),
-                'down'    : load_mc(indir, f'{uncName}Down', histName)
+                'nominal' : load_mc(indir,  'msd_nom',   histName, sample),
+                'up'      : load_mc(indir, f'{uncName}Up',   histName, sample),
+                'down'    : load_mc(indir, f'{uncName}Down', histName, sample)
                 }
 
     color = {
@@ -116,7 +117,7 @@ def prepare_unc(indir, histName, uncName, outdir):
     ax.set_xlabel('Leading AK8 jet softdrop mass [GeV]', ha='right', x=1)
     ax.set_ylabel(f'Events / {rebin_factor} GeV', ha='right', y=1)
     for ext in ['.png','.pdf']:
-         plt.savefig(os.path.join(outdir,f'{args.variable}_{args.mask}_{uncName}{ext}'))
+         plt.savefig(os.path.join(outdir,f'{sample}_{args.variable}_{args.mask}_{uncName}{ext}'))
     #plt.show()
 
 if __name__ == '__main__':
@@ -149,7 +150,7 @@ if __name__ == '__main__':
 
   histName = f'hist_{args.variable}_{args.mask}'
 
-  corrList = ['no_PUPPI_JMS_JMR','no_PUPPI', 'no_JMS_JMR']#, 'no_JMS', 'no_JMR']
+  corrList = ['no_PUPPI']#, 'no_PUPPI_JMS_JMR','no_JMS_JMR']#, 'no_JMS', 'no_JMR']
   hist, col, ls = prepare_removeCorrections(indir, histName, corrList, args.sample)
   plot_removeCorrections(hist, col, ls, outdir, args.sample)
 
