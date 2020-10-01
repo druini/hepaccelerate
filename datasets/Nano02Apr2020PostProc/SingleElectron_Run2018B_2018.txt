@@ -83,4 +83,3 @@ root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/EGamma/SingleElectron
 root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/EGamma/SingleElectron_Run2018B_nanoAODPostProcessor_2018_v03p1/200923_100333/0000/nano_postprocessed_12.root
 root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/EGamma/SingleElectron_Run2018B_nanoAODPostProcessor_2018_v03p1/200923_100333/0000/nano_postprocessed_6.root
 root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/EGamma/SingleElectron_Run2018B_nanoAODPostProcessor_2018_v03p1/200923_100333/0000/nano_postprocessed_79.root
-
