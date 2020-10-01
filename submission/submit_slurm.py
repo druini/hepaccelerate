@@ -56,8 +56,8 @@ for s in samples:
     sample_directory = os.path.join(job_directory,s)
     mkdir_p(sample_directory)
     if 'Single' in s:
-      #subdir = 'Nano02Apr2020'
-      subdir = 'Nano25Oct2019'
+      subdir = 'Nano02Apr2020'
+      #subdir = 'Nano25Oct2019'
     else:
       if args.year=='2016':
         subdir = 'RunIISummer16NanoAODv7'
@@ -105,4 +105,4 @@ for s in samples:
               else:
                 fh.write(f'{fi.replace("xrootd-cms.infn.it","cms-xrd-global.cern.ch")} ')
 
-        os.system(f"sbatch {'-p quick' if args.quick else ''} --mem=4000 {job_file}")
+        os.system(f"sbatch {'-p quick --time 01:00:00' if args.quick else ''} --mem=4000 {job_file}")
