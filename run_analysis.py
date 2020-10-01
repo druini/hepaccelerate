@@ -224,8 +224,6 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #    mask_events['2J2WdeltaRTau21DDT'] = mask_events['2J2WdeltaR'] & (leading_fatjet_tau21<parameters["fatjets"]["tau21DDTcut"][args.year])
 
     leading_fatjet_Hbb = ha.get_in_offsets(getattr(fatjets, parameters["bbtagging_algorithm"]), fatjets.offsets, indices['leading'], mask_events['2J2WdeltaR'], good_fatjets)
-    #mask_events['2J2WdeltaRTau21_Pass'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb>parameters['bbtagging_WP'])
-    #mask_events['2J2WdeltaRTau21_Fail'] = mask_events['2J2WdeltaRTau21'] & (leading_fatjet_Hbb<=parameters['bbtagging_WP'])
     for m in ['2J2WdeltaR']:#, '2J2WdeltaRTau21']:#, '2J2WdeltaRTau21DDT']:
         mask_events[f'{m}_Pass'] = mask_events[m] & (leading_fatjet_Hbb>parameters['bbtagging_WP'])
         mask_events[f'{m}_Fail'] = mask_events[m] & (leading_fatjet_Hbb<=parameters['bbtagging_WP'])
@@ -671,7 +669,7 @@ if __name__ == "__main__":
       arrays_objects += [f'FatJet_{var}_{corr}' for var in ['msoftdrop','pt','mass'] for corr in ['raw','nom']]
       arrays_objects += [f'Jet_pt_nom']
       arrays_event   += [f'{metstruct}_{var}_nom' for var in ['pt','phi']]
-      if is_mc:
+      if args.sample.startswith('ttH'):
         arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer','jesTotal'] for ud in ['Up','Down']]
         arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
         arrays_event   += [f'puWeight{var}' for var in ['','Up','Down']]
@@ -691,18 +689,25 @@ if __name__ == "__main__":
 
     #results = Results()
 
-#    WPs_DAK8 = [0.8695]#, 0.9795]0.5845, 
-#    WPs_DDB  = [0.86, 0.89, 0.91]#, 0.92]0.7, 
-#    bbtags   = {'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'btagDDBvL': WPs_DDB} #'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
-#    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
-##    for p in pars.copy():
-##        pars[f'{p}_1btag'] = pars[p] + (1,)
-##        pars[p]            = pars[p] + (0,)
-#
-#    results  = {p : Results() for p in pars}
+    WPs_DAK8 = [0.8695, 0.9795]#0.5845, 
+    WPs_DDB  = [0.86]#, 0.89, 0.91]#, 0.92]0.7, 
+    bbtags   = {'btagDDBvL': WPs_DDB} #'deepTagMD_bbvsLight': WPs_DAK8, 'btagDDBvL_noMD': WPs_DDB, 'deepTag_H': WPs_DAK8, 'btagDDBvL': WPs_DDB, 'btagDDBvL_noMD': WPs_DDB}
+    pars     = {f'met{met}_{bbAlg}0{str(bbWP).split(".")[-1]}' : (met,bbAlg,bbWP) for met in [20] for bbAlg,bbWPlist in bbtags.items() for bbWP in bbWPlist}
+    #pars['met30_btagDDBvL086'] = (30, 'btagDDBvL', 0.86)
+    for p in pars.copy():
+        #pars[f'{p}_1btag'] = pars[p] + (1,)
+        pars[p]            = pars[p] + (0,)
+
+    results  = {p : {} for p in pars}
 
     if args.corrections: 
       uncertainties = {
+            'msd_nom'      : [[],['FatJet','msoftdrop','msoftdrop_nom']],
+            #'msd_raw'      : [[],['FatJet','msoftdrop','msoftdrop_raw']],
+            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
+            }
+      if args.sample.startswith('ttH'):
+        signalUncertainties = {
             'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
             'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
             'jesTotalUp'   : [[],['FatJet','pt','pt_jesTotalUp','FatJet','mass','mass_jesTotalUp']],
@@ -711,12 +716,10 @@ if __name__ == "__main__":
             'jmrDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmrDown']],
             'jmsUp'        : [[],['FatJet','msoftdrop','msoftdrop_jmsUp']],
             'jmsDown'      : [[],['FatJet','msoftdrop','msoftdrop_jmsDown']],
-            'msd_nom'      : [[],['FatJet','msoftdrop','msoftdrop_nom']],
-            'msd_raw'      : [[],['FatJet','msoftdrop','msoftdrop_raw']],
-            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
-            #'puWeightUp'   : [['puWeight','puWeightUp'],[]],
-            #'puWeightDown' : [['puWeight','puWeightDown'],[]],
+            'puWeightUp'   : [['puWeight','puWeightUp'],[]],
+            'puWeightDown' : [['puWeight','puWeightDown'],[]],
             }
+        uncertainties.update(signalUncertainties)
       for u in uncertainties.values():
         u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_nom',
             f'{metstruct}_phi',f'{metstruct}_phi_nom'
@@ -728,24 +731,31 @@ if __name__ == "__main__":
             u[1] += ['FatJet','pt','pt_nom',
                 'FatJet','mass','mass_nom'
                 ]
-      if is_mc:
-        extraCorrections = {
-            'no_PUPPI_JMS_JMR' : ['PUPPI','JMS','JMR'],
-            'no_JMS_JMR'       : ['JMS','JMR'],
-            'no_PUPPI'         : ['PUPPI'],
-            #'no_JMR'           : ['JMR'],
-            #'no_JMS'           : ['JMS'],
-            }
-      else:
-        extraCorrections = {
-            'no_PUPPI'         : ['PUPPI'],
-            }
+      extraCorrections = {
+          'no_PUPPI'         : ['PUPPI'],
+          }
       arrays_objects += [f'FatJet_msoftdrop_corr_{e}' for e in sum(extraCorrections.values(),[])]
-
-      extraCorrections[''] = None
-      combinations = [('msd_nom',e) for e in extraCorrections]
-      combinations += [('msd_raw','')]
-      results = {(u[0] if u[1]=='' else u[1]) : Results() for u in combinations}
+      #results = {u : Results() for u in uncertainties} 
+      for p in results:
+        results[p] = {u : Results() for u in uncertainties}
+      ######### this block was for testing which corrections we should remove
+#      if is_mc:
+#        extraCorrections = {
+#            'no_PUPPI_JMS_JMR' : ['PUPPI','JMS','JMR'],
+#            'no_JMS_JMR'       : ['JMS','JMR'],
+#            'no_PUPPI'         : ['PUPPI'],
+#            #'no_JMR'           : ['JMR'],
+#            #'no_JMS'           : ['JMS'],
+#            }
+#      else:
+#        extraCorrections = {
+#            'no_PUPPI'         : ['PUPPI'],
+#            }
+#
+#      extraCorrections[''] = None
+#      combinations = [('msd_nom',e) for e in extraCorrections]
+#      combinations += [('msd_raw','')]
+#      results = {(u[0] if u[1]=='' else u[1]) : Results() for u in combinations}
     else:
       uncertainties = {'' : None}
       results       = {'' : Results()}
@@ -797,23 +807,32 @@ if __name__ == "__main__":
         if ibatch == 0:
             print(dataset.printout())
 
-#        for p in pars:
-#          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'] = pars[p] #, parameters['btags']
-        #for un,u in extraCorrections.items():
-        for u,e in combinations:
-        #### this is where the magic happens: run the main analysis
-          results[u if e=='' else e] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=uncertainties[u], extraCorrection=extraCorrections[e])
+        for p in pars:
+          parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p] #
+          for un,u in uncertainties.items():
+          #### this is where the magic happens: run the main analysis
+            results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, extraCorrection=extraCorrections['no_PUPPI'])
 
     #print(results)
 
     #Save the results
-    outdir = args.outdir
-    if args.version!='':
-      outdir = os.path.join(outdir,args.version)
-    auxdir = f"met{parameters['met']}_{parameters['bbtagging_algorithm']}0{str(parameters['bbtagging_WP']).split('.')[-1]}"
-    outdir = os.path.join(outdir,auxdir)
-    if not os.path.exists(outdir):
-      os.makedirs(outdir)
+#    outdir = args.outdir
+#    if args.version!='':
+#      outdir = os.path.join(outdir,args.version)
+#    auxdir = f"met{parameters['met']}_{parameters['bbtagging_algorithm']}0{str(parameters['bbtagging_WP']).split('.')[-1]}"
+#    outdir = os.path.join(outdir,auxdir)
+#    if not os.path.exists(outdir):
+#      os.makedirs(outdir)
+#
+#    for r in results:
+#      results[r].save_json(os.path.join(outdir,f"out_{args.sample}_{r}{args.outtag}.json"))
+    for pn,res in results.items():
+      outdir = args.outdir
+      if args.version!='':
+        outdir = os.path.join(outdir,args.version)
+      outdir = os.path.join(outdir,pn)
+      if not os.path.exists(outdir):
+        os.makedirs(outdir)
 
-    for r in results:
-      results[r].save_json(os.path.join(outdir,f"out_{args.sample}_{r}{args.outtag}.json"))
+      for rn,r in res.items():
+        r.save_json(os.path.join(outdir,f"out_{args.sample}_{rn}{args.outtag}.json"))
