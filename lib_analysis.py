@@ -113,15 +113,32 @@ def load_puhist_target(filename):
 
 
 # lepton scale factors
-def compute_lepton_weights(leps, lepton_x, lepton_y, mask_rows, mask_content, evaluator, SF_list):
+def compute_lepton_weights(leps, lepton_pt, lepton_eta, mask_rows, mask_content, evaluator, SF_list, year=None):
 
-    weights = NUMPY_LIB.ones(len(lepton_x))
+    weights = NUMPY_LIB.ones(len(lepton_pt))
 
     for SF in SF_list:
-        if SF == "el_triggerSF":
-            weights *= evaluator[SF](lepton_y, lepton_x)
+        if SF.startswith('mu'):
+            if year=='2016':
+                if 'trigger' in SF:
+                    x = lepton_pt
+                    y = NUMPY_LIB.abs(lepton_eta)
+                else:
+                    x = lepton_eta
+                    y = lepton_pt
+            else:
+                x = lepton_pt
+                y = NUMPY_LIB.abs(lepton_eta)
+        elif SF.startswith('el'):
+            if 'trigger' in SF:
+                x = lepton_pt
+                y = lepton_eta
+            else:
+                x = lepton_eta
+                y = lepton_pt
         else:
-            weights *= evaluator[SF](lepton_x, lepton_y)
+            raise Exception(f'unknown SF name {SF}')
+        weights *= evaluator[SF](x, y)
     
     per_event_weights = ha.multiply_in_offsets(leps, weights, mask_rows, mask_content)
     return per_event_weights

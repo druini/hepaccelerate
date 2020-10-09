@@ -37,7 +37,7 @@ parameters = {
   "fatjets": {
     "type": "fatjet",
     "dr": 0.8,
-    "pt": 250,
+    "pt": 300,
     "eta": 2.4,
     "jetId": 2,
     "tau32cut": 0.4,
@@ -67,64 +67,76 @@ eraDependentParameters = {
         #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/Final/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt",
         'lumimask': 'data/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt',
         "pu_corrections_file" : "data/PileupData_GoldenJSON_Full2016.root",
+        "btag_SF_btagDeepFlavB" : 'data/DeepJet_2016LegacySF_V1_TuneCP5.csv',
         "corrections" : [
-            "el_triggerSF Ele27_WPTight_Gsf data/TriggerSF_Run2016All_v1.root",
-            "el_recoSF EGamma_SF2D data/egammaEffi.txt_EGM2D.root",
-            "el_idSF EGamma_SF2D data/egammaEffi.txt_EGM2D.root",
-            "mu_triggerSF IsoMu27_PtEtaBins/pt_abseta_ratio data/EfficienciesAndSF_RunBtoF_Nov17Nov2017.histo.root",
-            "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta data/RunBCDEF_SF_ISO.histo.root",
-            "mu_idSF NUM_TightID_DEN_genTracks_pt_abseta data/RunBCDEF_SF_ID.histo.root",
-            "BTagSF * data/DeepCSV_Moriond17_B_H.csv"
+            "el_triggerSF Ele27_WPTight_Gsf data/TriggerSF_Run2016All_v1.histo.root",
+            "el_recoSF EGamma_SF2D data/2016/EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.histo.root", ###FIXME for low Et
+            "el_idSF EGamma_SF2D data/2016/2016LegacyReReco_ElectronTight_Fall17V2.histo.root",
+            "mu_triggerSF IsoMu24_OR_IsoTkMu24_PtEtaBins/pt_abseta_ratio data/2016/EfficienciesAndSF_RunBtoF.histo.root",
+            "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_eta_pt data/2016/RunBCDEF_SF_ISO.histo.root", ###FIXME for different runs
+            "mu_idSF NUM_TightID_DEN_genTracks_eta_pt data/2016/RunBCDEF_SF_ID.histo.root", ###FIXME for different runs
         ],
-        "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
-        "btagging_WP" : 0.3093,
-        "bbtagging_algorithm" :  "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
-        "bbtagging_WP" : 0.86,
+        "btagging_algorithm"  : "btagDeepFlavB",#"btagDeepB",
+        "btagging_WP"         : 0.3093,
+        "bbtagging_algorithm" : "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
+        "bbtagging_WP"        : 0.86,
+        'bbtagSF_DDBvL_M1_loPt'      : 0.86,
+        'bbtagSF_DDBvL_M1_loPt_up'   : 0.97,
+        'bbtagSF_DDBvL_M1_loPt_down' : 0.82,
+        'bbtagSF_DDBvL_M1_hiPt'      : 0.86,
+        'bbtagSF_DDBvL_M1_hiPt_up'   : 0.97,
+        'bbtagSF_DDBvL_M1_hiPt_down' : 0.82,
     },
     "2017" : {
         "lumi":  41529.0,
         #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt",
         "lumimask": "data/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt",
         "pu_corrections_file" : "data/pileup_Cert_294927-306462_13TeV_PromptReco_Collisions17_withVar.root",
+        #"btag_SF_btagDeepFlavB" : "./data/sfs_deepjet_2017_19-11-11.btag.csv",
+        "btag_SF_btagDeepFlavB" : 'data/DeepFlavour_2017_94XSF_V4_B_F.csv',
         "corrections" : [
-            #"el_triggerSF SFs_ele_pt_ele_sceta_ele28_ht150_OR_ele35_2017BCDEF data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Data_MC_v5_0_histo.root",
-            #"el_recoSF EGamma_SF2D data/egammaEffi_EGM2D_runBCDEF_passingRECO_histo.root",
-            #"el_idSF EGamma_SF2D data/egammaEffi_EGM2D_runBCDEF_passingTight94X_histo.root",
-            #"mu_triggerSF IsoMu27_PtEtaBins/pt_abseta_ratio data/EfficienciesAndSF_RunBtoF_Nov17Nov2017_histo.root",
-            #"mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta data/RunBCDEF_SF_ISO_histo.root",
-            #"mu_idSF NUM_TightID_DEN_genTracks_pt_abseta data/RunBCDEF_SF_ID_histo.root",
             "el_triggerSF SFs_ele_pt_ele_sceta_ele28_ht150_OR_ele35_2017BCDEF ./data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Data_MC_v5.0.histo.root",
-            "el_recoSF EGamma_SF2D ./data/egammaEffi_EGM2D_runBCDEF_passingRECO_v2.histo.root",
-            "el_idSF EGamma_SF2D ./data/2017_ElectronTight.histo.root",
-            "mu_triggerSF IsoMu27_PtEtaBins/pt_abseta_ratio ./data/EfficienciesAndSF_RunBtoF_Nov17Nov2017.histo.root",
-            "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta ./data/RunBCDEF_SF_ISO.histo.root",
-            "mu_idSF NUM_TightID_DEN_genTracks_pt_abseta ./data/RunBCDEF_SF_ID.histo.root",
-            "BTagSF * data/deepCSV_sfs_v2_btag.csv"
-            #FIXME add BTagSF for different algorithms
+            "el_recoSF EGamma_SF2D data/2017/egammaEffi_EGM2D_runBCDEF_passingRECO.histo.root", ###FIXME for low Et
+            "el_idSF EGamma_SF2D data/2017/2017_ElectronTight.histo.root",
+            "mu_triggerSF IsoMu27_PtEtaBins/pt_abseta_ratio ./data/2017/EfficienciesAndSF_RunBtoF_Nov17Nov2017.histo.root",
+            "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta data/2017/RunBCDEF_SF_ISO_syst.histo.root",
+            "mu_idSF NUM_TightID_DEN_genTracks_pt_abseta data/2017/RunBCDEF_SF_ID_syst.histo.root",
         ],
-        "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
-        "btagging_WP" : 0.3033, # 0.4941, # medium working point for btagDeepB
+        "btagging_algorithm"  : "btagDeepFlavB",#"btagDeepB",
+        "btagging_WP"         : 0.3033, # 0.4941, # medium working point for btagDeepB
         "bbtagging_algorithm" :  "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
-        "bbtagging_WP" : 0.86,## https://indico.cern.ch/event/853828/contributions/3723593/attachments/1977626/3292045/lg-btv-deepak8v2-sf-20200127.pdf
+        "bbtagging_WP"        : 0.86,## https://indico.cern.ch/event/853828/contributions/3723593/attachments/1977626/3292045/lg-btv-deepak8v2-sf-20200127.pdf
+        'bbtagSF_DDBvL_M1_loPt'      : 0.82,
+        'bbtagSF_DDBvL_M1_loPt_up'   : 0.86,
+        'bbtagSF_DDBvL_M1_loPt_down' : 0.77,
+        'bbtagSF_DDBvL_M1_hiPt'      : 0.77,
+        'bbtagSF_DDBvL_M1_hiPt_up'   : 0.83,
+        'bbtagSF_DDBvL_M1_hiPt_down' : 0.67,
     },
     "2018" : {
         "lumi":  58830.0,
         "lumimask": "data/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt",
         #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/PromptReco/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt",
         "pu_corrections_file" : "data/PileupHistogram-goldenJSON-13tev-2018-100bins_withVar.root",
+        "btag_SF_btagDeepFlavB" : 'data/DeepJet_2018_102XSF_V2.csv',
         "corrections" : [
-            "el_triggerSF SFs_ele_pt_ele_sceta_ele28_ht150_OR_ele35_2017BCDEF data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Data_MC_v5_0.root",
-            "el_recoSF EGamma_SF2D data/2018_ElectronTight.root",
-            "el_idSF EGamma_SF2D data/egammaEffi_txt_EGM2D_updatedAll.root",
-            "mu_triggerSF IsoMu24_PtEtaBins/pt_abseta_ratio data/EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root",
-            "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta data/MuonID_2018_RunABCD_SF_ISO.root",
-            "mu_idSF NUM_TightID_DEN_TrackerMuons_pt_abseta data/MuonID_2018_RunABCD_SF_ID.root",
-            "BTagSF * data/DeepCSV_Moriond17_B_H.csv"
+            "el_triggerSF ele28_ht150_OR_ele32_ele_pt_ele_sceta data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Legacy2018_v1.histo.root",
+            "el_recoSF EGamma_SF2D data/2018/egammaEffi_EGM2D_updatedAll.histo.root",
+            "el_idSF EGamma_SF2D data/2018/2018_ElectronTight.histo.root",
+            "mu_triggerSF IsoMu24_PtEtaBins/pt_abseta_ratio data/2018/EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.histo.root",
+            "mu_isoSF NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta data/2018/RunABCD_SF_ISO.histo.root",
+            "mu_idSF NUM_TightID_DEN_TrackerMuons_pt_abseta data/2018/RunABCD_SF_ID.histo.root",
         ],
-        "btagging_algorithm" : "btagDeepFlavB",#"btagDeepB",
-        "btagging_WP" : 0.2770, # medium working point for btagDeepB
+        "btagging_algorithm"  : "btagDeepFlavB",#"btagDeepB",
+        "btagging_WP"         : 0.2770, # medium working point for btagDeepB
         "bbtagging_algorithm" :  "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
-        "bbtagging_WP" : 0.86,
+        "bbtagging_WP"        : 0.86,
+        'bbtagSF_DDBvL_M1_loPt'      : 0.81,
+        'bbtagSF_DDBvL_M1_loPt_up'   : 0.88,
+        'bbtagSF_DDBvL_M1_loPt_down' : 0.76,
+        'bbtagSF_DDBvL_M1_hiPt'      : 0.76,
+        'bbtagSF_DDBvL_M1_hiPt_up'   : 0.82,
+        'bbtagSF_DDBvL_M1_hiPt_down' : 0.71,
     },
 
 }
