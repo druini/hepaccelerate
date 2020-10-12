@@ -168,6 +168,17 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     if is_mc:
         weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"][args.year]
 
+        # pdf weights
+        if uncertaintyName.startswith('pdfWeight'):
+            w = NUMPY_LIB.std(data['eventvars']['LHEPdfWeight'].astype(np.float64),axis=1)
+            if uncertaintyName.endswith('Up'):
+                weights['pdf'] = 1 + w
+            elif uncertaintyName.endswith('Down'):
+                weights['pdf'] = 1 - w
+            else:
+                raise Exception(f'unknown pdfWeight: {uncertaintyName}')
+            weights['nominal'] *= weights['pdf']
+
         # pu corrections
         if 'puWeight' in scalars:
             weights['pu'] = scalars['puWeight']
@@ -315,7 +326,9 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
       'PV_npvsGood'       : scalars['PV_npvsGood'],
     }
     if is_mc:
-      vars_to_plot['pu_weights'] = pu_weights
+      for wn,w in weights.items():
+          vars_to_plot[f'weights_{wn}'] = w
+      #vars_to_plot['pu_weights'] = pu_weights
 
     #var_name, var = 'leadAK8JetMass', leading_fatjet_SDmass
     vars_split = ['leadAK8JetMass', 'leadAK8JetRho']
@@ -689,7 +702,7 @@ if __name__ == "__main__":
         arrays_event.append("genTtbarId")
 
     if is_mc:
-        arrays_event += ["PV_npvsGood", "Pileup_nTrueInt", "genWeight", "nGenPart"]
+        arrays_event += ["PV_npvsGood", "Pileup_nTrueInt", "genWeight", "nGenPart", 'LHEPdfWeight', 'PSWeight']
         arrays_objects += [ "Jet_hadronFlavour", #"selectedPatJetsAK4PFPuppi_hadronFlavor",
                            "GenPart_eta","GenPart_genPartIdxMother","GenPart_mass","GenPart_pdgId","GenPart_phi","GenPart_pt","GenPart_status","GenPart_statusFlags"
                          ]
@@ -752,6 +765,7 @@ if __name__ == "__main__":
             #'puWeightDown' : [['puWeight','puWeightDown'],[]],
             }
         for variation in ['Up','Down']:
+            signalUncertainties[f'pdfWeight{variation}']          = [[],[]]
             signalUncertainties[f'puWeight{variation}']           = [['puWeight',f'puWeight{variation}'],[]]
             #signalUncertainties[f'AK8jer{variation}']             = [[],['FatJet','pt','pt_jer{variation}','FatJet','mass','mass_jer{variation}','FatJet','msoftdrop','msoftdrop_jer{variation}']]
             #signalUncertainties[f'AK4jer{variation}']             = [[],['Jet','pt','pt_jer{variation}','Jet','mass','mass_jer{variation}']]
