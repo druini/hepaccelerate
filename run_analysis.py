@@ -8,7 +8,7 @@ from uproot_methods import TLorentzVectorArray
 #import hepaccelerate
 from hepaccelerate.utils import Results, NanoAODDataset, Histogram, choose_backend
 
-import itertools
+#import itertools
 #from lib_analysis import mse0,mae0,r2_score0
 
 from definitions_analysis import histogram_settings
@@ -17,9 +17,10 @@ import lib_analysis
 from lib_analysis import vertex_selection, lepton_selection, jet_selection, load_puhist_target, compute_pu_weights, compute_lepton_weights, compute_btag_weights, chunks, calculate_variable_features, select_lepton_p4, hadronic_W, get_histogram
 
 from pdb import set_trace
+import sys
 
 #This function will be called for every file in the dataset
-def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None, uncertaintyName=None, extraCorrection=None):
+def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None, uncertaintyName=None, parametersName=None, extraCorrection=None):
     #Output structure that will be returned and added up among the files.
     #Should be relatively small.
     ret = Results()
@@ -37,6 +38,39 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     else:
       metstruct = 'MET'
 
+    if is_mc and uncertaintyName.startswith('jes') and not sample.startswith('ttH'):
+        jesMerged = {
+                'Absolute'                    : ['AbsoluteMPFBias','AbsoluteScale','Fragmentation','PileUpDataMC','PileUpPtRef','RelativeFSR','SinglePionECAL','SinglePionHCAL'],
+                f'Absolute_{args.year}'       : ['AbsoluteStat','RelativeStatFSR','TimePtEta'],
+                'BBEC1'                       : ['PileUpPtBB','PileUpPtEC1','RelativePtBB'],
+                'EC2'                         : ['PileUpPtEC2'],
+                'HF'                          : ['PileUpPtHF','RelativeJERHF','RelativePtHF'],
+                f'BBEC1_{args.year}'          : ['RelativeJEREC1','RelativePtEC1','RelativeStatEC'],
+                f'EC2_{args.year}'            : ['RelativePtEC2'],
+                f'RelativeSample_{args.year}' : ['RelativeSample'],
+                f'HF_{args.year}'             : ['RelativeStatHF']
+                }
+        variation = 'Up' if uncertaintyName.endswith('Up') else 'Down'
+        jesName = uncertaintyName.split('jes')[-1].split(variation)[0]
+        if not hasattr(jets,'pt_jes{jesName}{variation}'):
+            def sumInQuadrature(arr):
+                if len(arr)==1:
+                    return arr
+                else:
+                    return NUMPY_LIB.sqrt(NUMPY_LIB.sum(NUMPY_LIB.square(arr), axis=0))
+
+            for struct in [fatjets,jets]:
+                for var in ['pt','mass']:
+                    ###FIXME: should the correction c be added or subtracted from the nom, and how does it work in Up/Down variations???
+                    c = sumInQuadrature([getattr(struct,f'{var}_nom')-getattr(struct,f'{var}_jes{jesNameSplit}{variation}') for jesNameSplit in jesMerged[jesName]])
+                    setattr(struct, f'{var}_jes{jesName}{variation}', getattr(struct, f'{var}_nom')+(c if variation=='Up' else -c) )
+
+            c = sumInQuadrature([getattr(fatjets,'msoftdrop_nom')-getattr(fatjets,f'msoftdrop_jes{jesNameSplit}{variation}') for jesNameSplit in jesMerged[jesName]])
+            setattr(fatjets, f'msoftdrop_jes{jesName}{variation}', fatjets.msoftdrop_nom+(c if variation=='Up' else -c) )
+            for var in ['pt','phi']:
+                c = sumInQuadrature([scalars[f'{metstruct}_{var}_jer']-scalars[f'{metstruct}_{var}_jes{jesNameSplit}{variation}'] for jesNameSplit in jesMerged[jesName]])
+                scalars[f'{metstruct}_{var}_jes{jesName}{variation}'] = scalars[f'{metstruct}_{var}_nom']+(c if variation=='Up' else -c)
+            set_trace()
     if uncertainty is not None:
         if len(uncertainty)!=2: raise Exception(f'Invalid uncertainty {uncertainty}')
         evUnc, objUnc = uncertainty
@@ -168,9 +202,26 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     if is_mc:
         weights["nominal"] = weights["nominal"] * scalars["genWeight"] * parameters["lumi"] * samples_info[sample]["XS"] / samples_info[sample]["ngen_weight"][args.year]
 
+        if uncertaintyName.startswith('psWeight'):
+            if uncertaintyName.endswith('ISRDown'):
+                wn = 'ps_ISRDown'
+                wi = 0
+            elif uncertaintyName.endswith('FSRDown'):
+                wn = 'ps_FSRDown'
+                wi = 1
+            elif uncertaintyName.endswith('ISRUp'):
+                wn = 'ps_ISRUp'
+                wi = 2
+            elif uncertaintyName.endswith('FSRUp'):
+                wn = 'ps_FSRUp'
+                wi = 3
+            else:
+                raise Exception(f'unknown psWeight: {uncertaintyName}')
+            weights[wn] = data['eventvars']['PSWeight'][:,wi].astype(np.float32)
+            weights['nominal'] *= weights[wn]
         # pdf weights
         if uncertaintyName.startswith('pdfWeight'):
-            w = NUMPY_LIB.std(data['eventvars']['LHEPdfWeight'].astype(np.float64),axis=1)
+            w = NUMPY_LIB.std(data['eventvars']['LHEPdfWeight'].astype(NUMPY_LIB.float64),axis=1)
             if uncertaintyName.endswith('Up'):
                 weights['pdf'] = 1 + w
             elif uncertaintyName.endswith('Down'):
@@ -202,7 +253,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 
         # bbtag SF corrections
         if parameters['bbtagging_algorithm']=='btagDDBvL':
-            bbtag_weights = NUMPY_LIB.ones_like(mask_events,dtype=NUMPY_LIB.float64) 
+            weights['bbtag'] = NUMPY_LIB.ones_like(mask_events,dtype=NUMPY_LIB.float64) 
             if 'bbtagSF_DDBvL_M1_up' in uncertainty[1]:
                 bbtagSF_loPt = parameters['bbtagSF_DDBvL_M1_loPt_up']
                 bbtagSF_hiPt = parameters['bbtagSF_DDBvL_M1_hiPt_up']
@@ -347,7 +398,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     #weight_names = {'' : 'nominal', '_NoWeights' : 'ones'}
     #for weight_name, w in weight_names.items():
     #  if w=='ones': continue
-    for wn,w in weights:
+    for wn,w in weights.items():
       #ret[f'nevts_overlap{weight_name}'] = Histogram( [sum(weights[w]), sum(weights[w][mask_events['2J2WdeltaR']]), sum(weights[w][mask_events['resolved']]), sum(weights[w][mask_events['overlap']])], 0,0 )
       for mask_name, mask in mask_events.items():
         if not 'deltaR' in mask_name: continue
@@ -357,7 +408,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         for var_name, var in vars_to_plot.items():
           #if (not is_mc) and ('Pass' in mask_name) and (var_name=='leadAK8JetMass') : continue
           try:
-            ret[f'hist_{var_name}_{mask_name}_weights_{wn}'] = get_histogram( var[mask], w[mask], NUMPY_LIB.linspace( *histogram_settings[var_name] ) )
+            ret[f'hist_{var_name}_{mask_name}_weights_{wn}'] = get_histogram( var[mask], w[mask], NUMPY_LIB.linspace( *histogram_settings[var_name if not var_name.startswith('weights') else 'weights'] ) )
           except KeyError:
             print(f'!!!!!!!!!!!!!!!!!!!!!!!! Please add variable {var_name} to the histogram settings')
 
@@ -381,20 +432,21 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
                 nevs = NUMPY_LIB.sum(m)
                 dr_b1fatjet = ha.calc_dr(genb_vars['phi'][::2], genb_vars['eta'][::2],leading_fatjet_phi[m],leading_fatjet_eta[m],NUMPY_LIB.ones(nevs))
                 dr_b2fatjet = ha.calc_dr(genb_vars['phi'][1::2], genb_vars['eta'][1::2],leading_fatjet_phi[m],leading_fatjet_eta[m],NUMPY_LIB.ones(nevs))
-                for weight_name, w in weight_names.items():
-                    if w=='ones': continue
+                #for weight_name, w in weight_names.items():
+                for wn,w in weights.items():
+                    if wn=='ones': continue
                     #ret[f'hist_dr_b1fatjet_{mn+weight_name}'] = get_histogram( dr_b1fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
                     #ret[f'hist_dr_b2fatjet_{mn+weight_name}'] = get_histogram( dr_b2fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
-                    ret[f'hist_dr_genbfrom{mom}_fatjet_{mn+weight_name}'] = get_histogram( dr_b1fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) ) + get_histogram( dr_b2fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
+                    ret[f'hist_dr_genbfrom{mom}_fatjet_{mn}_weights_{wn}'] = get_histogram( dr_b1fatjet, w[m], NUMPY_LIB.linspace(0,10,101) ) + get_histogram( dr_b2fatjet, w[m], NUMPY_LIB.linspace(0,10,101) )
                     for var in ['pt','eta']:
-                        ret[f'hist_genbfrom{mom}_{var}_{mn+weight_name}'] = get_histogram( genb_vars[var][::2], weights[w][m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) ) + get_histogram( genb_vars[var][1::2], weights[w][m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) )
+                        ret[f'hist_genbfrom{mom}_{var}_{mn}_weights_{wn}'] = get_histogram( genb_vars[var][::2], w[m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) ) + get_histogram( genb_vars[var][1::2], w[m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) )
 
     ####### printout event numbers 
-    outdir = os.path.join(args.outdir,args.version,uncertaintyName)
+    outdir = os.path.join(args.outdir,args.version,parametersName,uncertaintyName)
     if not os.path.exists(outdir):
       os.makedirs(outdir)
 
-    outf = os.path.join(outdir, f'{sample}_{uncertaintyName.split(os.path.sep)[-1]}.txt')
+    outf = os.path.join(outdir, f'{sample}_{uncertaintyName}.txt')
     exists = os.path.isfile(outf)
     with open(outf,'a+') as f:
       if not exists: f.write('run, lumi, event\n')
@@ -708,16 +760,20 @@ if __name__ == "__main__":
                          ]
 
     if args.corrections: 
-      jesSources = ['Total','Absolute',f'Absolute_{args.year}','FlavorQCD','BBEC1',f'BBEC1_{args.year}','EC2',f'EC2_{args.year}','HF','RelativeBal',f'RelativeSample_{args.year}']
       arrays_objects += [f'FatJet_{var}_{corr}' for var in ['msoftdrop','pt','mass'] for corr in ['raw','nom']]
       arrays_objects += [f'Jet_{var}_nom' for var in ['pt','mass']]
       arrays_event   += [f'{metstruct}_{var}_nom' for var in ['pt','phi']]
       if is_mc:#args.sample.startswith('ttH'):
+        arrays_event   += [f'{metstruct}_{var}_jer{ud}' for var in ['pt','phi'] for ud in ['','Up','Down']]
         arrays_objects += [f'Jet_btagSF_deepjet_M{var}' for var in ['','_up','_down']]
-        arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass','msoftdrop'] for unc in ['jer']+[f'jes{s}' for s in jesSources] for ud in ['Up','Down']]
-        arrays_objects += [f'Jet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer']+[f'jes{s}' for s in jesSources] for ud in ['Up','Down']]
         arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
         arrays_event   += [f'puWeight{var}' for var in ['','Up','Down']]
+        jesSources = ['Total','Absolute',f'Absolute_{args.year}','FlavorQCD','BBEC1',f'BBEC1_{args.year}','EC2',f'EC2_{args.year}','HF','RelativeBal',f'RelativeSample_{args.year}']
+        jesSourcesSplit = ['Total','AbsoluteMPFBias','AbsoluteScale','AbsoluteStat','FlavorQCD','Fragmentation','PileUpDataMC','PileUpPtBB','PileUpPtEC1','PileUpPtEC2','PileUpPtHF','PileUpPtRef','RelativeFSR','RelativeJEREC1','RelativeJEREC2','RelativeJERHF','RelativePtBB','RelativePtEC1','RelativePtEC2','RelativePtHF','RelativeBal','RelativeSample','RelativeStatEC','RelativeStatFSR','RelativeStatHF','SinglePionECAL','SinglePionHCAL','TimePtEta']
+ 
+        arrays_event   += [f'{metstruct}_{var}_{unc}{ud}' for var in ['pt','phi'] for unc in [f'jes{s}' for s in (jesSources if args.sample.startswith('ttH') else jesSourcesSplit)] for ud in ['Up','Down']]
+        arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass','msoftdrop'] for unc in ['jer']+[f'jes{s}' for s in (jesSources if args.sample.startswith('ttH') else jesSourcesSplit)] for ud in ['Up','Down']]
+        arrays_objects += [f'Jet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer']+[f'jes{s}' for s in (jesSources if args.sample.startswith('ttH') else jesSourcesSplit)] for ud in ['Up','Down']]
 
     filenames = None
     if not args.filelist is None:
@@ -747,7 +803,7 @@ if __name__ == "__main__":
 
     if args.corrections: 
       uncertainties = {
-            'msd_nom'      : [[],['FatJet','msoftdrop','msoftdrop_nom']],
+            'nominal'      : [[],['FatJet','msoftdrop','msoftdrop_nom']],
             #'msd_raw'      : [[],['FatJet','msoftdrop','msoftdrop_raw']],
             #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
             }
@@ -765,11 +821,15 @@ if __name__ == "__main__":
             #'puWeightDown' : [['puWeight','puWeightDown'],[]],
             }
         for variation in ['Up','Down']:
+            signalUncertainties[f'psWeight_ISR{variation}']       = [[],[]]
+            signalUncertainties[f'psWeight_FSR{variation}']       = [[],[]]
             signalUncertainties[f'pdfWeight{variation}']          = [[],[]]
             signalUncertainties[f'puWeight{variation}']           = [['puWeight',f'puWeight{variation}'],[]]
             #signalUncertainties[f'AK8jer{variation}']             = [[],['FatJet','pt','pt_jer{variation}','FatJet','mass','mass_jer{variation}','FatJet','msoftdrop','msoftdrop_jer{variation}']]
             #signalUncertainties[f'AK4jer{variation}']             = [[],['Jet','pt','pt_jer{variation}','Jet','mass','mass_jer{variation}']]
-            signalUncertainties[f'jer{variation}']                = [[],['FatJet','pt',f'pt_jer{variation}','FatJet','mass',f'mass_jer{variation}','FatJet','msoftdrop',f'msoftdrop_jer{variation}','Jet','pt',f'pt_jer{variation}','Jet','mass',f'mass_jer{variation}']]
+            signalUncertainties[f'jer{variation}']                = [
+                    [f'{metstruct}_pt',f'{metstruct}_pt_jer{variation}',f'{metstruct}_phi',f'{metstruct}_phi_jer{variation}'],
+                    ['FatJet','pt',f'pt_jer{variation}','FatJet','mass',f'mass_jer{variation}','FatJet','msoftdrop',f'msoftdrop_jer{variation}','Jet','pt',f'pt_jer{variation}','Jet','mass',f'mass_jer{variation}'] ]
             signalUncertainties[f'AK8DDBvLM1{variation}']         = [[],['FatJet','bbtagSF_DDBvL_M1',f'bbtagSF_DDBvL_M1_{variation.lower()}']]
             signalUncertainties[f'AK4deepjetM{variation}']        = [[],['Jet','btagSF_deepjet_M',f'btagSF_deepjet_M_{variation.lower()}']]
             for source in ['jmr','jms']:
@@ -777,26 +837,28 @@ if __name__ == "__main__":
             for source in jesSources:
                 #signalUncertainties[f'AK8jes{source}{variation}'] = [[],['FatJet','pt','pt_jes{source}{variation}','FatJet','mass','mass_jes{source}{variation}','FatJet','msoftdrop','msoftdrop_jes{source}{variation}']]
                 #signalUncertainties[f'AK4jes{source}{variation}'] = [[],['Jet','pt','pt_jes{source}{variation}','Jet','mass','mass_jes{source}{variation}']]
-                signalUncertainties[f'jes{source}{variation}'] = [[],['FatJet','pt',f'pt_jes{source}{variation}','FatJet','mass',f'mass_jes{source}{variation}','FatJet','msoftdrop',f'msoftdrop_jes{source}{variation}','Jet','pt',f'pt_jes{source}{variation}','Jet','mass',f'mass_jes{source}{variation}']]
+                signalUncertainties[f'jes{source}{variation}'] = [
+                        [f'{metstruct}_pt',f'{metstruct}_pt_jes{source}{variation}',f'{metstruct}_phi',f'{metstruct}_phi_jes{source}{variation}'],
+                        ['FatJet','pt',f'pt_jes{source}{variation}','FatJet','mass',f'mass_jes{source}{variation}','FatJet','msoftdrop',f'msoftdrop_jes{source}{variation}','Jet','pt',f'pt_jes{source}{variation}','Jet','mass',f'mass_jes{source}{variation}']]
         uncertainties.update(signalUncertainties)
       for u in uncertainties.values():
-        u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_nom',
-            f'{metstruct}_phi',f'{metstruct}_phi_nom'
-            ]
+        if not f'{metstruct}_pt' in u[0]:
+            metBranch = 'jer' if is_mc else 'nom'
+            u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_{metBranch}', f'{metstruct}_phi',f'{metstruct}_phi_{metBranch}']
         if not 'Jet' in u[1]:
             u[1] += ['Jet','pt','pt_nom', 'Jet','mass','mass_nom']
         if 'msoftdrop' not in u[1]:
             u[1] += ['FatJet','msoftdrop','msoftdrop_nom']
-        if not (('FatJet' in u[1]) and ('pt' in u[1])):
-            u[1] += ['FatJet','pt','pt_nom',
-                'FatJet','mass','mass_nom'
-                ]
+        if not ('FatJet','pt') in zip(u[1][::3],u[1][1::3]):
+            u[1] += ['FatJet','pt','pt_nom', 'FatJet','mass','mass_nom']
       extraCorrections = {
           'no_PUPPI'         : ['PUPPI'],
           }
       arrays_objects += [f'FatJet_msoftdrop_corr_{e}' for e in sum(extraCorrections.values(),[])]
       #results = {u : Results() for u in uncertainties} 
       print(uncertainties)
+      #with open('unc_dump.json','w') as f: json.dump(uncertainties, f, indent=4)
+      #sys.exit()
       for p in results:
         results[p] = {u : Results() for u in uncertainties}
       ######### this block was for testing which corrections we should remove
@@ -872,7 +934,8 @@ if __name__ == "__main__":
           parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p] #
           for un,u in uncertainties.items():
           #### this is where the magic happens: run the main analysis
-            results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, uncertaintyName=os.path.join(p,un), extraCorrection=extraCorrections['no_PUPPI'])
+            #if not 'BBEC1' in un: continue
+            results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, uncertaintyName=un, parametersName=p, extraCorrection=extraCorrections['no_PUPPI'])
 
     #print(results)
 
