@@ -275,8 +275,10 @@ class NanoAODDataset(Dataset):
         rets = []
         for ifile in range(len(self.filenames)):
             data = {}
-            for structname in self.names_structs:
-                data[structname] = self.structs[structname][ifile]
+            #for structname in self.names_structs:
+            #    data[structname] = self.structs[structname][ifile]
+            for structname,struct in self.structs.items():
+                data[structname] = struct[ifile]
             data["num_events"] = self.structs[structname][ifile].numevents()
             data["eventvars"] = self.eventvars[ifile]
             ret = analyze_data(data, **kwargs)
