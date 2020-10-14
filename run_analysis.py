@@ -52,16 +52,15 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
                 }
         variation = 'Up' if uncertaintyName.endswith('Up') else 'Down'
         jesName = uncertaintyName.split('jes')[-1].split(variation)[0]
-        if not hasattr(jets,'pt_jes{jesName}{variation}'):
+        if not hasattr(jets,f'pt_jes{jesName}{variation}'):
             def sumInQuadrature(arr):
                 if len(arr)==1:
                     return arr
                 else:
-                    return NUMPY_LIB.sqrt(NUMPY_LIB.sum(NUMPY_LIB.square(arr), axis=0))
+                    return NUMPY_LIB.sqrt(NUMPY_LIB.sum(NUMPY_LIB.square(NUMPY_LIB.array(arr,dtype=NUMPY_LIB.float32)), axis=0))
 
             for struct in [fatjets,jets]:
                 for var in ['pt','mass']:
-                    ###FIXME: should the correction c be added or subtracted from the nom, and how does it work in Up/Down variations???
                     c = sumInQuadrature([getattr(struct,f'{var}_nom')-getattr(struct,f'{var}_jes{jesNameSplit}{variation}') for jesNameSplit in jesMerged[jesName]])
                     setattr(struct, f'{var}_jes{jesName}{variation}', getattr(struct, f'{var}_nom')+(c if variation=='Up' else -c) )
 
