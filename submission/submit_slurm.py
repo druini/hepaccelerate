@@ -5,6 +5,7 @@ import os
 import numpy as np
 
 parser = argparse.ArgumentParser(description='Runs a simple array-based analysis')
+parser.add_argument('-p','--python-script', help='python script to run', default='run_analysis.py')
 parser.add_argument('--datasets', help='directory with list of inputs', type=str, default='datasets')
 parser.add_argument('--samples', nargs='+', help='List of samples to process', type=str, default=None)
 parser.add_argument('--files-per-job', action='store', help='Number of files to process per job', type=int, default=5)
@@ -41,9 +42,9 @@ job_directory = os.path.join(os.getcwd(),'logs_submission',f'{ver}{args.year}_{t
 mkdir_p(job_directory)
 
 if args.samples is None: 
-  args.samples = [f'submission/allSamples_2018.txt']
+  args.samples = [f'submission/allSamples_{args.year}.txt']
 if len(args.samples)==1 and args.samples[0].endswith('.txt'):
-  samples = [l.strip() for l in open(args.samples[0]).readlines() if not l.startswith(('#','Single'))]
+  samples = [l.strip() for l in open(args.samples[0]).readlines() if not l.startswith(('#'))]
 else:
   samples = args.samples
 
@@ -85,7 +86,7 @@ for s in samples:
 
             #fh.write("mkdir /scratch/c/\n")
             fh.write(f'echo sample: {s}\n') 
-            fh.write(f"time PYTHONPATH=hepaccelerate:coffea:. python {os.getcwd()}/run_analysis.py ")
+            fh.write(f"time PYTHONPATH=hepaccelerate:coffea:. python {os.path.abspath(args.python_script)} ")
             fh.write("--categories ")
             fh.write(' '.join(map(str, categories)))
             if args.parameters is not None:
