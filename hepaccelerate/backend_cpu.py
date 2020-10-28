@@ -420,9 +420,9 @@ def mask_deltar_first_kernel(etas1, phis1, mask1, offsets1, etas2, phis2, mask2,
         b2 = offsets2[iev+1]
         if not (inds2 is None):
           masked = 0
-          for i in mask2[ a2:a2+inds2[iev] ]:
-            if not i:
-              masked += 1
+          for i in mask2[ a2:b2 ]:
+            if i: break
+            masked += 1
           a2 += inds2[iev] + masked
         
         for idx1 in range(a1, b1):
