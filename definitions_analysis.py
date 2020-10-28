@@ -67,7 +67,8 @@ eraDependentParameters = {
         #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/Final/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt",
         'lumimask': 'data/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt',
         "pu_corrections_file" : "data/PileupData_GoldenJSON_Full2016.root",
-        "btag_SF_btagDeepFlavB" : 'data/DeepJet_2016LegacySF_V1_TuneCP5.csv',
+        "btag_SF_btagDeepFlavB" : 'data/2016/DeepJet_2016LegacySF_WP_V1.csv',
+        'btag_MCeff_btagDeepFlavB' : 'data/2016/btagEfficiencyMaps/out_btagEfficiencyMaps_TTToSemiLeptonic_nominal_merged.json',
         "corrections" : [
             "el_triggerSF Ele27_WPTight_Gsf data/TriggerSF_Run2016All_v1.histo.root",
             "el_recoSF EGamma_SF2D data/2016/EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.histo.root", ###FIXME for low Et
@@ -94,6 +95,7 @@ eraDependentParameters = {
         "pu_corrections_file" : "data/pileup_Cert_294927-306462_13TeV_PromptReco_Collisions17_withVar.root",
         #"btag_SF_btagDeepFlavB" : "./data/sfs_deepjet_2017_19-11-11.btag.csv",
         "btag_SF_btagDeepFlavB" : 'data/DeepFlavour_2017_94XSF_V4_B_F.csv',
+        'btag_MCeff_btagDeepFlavB' : 'data/2017/btagEfficiencyMaps/out_btagEfficiencyMaps_TTToSemiLeptonic_nominal_merged.json',
         "corrections" : [
             "el_triggerSF SFs_ele_pt_ele_sceta_ele28_ht150_OR_ele35_2017BCDEF ./data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Data_MC_v5.0.histo.root",
             "el_recoSF EGamma_SF2D data/2017/egammaEffi_EGM2D_runBCDEF_passingRECO.histo.root", ###FIXME for low Et
@@ -119,6 +121,7 @@ eraDependentParameters = {
         #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/PromptReco/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt",
         "pu_corrections_file" : "data/PileupHistogram-goldenJSON-13tev-2018-100bins_withVar.root",
         "btag_SF_btagDeepFlavB" : 'data/DeepJet_2018_102XSF_V2.csv',
+        'btag_MCeff_btagDeepFlavB' : 'data/2018/btagEfficiencyMaps/out_btagEfficiencyMaps_TTToSemiLeptonic_nominal_merged.json',
         "corrections" : [
             "el_triggerSF ele28_ht150_OR_ele32_ele_pt_ele_sceta data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Legacy2018_v1.histo.root",
             "el_recoSF EGamma_SF2D data/2018/egammaEffi_EGM2D_updatedAll.histo.root",
@@ -164,11 +167,10 @@ samples_info = {
     "ttHTobb": {
             "process": "ttHTobb",
             "XS": 0.2953,
-            #"ngen_weight": 2410620.0644499995 #reduced file list
             "ngen_weight": {
-                '2016' : 5253482.85,
-                '2017' : 4216319.31,
-                '2018' : 4996147.01 #11231808.09,
+                '2016' : 137599339.09,
+                '2017' : 5233726.51,
+                '2018' : 49373327.28,
                 },
             },
     "THW": {
@@ -182,28 +184,44 @@ samples_info = {
     "ttHToNonbb": {
             "process": "ttHToNonbb",
             "XS": 0.2118,
-            #"ngen_weight": 913045.7391360003 #reduced file list
             "ngen_weight": {
-                '2016' : 5248991.57,
-                '2017' : 3095197.81,
-                '2018' : 3963935.78,
+                '2016' : 139812936.39,
+                '2017' : 5267339.71,
+                '2018' : 24811167.32,
                 },
             },
-
+    "TTbb_4f_TTToSemiLeptonic": {
+            ### just some dummy values
+            "XS": 1,
+            "ngen_weight": {
+                '2016' : 1,
+                '2017' : 1,
+                '2018' : 1,
+                },
+            },
     "TTToSemiLeptonic": {
             "XS": 365.4574,
             "ngen_weight": {
                 '2016' : 32366940321.33,
                 '2017' : 59457024911.66,
-                '2018' : 60050384119.23,
+                '2018' : 60108152131.41,
+                },
+            },
+    "TTbb_4f_TTTo2l2nu": {
+            ### just some dummy values
+            "XS": 1,
+            "ngen_weight": {
+                '2016' : 1,
+                '2017' : 1,
+                '2018' : 1,
                 },
             },
     "TTTo2L2Nu": {
             "XS": 88.3419,
             "ngen_weight": {
-                '2016' : 4784620999.11,
-                '2017' : 648729877.29,
-                '2018' : 4622080044.95,
+                '2016' : 26693503791.39,
+                '2017' : 38264937597.09,
+                '2018' : 57403100555.38,
                 },
             },
     "TTToHadronic": {
@@ -211,7 +229,16 @@ samples_info = {
             "ngen_weight": {
                 '2016' : 21500086465.24,
                 '2017' : 61932449366.28,
-                '2018' : 62639466237.,
+                '2018' : 62368407029.52,
+                },
+            },
+    "TTbb_4f_TTToHadronic": {
+            # just some dummy values
+            "XS": 1,
+            "ngen_weight": {
+                '2016' : 1,
+                '2017' : 1,
+                '2018' : 1,
                 },
             },
     "TTZToQQ": {
@@ -225,7 +252,6 @@ samples_info = {
     "ST_s-channel_4f_leptonDecays": {
       "process": "ST_s-channel",
       "XS": 3.36,#3.702224,
-      #"ngen_weight": 24856809.513425056 #reduced file list
             "ngen_weight": {
                 '2016' : 36768937.25,
                 '2017' : 37052021.59,
@@ -235,17 +261,15 @@ samples_info = {
     "ST_tW_antitop": {
       "process": "ST_tW_antitop",
       "XS": 35.85,
-      #"ngen_weight": 182291193.36093727 #reduced file list
             "ngen_weight": {
                 '2016' : 174109580.67,
                 '2017' : 279005351.85,
-                '2018' : 266470421.96,
+                '2018' : 263114694.74,
                 },
       },
     "ST_tW_top": {
       "process": "ST_tW_top",
       "XS": 35.85,
-      #"ngen_weight": 241590614.9098064 #reduced file list
             "ngen_weight": {
                 '2016' : 173908712.95,
                 '2017' : 272081073.53,
@@ -257,7 +281,7 @@ samples_info = {
       "XS": 80.95,
             "ngen_weight": {
                 '2016' : 17771478.65,
-                '2017' : 64689262.55,
+                '2017' : 64727641.64,
                 '2018' : 5125996535.38,
                 },
       },
@@ -274,7 +298,7 @@ samples_info = {
       "XS": 3.697,
             "ngen_weight": {
                 '2016' : 67622406.44,
-                '2017' : 62364926.69,
+                '2017' : 66911664.25,
                 '2018' : 33778755.65,
                 },
       },
@@ -377,7 +401,7 @@ samples_info = {
 	'QCD_HT500to700' : {
             'ngen_weight' : {
                 '2016' : 18560541.0,
-		'2017' : 55945526.0,
+		'2017' : 56041018.0,
 		'2018' : 55046821.83,
                 },
             'XS' : 29990.,               #### 2.999e+04 +- 2.871e+01 pb
@@ -440,7 +464,7 @@ samples_info = {
       },
 	'WJetsToQQ_HT400to600' : {
             "ngen_weight": {
-		'2017' : 9412603.0,
+		'2017' : 9708539.0,
 		'2018' : 10046074.61,
                 },
         'XS' : 314.6,       #### 3.146e+02 +- 2.797e-01 pb
