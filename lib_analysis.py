@@ -145,59 +145,30 @@ def compute_lepton_weights(leps, lepton_pt, lepton_eta, mask_rows, mask_content,
 
 
 # btagging scale factor 
-def compute_btag_weights(jets, mask_rows, mask_content, sf, btagalgorithm):
+def compute_btag_weights(jets, mask_rows, mask_content, sf, btagalgorithm, btagWP, systematic):
 
-    pJet_weight = NUMPY_LIB.ones(len(mask_content))
+    tagged    = mask_content & (getattr(jets, btagalgorithm)>btagWP)
+    nontagged = mask_content & (getattr(jets, btagalgorithm)<btagWP)
+    tag_weight    = NUMPY_LIB.ones_like(jets.pt)
+    nontag_weight = NUMPY_LIB.ones_like(jets.pt)
+    bjets = mask_content & (jets.hadronFlavour==5)
+    cjets = mask_content & (jets.hadronFlavour==4)
+    ljets = mask_content & (jets.hadronFlavour==0)
 
-    for tag in [0, 4, 5]:
-        SF_btag = sf.eval('central', tag, abs(jets.eta), jets.pt, getattr(jets, btagalgorithm), ignore_missing=True)
-        if tag == 5:
-            SF_btag[jets.hadronFlavour != 5] = 1.
-        elif tag == 4:
-            SF_btag[jets.hadronFlavour != 4] = 1.
-            SF_btag[jets.hadronFlavour == 4] = 1. #DIRTY FIX TO REMOVE WEIGHT CONTRIBUTIONS FROM C JETS! TO BE FIXED! ALSO WOULD BE WRONG FOR UNCERTAINTIES AS THEY ARE CALCULATED FOR C
-        elif tag == 0:
-            SF_btag[jets.hadronFlavour != 0] = 1.
+    tag_weight[bjets] = sf.eval(systematic, 5, abs(jets.eta[bjets]), jets.pt[bjets], ignore_missing=True)
+    #tag_weight[cjets] = sf.eval(systematic, 4, abs(jets.eta[cjets]), jets.pt[cjets], ignore_missing=True)
+    tag_weight[ljets] = sf.eval(systematic, 0, abs(jets.eta[ljets]), jets.pt[ljets], ignore_missing=True)
 
-        pJet_weight *= SF_btag
+    for flav in [bjets,ljets]:
+        nontag_weight[flav] = (1 - tag_weight[flav]*jets.btag_MCeff[flav]) / (1 - jets.btag_MCeff[flav])
 
-    per_event_weights = ha.multiply_in_offsets(jets, pJet_weight, mask_rows, mask_content)
+    evWeights_tagged    = ha.multiply_in_offsets(jets, tag_weight, mask_rows, tagged)
+    evWeights_nontagged = ha.multiply_in_offsets(jets, nontag_weight, mask_rows, nontagged)
+
+    per_event_weights = evWeights_tagged * evWeights_nontagged
     return per_event_weights
 
 ############################################# HIGH LEVEL VARIABLES (DNN evaluation, ...) ############################################
-
-def evaluate_DNN(jets, good_jets, electrons, good_electrons, muons, good_muons, scalars, mask_events, DNN, DNN_model):
-    
-        # make inputs (defined in backend (not extremely nice))
-        jets_feats = ha.make_jets_inputs(jets, jets.offsets, 10, ["pt","eta","phi","en","px","py","pz", "btagDeepB"], mask_events, good_jets)
-        met_feats = ha.make_met_inputs(scalars, nEvents, ["phi","pt","sumEt","px","py"], mask_events)
-        leps_feats = ha.make_leps_inputs(electrons, muons, nEvents, ["pt","eta","phi","en","px","py","pz"], mask_events, good_electrons, good_muons)
-
-        inputs = [jets_feats, leps_feats, met_feats]
-
-        if DNN.startswith("ffwd"):
-            inputs = [NUMPY_LIB.reshape(x, (x.shape[0], -1)) for x in inputs]
-            inputs = NUMPY_LIB.hstack(inputs)
-            # numpy transfer needed for keras
-            inputs = NUMPY_LIB.asnumpy(inputs)
-
-        if DNN.startswith("cmb"):
-            # numpy transfer needed for keras
-            if not isinstance(jets_feats, np.ndarray):
-                inputs = [NUMPY_LIB.asnumpy(x) for x in inputs]
-
-        # fix in case inputs are empty
-        if jets_feats.shape[0] == 0:
-            DNN_pred = NUMPY_LIB.zeros(nEvents, dtype=NUMPY_LIB.float32)
-        else:
-            # run prediction (done on GPU)
-            DNN_pred = DNN_model.predict(inputs, batch_size = 10000)
-            # in case of NUMPY_LIB is cupy: transfer numpy output back to cupy array for further computation
-            DNN_pred = NUMPY_LIB.array(DNN_model.predict(inputs, batch_size = 10000))
-            if DNN.endswith("binary"):
-                DNN_pred = NUMPY_LIB.reshape(DNN_pred, DNN_pred.shape[0])
-
-        return DNN_pred
 
 # calculate simple object variables
 def calculate_variable_features(z, mask_events, indices, var):
@@ -223,18 +194,18 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
-import keras.backend as K
-import keras.losses
-import keras.utils.generic_utils
-
-def mse0(y_true,y_pred):
-    return K.mean( K.square(y_true[:,0] - y_pred[:,0]) )
-
-def mae0(y_true,y_pred):
-    return K.mean( K.abs(y_true[:,0] - y_pred[:,0]) )
-
-def r2_score0(y_true,y_pred):
-    return 1. - K.sum( K.square(y_true[:,0] - y_pred[:,0]) ) / K.sum( K.square(y_true[:,0] - K.mean(y_true[:,0]) ) )
+#import keras.backend as K
+#import keras.losses
+#import keras.utils.generic_utils
+#
+#def mse0(y_true,y_pred):
+#    return K.mean( K.square(y_true[:,0] - y_pred[:,0]) )
+#
+#def mae0(y_true,y_pred):
+#    return K.mean( K.abs(y_true[:,0] - y_pred[:,0]) )
+#
+#def r2_score0(y_true,y_pred):
+#    return 1. - K.sum( K.square(y_true[:,0] - y_pred[:,0]) ) / K.sum( K.square(y_true[:,0] - K.mean(y_true[:,0]) ) )
 
 def select_lepton_p4(objs1, mask1, objs2, mask2, indices, mask_rows):
   selected_obj1 = {}
@@ -267,3 +238,27 @@ def hadronic_W(jets, jets_mask, lepWp4, mask_rows):
         for feat in ['pt','eta','phi','mass']:
           getattr(hadW, feat)[iev] = getattr(tmphadW, feat)
   return hadW
+
+def loadMCeff(jets, btag_MCeff_json, sysType):
+    with open(btag_MCeff_json) as f:
+        btag_MCeff = json.load(f)
+    for e in btag_MCeff:
+        btag_MCeff[e] = Histogram( *btag_MCeff[e].values() )
+        #btag_MCeff[e].contents[ NUMPY_LIB.isnan(btag_MCeff[e].contents) ] = 1
+        remove_inf_nan(btag_MCeff[e].contents)
+
+    jets_btag_MCeff = NUMPY_LIB.ones_like(jets.pt)
+    bjets = jets.hadronFlavour==5
+    #cjets = jets.hadronFlavour==4
+    ljets = jets.hadronFlavour==0
+    ptbins_flavb = btag_MCeff[f'eff_flavb_{sysType}'].edges
+    def idx(bins, pt):
+        ### based on https://github.com/CoffeaTeam/coffea/blob/master/coffea/lookup_tools/dense_mapped_lookup.py#L34
+        if len(bins)==2:
+            return NUMPY_LIB.zeros_like(pt, dtype=NUMPY_LIB.uint)
+        return NUMPY_LIB.clip(NUMPY_LIB.searchsorted(bins, pt, side='right')-1,0,len(bins)-2)
+    eff_flavb = btag_MCeff[f'eff_flavb_{sysType}']
+    eff_flavl = btag_MCeff[f'eff_flavl_{sysType}']
+    jets_btag_MCeff[bjets] = eff_flavb.contents[ idx(eff_flavb.edges, jets.pt[bjets]) ]
+    jets_btag_MCeff[ljets] = eff_flavl.contents[ idx(eff_flavl.edges, jets.pt[ljets]) ]
+    return jets_btag_MCeff
