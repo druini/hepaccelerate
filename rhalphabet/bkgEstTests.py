@@ -584,8 +584,8 @@ if __name__ == "__main__":
         options.toys = 50
 
         for _ in range(splits):
-          options.seed -= 1 #run each batch of toys with a different seed
-          try:
+#          options.seed -= 1 #run each batch of toys with a different seed
+#          try:
             if options.method=='GoodnessOfFit':
               goodness(options.datacard, options.toys, iLabel, options)
 
@@ -595,27 +595,27 @@ if __name__ == "__main__":
             elif options.method=='FTest':
               ftest(options.datacard, options.datacardAlt, options.toys, iLabel, options)
 
-          elif options.method=='Bias':
-            iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.rho1, options.pt1, options.pdf2, options.rho2, options.pt2,
+            elif options.method=='Bias':
+              iLabel= 'bias_%s%i%i_vs_%s%i%i_%s%i'%(options.pdf1, options.rho1, options.pt1, options.pdf2, options.rho2, options.pt2,
                                                   options.poi, options.r)
-            bias(options.datacard, options.datacardAlt, options.toys, options.r, iLabel, options)
-            to_hadd = ['biastoys_%s'%iLabel]
+              bias(options.datacard, options.datacardAlt, options.toys, options.r, iLabel, options)
+              to_hadd = ['biastoys_%s'%iLabel]
 
-          #options.seed += 1 #run each set of 100 toys with a different seed
-          random.seed(options.seed)
-          options.seed = random.randint(0,100000)
+#            #options.seed += 1 #run each set of 100 toys with a different seed
+            random.seed(options.seed)
+            options.seed = random.randint(0,100000)
 
         for fh in to_hadd:
-            cmd = 'hadd -f {odir}/{fh}_merged.root {fh}*root'.format(odir=options.odir, fh=fh)
-            exec_me(cmd,options.dryRun)
+          cmd = 'hadd -f {odir}/{fh}_merged.root {fh}*root'.format(odir=options.odir, fh=fh)
+          exec_me(cmd,options.dryRun)
 
         options.justPlot = True
-    options.seed     = 'merged'
+        options.seed     = 'merged'
 
-    for fh in to_hadd:
-        if os.path.isfile('{odir}/{fh}_merged.root'.format(odir=options.odir, fh=fh)): os.system('rm {odir}/{fh}_merged.root'.format(odir=options.odir, fh=fh))
-        cmd = 'hadd {odir}/{fh}_merged.root {odir}/{fh}*root'.format(odir=options.odir, fh=fh)
-        exec_me(cmd,options.dryRun)
+        for fh in to_hadd:
+          if os.path.isfile('{odir}/{fh}_merged.root'.format(odir=options.odir, fh=fh)): os.system('rm {odir}/{fh}_merged.root'.format(odir=options.odir, fh=fh))
+          cmd = 'hadd {odir}/{fh}_merged.root {odir}/{fh}*root'.format(odir=options.odir, fh=fh)
+          exec_me(cmd,options.dryRun)
 
     if options.method=='GoodnessOfFit':
         goodness(options.datacard, options.toys, iLabel, options)
