@@ -39,12 +39,10 @@ def load_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, 
 def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_idx, region, rebin_factor, obs):
   #filepath = '/afs/cern.ch/work/d/druini/public/hepaccelerate/results/2018/v05/'+ver+'/out_'+sample+'_merged.json'
   if sample.startswith('back'):
-      #if args.year.startswith('2016'): tmpName = '_noQCD_noDY'
-      if args.year.startswith('2017'): tmpName = '_merged'
-      elif args.year.startswith('2018'): tmpName = '_noDY_merged'
-      else: tmpName = '_noQCD_noDY_merged'
-  else: tmpName = ''
-  filepath = os.path.join(indir, 'out_'+sample+tmpName+'.json')
+      if args.year.startswith(('2016', 'allyears')): sample = sample.replace('_nominal', '_noQCD_noDY_nominal')
+      elif args.year.startswith('2018'): sample = sample.replace('_nominal', '_noDY_nominal')
+      else: sample = sample
+  filepath = os.path.join(indir, 'out_'+sample+'.json')
   if ptStop==2000: ptStop = 5000
   with open(filepath) as json_file:
     data = json.load(json_file)
@@ -180,7 +178,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         #tf_MCtempl_params_final = tf_MCtempl(ptscaled, rhoscaled)
 
     #### Actual transfer function for combine
-    polyLimit = max(prefit_bkgparerror)*5 if args.runPrefit else args.poly_limit
+    polyLimit = max(prefit_bkgparerror)*10 if args.runPrefit else args.poly_limit
     #polyLimit = args.poly_limit
     tf_dataResidual = rl.BernsteinPoly("tf_dataResidual", (polyDegPt, polyDegRho), ['pt', 'rho'], limits=(-polyLimit, polyLimit), coefficient_transform=(np.exp if runExp else None), init_params=(prefit_bkgpar.reshape(polyDegPt+1, polyDegRho+1) if args.runPrefit else None))
     tf_dataResidual_params = tf_dataResidual(ptscaled, rhoscaled)
@@ -198,7 +196,15 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
             model.addChannel(ch)
 
             templates = {
-                'signal'     : loadTH1_from_json(indir, 'signal_merged', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd),
+                'signal'     : loadTH1_from_json(indir, 'signal_msd_nom_merged', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd),
+                'CMS_ttHbb_jerDown'     : loadTH1_from_json(indir, 'signal_jerDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jerUp'     : loadTH1_from_json(indir, 'signal_jerUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jmrDown'     : loadTH1_from_json(indir, 'signal_jmrDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jmrUp'     : loadTH1_from_json(indir, 'signal_jmrUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jmsDown'     : loadTH1_from_json(indir, 'signal_jmsDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jmsUp'     : loadTH1_from_json(indir, 'signal_jmsUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_PUDown'     : loadTH1_from_json(indir, 'signal_puWeightDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_PUUp'     : loadTH1_from_json(indir, 'signal_puWeightUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
                 'background' : loadTH1_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd),
             }
             # some mock expectations
@@ -214,7 +220,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
 #            # for jec we set lnN prior, shape will automatically be converted to norm systematic
             #sample.setParamEffect(jec, jecup_ratio)
             #sample.setParamEffect(massScale, msdUp, msdDn)
-            sample.setParamEffect(lumi, 1.027)      ### for bias/ftest/GOF signal needs at least one unc.
+            #sample.setParamEffect(lumi, 1.027)      ### for bias/ftest/GOF signal needs at least one unc.
 
             ch.addSample(sample)
 
@@ -290,8 +296,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         print(prefit_bkgpar)
         print(prefit_bkgparerror)
 
-def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isData=True,runExp=False):
-    dataOrBkg = 'data_merged' if isData else 'background'
+def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncList,isData=True,runExp=False):
+    dataOrBkg = 'data' if isData else 'background'
 
     msdbins = np.linspace(0,300,301)[::rebin_factor]
     msd_start_idx = np.where(msdbins==msd_start)[0][0]
@@ -300,31 +306,26 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
     msd = rl.Observable('msd', msdbins)
 
     templates = {
-#        'ttH'     : loadTH1_from_json(indir, 'signal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'ttH'     : loadTH1_from_json(indir, 'ttHTobb_msd_nom', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'CMS_ttHbb_jerDown'     : loadTH1_from_json(indir, 'ttHTobb_jerDown', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'CMS_ttHbb_jerUp'     : loadTH1_from_json(indir, 'ttHTobb_jerUp', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'CMS_ttHbb_jmrDown'     : loadTH1_from_json(indir, 'ttHTobb_jmrDown', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'CMS_ttHbb_jmrUp'     : loadTH1_from_json(indir, 'ttHTobb_jmrUp', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'CMS_ttHbb_jmsDown'     : loadTH1_from_json(indir, 'ttHTobb_jmsDown', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'CMS_ttHbb_jmsUp'     : loadTH1_from_json(indir, 'ttHTobb_jmsUp', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'CMS_ttHbb_PUDown'     : loadTH1_from_json(indir, 'ttHTobb_puWeightDown', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'CMS_ttHbb_PUUp'     : loadTH1_from_json(indir, 'ttHTobb_puWeightUp', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'background' : loadTH1_from_json(indir, dataOrBkg, ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor,  msd),
+        'ttH'     : loadTH1_from_json(indir+'/nominal/', 'signal_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+        'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor,  msd),
     }
+    for unc in uncList:
+        for UpDown in [ 'Up', 'Down' ]:
+            print(unc+UpDown)
+            if args.year.startswith('allyears') and unc.endswith(('2016','2017','2018')): tmpdir = indir.replace('allyears', unc.split('_')[1])
+            else: tmpdir = indir
+            templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', 'signal_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
+    print(templates)
+
     if not isData and args.sig_and_bkg: templates['background'].Add( templates['ttH'] )
 
     msd = ROOT.RooRealVar('msd', 'msd', 125., msd_start, msd_stop)
     data_obs = ROOT.RooDataHist('data_obs', 'data_obs', ROOT.RooArgList(msd), templates['background'] )
-    ttH = ROOT.RooDataHist('ttH_4', 'ttH_4', ROOT.RooArgList(msd), templates['ttH'] )
-    CMS_ttHbb_jerUp = ROOT.RooDataHist('ttH_4_CMS_ttHbb_jerUp', 'ttH_4_CMS_ttHbb_jerUp', ROOT.RooArgList(msd), templates['CMS_ttHbb_jerUp'] )
-    CMS_ttHbb_jerDown = ROOT.RooDataHist('ttH_4_CMS_ttHbb_jerDown', 'ttH_4_CMS_ttHbb_jerDown', ROOT.RooArgList(msd), templates['CMS_ttHbb_jerDown'] )
-    CMS_ttHbb_jmrUp = ROOT.RooDataHist('ttH_4_CMS_ttHbb_jmrUp', 'ttH_4_CMS_ttHbb_jmrUp', ROOT.RooArgList(msd), templates['CMS_ttHbb_jmrUp'] )
-    CMS_ttHbb_jmrDown = ROOT.RooDataHist('ttH_4_CMS_ttHbb_jmrDown', 'ttH_4_CMS_ttHbb_jmrDown', ROOT.RooArgList(msd), templates['CMS_ttHbb_jmrDown'] )
-    CMS_ttHbb_jmsUp = ROOT.RooDataHist('ttH_4_CMS_ttHbb_jmsUp', 'ttH_4_CMS_ttHbb_jmsUp', ROOT.RooArgList(msd), templates['CMS_ttHbb_jmsUp'] )
-    CMS_ttHbb_jmsDown = ROOT.RooDataHist('ttH_4_CMS_ttHbb_jmsDown', 'ttH_4_CMS_ttHbb_jmsDown', ROOT.RooArgList(msd), templates['CMS_ttHbb_jmsDown'] )
-    CMS_ttHbb_PUUp = ROOT.RooDataHist('ttH_4_CMS_ttHbb_PUUp', 'ttH_4_CMS_ttHbb_PUUp', ROOT.RooArgList(msd), templates['CMS_ttHbb_PUUp'] )
-    CMS_ttHbb_PUDown = ROOT.RooDataHist('ttH_4_CMS_ttHbb_PUDown', 'ttH_4_CMS_ttHbb_PUDown', ROOT.RooArgList(msd), templates['CMS_ttHbb_PUDown'] )
+    ttH = ROOT.RooDataHist('TTH_PTH_GT300', 'TTH_PTH_GT300', ROOT.RooArgList(msd), templates['ttH'] )
+    uncDataHists = {}
+    for iuncName, iunc  in templates.iteritems():
+        if not iuncName.startswith(('ttH', 'data', 'background')):
+            uncDataHists[iuncName] = ROOT.RooDataHist('TTH_PTH_GT300_'+iuncName, 'TTH_PTH_GT300_'+iuncName, ROOT.RooArgList(msd), iunc )
 
     polyArgList = ROOT.RooArgList( )
     ###polyArgList.add(msd)
@@ -368,17 +369,17 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
     prefit_bkgpar = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getVal() for i in range(polyDegPt) ]
     prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getError() for i in range(polyDegPt) ]
 
-#    mean = ROOT.RooRealVar("mean","Mean of Gaussian",110,140)
-#    sigma = ROOT.RooRealVar("sigma","Width of Gaussian",1,-30,30)
-#    gauss = ROOT.RooGaussian("gauss","gauss(msd,mean,sigma)",msd,mean,sigma)
-#    sigfit = gauss.fitTo(ttH,
-#                          #ROOT.RooFit.Extended(True),
-#                          ROOT.RooFit.SumW2Error(True),
-#                          ROOT.RooFit.Strategy(2),
-#                          ROOT.RooFit.Save(),
-#                          ROOT.RooFit.Minimizer('Minuit2', 'Migrad'),
-#                          ROOT.RooFit.PrintLevel(3),
-#                          )
+    mean = ROOT.RooRealVar("mean","Mean of Gaussian",110,140)
+    sigma = ROOT.RooRealVar("sigma","Width of Gaussian",1,-30,30)
+    gauss = ROOT.RooGaussian("gauss","gauss(msd,mean,sigma)",msd,mean,sigma)
+    sigfit = gauss.fitTo(ttH,
+                          #ROOT.RooFit.Extended(True),
+                          ROOT.RooFit.SumW2Error(True),
+                          ROOT.RooFit.Strategy(2),
+                          ROOT.RooFit.Save(),
+                          ROOT.RooFit.Minimizer('Minuit2', 'Migrad'),
+                          ROOT.RooFit.PrintLevel(3),
+                          )
 
 
     pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
@@ -402,32 +403,26 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
         c1.SaveAs( combineFolder+'/test_simpleFit_rootfit.png')
         del c1
 
-        ##### simple plot of fit
-#        c1 = ROOT.TCanvas('c1', 'c1',  10, 10, 750, 500 )
-#        #c1.SetLogy()
-#        xframe = msd.frame()
-#        ttH.plotOn( xframe )
-#        xframe.Draw()
-#        xframe.GetXaxis().SetTitle("Leading Jet Mass [GeV]")
-#        gauss.plotOn( xframe )
-#        gauss.paramOn( xframe, ROOT.RooFit.Layout(0.6,0.9,0.94))
-#        xframe.Draw()
-#        #xframe.SetMaximum(100000)
-#        #xframe.SetMinimum(0.00001)
-#        c1.SaveAs( combineFolder+'/test_simpleFit_signal_rootfit.png')
-#        del c1
+    ##### simple plot of fit
+    c1 = ROOT.TCanvas('c1', 'c1',  10, 10, 750, 500 )
+    #c1.SetLogy()
+    xframe = msd.frame()
+    ttH.plotOn( xframe )
+    xframe.Draw()
+    xframe.GetXaxis().SetTitle("Leading Jet Mass [GeV]")
+    gauss.plotOn( xframe )
+    gauss.paramOn( xframe, ROOT.RooFit.Layout(0.6,0.9,0.94))
+    xframe.Draw()
+    #xframe.SetMaximum(100000)
+    #xframe.SetMinimum(0.00001)
+    c1.SaveAs( combineFolder+'/test_simpleFit_signal_rootfit.png')
+    del c1
 
     ws = ROOT.RooWorkspace('ws')
     getattr(ws, 'import')( data_obs )
     getattr(ws, 'import')( ttH )
-    getattr(ws, 'import')( CMS_ttHbb_jerUp )
-    getattr(ws, 'import')( CMS_ttHbb_jerDown )
-    getattr(ws, 'import')( CMS_ttHbb_jmrUp )
-    getattr(ws, 'import')( CMS_ttHbb_jmrDown )
-    getattr(ws, 'import')( CMS_ttHbb_jmsUp )
-    getattr(ws, 'import')( CMS_ttHbb_jmsDown )
-    getattr(ws, 'import')( CMS_ttHbb_PUUp )
-    getattr(ws, 'import')( CMS_ttHbb_PUDown )
+    for ih in uncDataHists:
+        getattr(ws, 'import')( uncDataHists[ih] )
     getattr(ws, 'import')( rooDict['bkgFunc'] )
     #getattr(ws, 'import')( rooDict['bkg_norm'] )
     ws.writeToFile( combineFolder+'/ws_ttHbb.root' )
@@ -446,16 +441,16 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
     datacard.write("observation   -1\n")
     datacard.write("-------------------------------\n")
     datacard.write("bin           boosted_ttH      boosted_ttH\n")
-    datacard.write("process       boosted_bkg       ttH_4\n")
+    datacard.write("process       boosted_bkg       TTH_PTH_GT300\n")
     datacard.write("process       1         0\n")
     #datacard.write('rate          1         -1\n')
     datacard.write('rate          '+str(round(templates['background'].Integral(),2))+'         '+str(round(templates['ttH'].Integral(),2))+'\n')
     datacard.write("-------------------------------\n")
     datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
-    datacard.write("CMS_ttHbb_jer     shape   -        1\n")
-    datacard.write("CMS_ttHbb_jmr     shape   -        1\n")
-    datacard.write("CMS_ttHbb_jms     shape   -        1\n")
-    datacard.write("CMS_ttHbb_PU      shape   -        1\n")
+    for iunc in uncList: datacard.write("CMS_ttHbb_"+iunc+"     shape   -        1\n")
+#    datacard.write("CMS_ttHbb_jmr     shape   -        1\n")
+#    datacard.write("CMS_ttHbb_jms     shape   -        1\n")
+#    datacard.write("CMS_ttHbb_PU      shape   -        1\n")
     for q in range( int(polyDegPt) ):
 #        datacard.write('boosted_bkg_paramX'+str(q)+"    flatParam\n")
         datacard.write('boosted_bkg_paramX'+str(q)+"    param    "+str(prefit_bkgpar[q])+"     "+str(prefit_bkgparerror[q])+"\n")
@@ -463,7 +458,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,isDa
 
     combineCmd = 'combine -M FitDiagnostics %s -n %s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(datacardLabel,combineLabel,args.rMin,args.rMax)
     #if not isData: combineCmd += '--plot '
-    combineCmd += ' --plot '
+    combineCmd += ' --plot'
     exec_me(combineCmd, folder=combineFolder)
 
     if args.runImpacts:
@@ -536,6 +531,14 @@ if __name__ == '__main__':
   polyDegPt    = args.polyDegPt
   polyDegRho   = args.polyDegRho
   rebin_factor = args.rebin_factor
+  uncList = [ 'AK4deepjetM', 'AK8DDBvLM1', 'jer', 'jesAbsolute', 'jesAbsolute_'+args.year, 'jesBBEC1', 'jesBBEC1_'+args.year, 'jesEC2', 'jesEC2_'+args.year, 'jesFlavorQCD', 'jesHF', 'jesRelativeBal', 'jesRelativeSample_'+args.year, 'jmr', 'jms', 'pdfWeight', 'psWeight_FSR', 'psWeight_ISR', 'puWeight'  ]
+  for iunc in uncList:
+      if iunc.endswith('allyears'):
+          j = uncList.index(iunc)
+          del uncList[j]
+          tmp = iunc.split("_")[0]
+          uncList+=[ tmp+'_2016', tmp+'_2017', tmp+'_2018' ]
+  print(uncList)
 
   for sel in args.selection:
     indir = os.path.join(args.jsonpath, args.year, args.version, sel)
@@ -549,7 +552,7 @@ if __name__ == '__main__':
 
     if args.simpleFit:
         ptbins = np.array([300,2000])
-        simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,args.isData,runExp=args.runExp)
+        simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncList,args.isData,runExp=args.runExp)
     else:
         if not (args.scanMassRange or args.scanPolyDeg):
           test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,args.isData,runExp=args.runExp)
