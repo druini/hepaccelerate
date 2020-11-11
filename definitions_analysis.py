@@ -81,12 +81,12 @@ eraDependentParameters = {
         "btagging_WP"         : 0.3093,
         "bbtagging_algorithm" : "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
         "bbtagging_WP"        : 0.86,
-        'bbtagSF_DDBvL_M1_loPt'      : 0.86,
-        'bbtagSF_DDBvL_M1_loPt_up'   : 0.97,
-        'bbtagSF_DDBvL_M1_loPt_down' : 0.82,
-        'bbtagSF_DDBvL_M1_hiPt'      : 0.86,
-        'bbtagSF_DDBvL_M1_hiPt_up'   : 0.97,
-        'bbtagSF_DDBvL_M1_hiPt_down' : 0.82,
+        'bbtagSF_DDBvL_M1_loPt'      : 1.0,#0.86,
+        'bbtagSF_DDBvL_M1_loPt_up'   : 1.2,#0.97,
+        'bbtagSF_DDBvL_M1_loPt_down' : 0.8,#0.82,
+        'bbtagSF_DDBvL_M1_hiPt'      : 1.0,#0.86,
+        'bbtagSF_DDBvL_M1_hiPt_up'   : 1.2,#0.97,
+        'bbtagSF_DDBvL_M1_hiPt_down' : 0.8,#0.82,
     },
     "2017" : {
         "lumi":  41529.0,
@@ -106,14 +106,14 @@ eraDependentParameters = {
         ],
         "btagging_algorithm"  : "btagDeepFlavB",#"btagDeepB",
         "btagging_WP"         : 0.3033, # 0.4941, # medium working point for btagDeepB
-        "bbtagging_algorithm" :  "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
-        "bbtagging_WP"        : 0.86,## https://indico.cern.ch/event/853828/contributions/3723593/attachments/1977626/3292045/lg-btv-deepak8v2-sf-20200127.pdf
-        'bbtagSF_DDBvL_M1_loPt'      : 0.82,
-        'bbtagSF_DDBvL_M1_loPt_up'   : 0.86,
-        'bbtagSF_DDBvL_M1_loPt_down' : 0.77,
-        'bbtagSF_DDBvL_M1_hiPt'      : 0.77,
-        'bbtagSF_DDBvL_M1_hiPt_up'   : 0.83,
-        'bbtagSF_DDBvL_M1_hiPt_down' : 0.67,
+        "bbtagging_algorithm" : "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
+        "bbtagging_WP"        : 0.86,## DeepAK8 WP: https://indico.cern.ch/event/853828/contributions/3723593/attachments/1977626/3292045/lg-btv-deepak8v2-sf-20200127.pdf
+        'bbtagSF_DDBvL_M1_loPt'      : 1.0,#0.82,
+        'bbtagSF_DDBvL_M1_loPt_up'   : 1.2,#0.86,
+        'bbtagSF_DDBvL_M1_loPt_down' : 0.8,#0.77,
+        'bbtagSF_DDBvL_M1_hiPt'      : 1.0,#0.77,
+        'bbtagSF_DDBvL_M1_hiPt_up'   : 1.2,#0.83,
+        'bbtagSF_DDBvL_M1_hiPt_down' : 0.8,#0.67,
     },
     "2018" : {
         "lumi":  58830.0,
@@ -132,14 +132,14 @@ eraDependentParameters = {
         ],
         "btagging_algorithm"  : "btagDeepFlavB",#"btagDeepB",
         "btagging_WP"         : 0.2770, # medium working point for btagDeepB
-        "bbtagging_algorithm" :  "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
+        "bbtagging_algorithm" : "btagDDBvL",#"deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
         "bbtagging_WP"        : 0.86,
-        'bbtagSF_DDBvL_M1_loPt'      : 0.81,
-        'bbtagSF_DDBvL_M1_loPt_up'   : 0.88,
-        'bbtagSF_DDBvL_M1_loPt_down' : 0.76,
-        'bbtagSF_DDBvL_M1_hiPt'      : 0.76,
-        'bbtagSF_DDBvL_M1_hiPt_up'   : 0.82,
-        'bbtagSF_DDBvL_M1_hiPt_down' : 0.71,
+        'bbtagSF_DDBvL_M1_loPt'      : 1.0,#0.81,
+        'bbtagSF_DDBvL_M1_loPt_up'   : 1.2,#0.88,
+        'bbtagSF_DDBvL_M1_loPt_down' : 0.8,#0.76,
+        'bbtagSF_DDBvL_M1_hiPt'      : 1.0,#0.76,
+        'bbtagSF_DDBvL_M1_hiPt_up'   : 1.2,#0.82,
+        'bbtagSF_DDBvL_M1_hiPt_down' : 0.8,#0.71,
     },
 
 }
@@ -168,9 +168,9 @@ samples_info = {
             "process": "ttHTobb",
             "XS": 0.2953,
             "ngen_weight": {
-                '2016' : 137599339.09,
+                '2016' : 5186872.85,
                 '2017' : 5233726.51,
-                '2018' : 49373327.28,
+                '2018' : 6235661.08,
                 },
             },
     "THW": {
@@ -178,16 +178,16 @@ samples_info = {
             "ngen_weight": {
                 '2016' : 4989133.86,
                 '2017' : 4714331.00,
-                '2018' : 14971606.14,
+                '2018' : 14448497.24,
                 },
       },
     "ttHToNonbb": {
             "process": "ttHToNonbb",
             "XS": 0.2118,
             "ngen_weight": {
-                '2016' : 139812936.39,
+                '2016' : 5248991.57,
                 '2017' : 5267339.71,
-                '2018' : 24811167.32,
+                '2018' : 3963935.79,
                 },
             },
     "TTbb_4f_TTToSemiLeptonic": {
@@ -203,7 +203,7 @@ samples_info = {
             "XS": 365.4574,
             "ngen_weight": {
                 '2016' : 32366940321.33,
-                '2017' : 59457024911.66,
+                '2017' : 59439865531.83,
                 '2018' : 60108152131.41,
                 },
             },
@@ -219,16 +219,16 @@ samples_info = {
     "TTTo2L2Nu": {
             "XS": 88.3419,
             "ngen_weight": {
-                '2016' : 26693503791.39,
-                '2017' : 38264937597.09,
-                '2018' : 57403100555.38,
+                '2016' : 4891620336.1,
+                '2017' : 648729877.3,
+                '2018' : 4526213949.6,
                 },
             },
     "TTToHadronic": {
             "XS": 377.9607,
             "ngen_weight": {
-                '2016' : 21500086465.24,
-                '2017' : 61932449366.28,
+                '2016' : 21432310862.9,
+                '2017' : 61673248521.92,
                 '2018' : 62368407029.52,
                 },
             },
@@ -246,7 +246,7 @@ samples_info = {
             "ngen_weight": {
                 '2016' : 396340.93,
                 '2017' : 4564905.23,
-                '2018' : 4534202.12,
+                '2018' : 4498969.45,
                 },
       },
     "ST_s-channel_4f_leptonDecays": {
@@ -263,7 +263,7 @@ samples_info = {
       "XS": 35.85,
             "ngen_weight": {
                 '2016' : 174109580.67,
-                '2017' : 279005351.85,
+                '2017' : 211329186.33,
                 '2018' : 263114694.74,
                 },
       },
@@ -330,7 +330,7 @@ samples_info = {
       "XS": 57.91,
             "ngen_weight": {
                 '2016' : 1963464.0,
-                '2017' : 14250114.0,
+                '2017' : 12244719.0,
                 '2018' : 5913597.774,
                 },
       },
@@ -338,8 +338,8 @@ samples_info = {
       "XS": 12.93,
             "ngen_weight": {
                 '2016' : 3779141.0,
-                '2017' : 21582309.0,
-                '2018' : 19690762.31,
+                '2017' : 13632689.0,
+                '2018' : 18280974.9,
                 },
       },
     "WJetsToLNu_HT-800To1200": {
@@ -370,14 +370,14 @@ samples_info = {
             'ngen_weight' : {
                 '2016' : 502198.8,
                 '2017' : 1838397.29,
-                '2018' : 3226764.90,
+                '2018' : 2911005.08,
                 },
         'XS' : .2432,       #### 2.432e-01 +- 3.054e-04 pb
     },
 	'TTWJetsToLNu' : {
             'ngen_weight' : {
 		'2016' : 731877.67,
-		'2017' : 1654929.98,
+		'2017' : 1335445.4,
 		'2018' : 1690091.78,
                 },
             'XS' : 0.2181,           #### 2.181e-01 +- 3.838e-04 pb
@@ -385,7 +385,7 @@ samples_info = {
 	'DYJetsToLL' : {
             'ngen_weight' : {
 		'2016' : 1897141621849.11,
-		'2017' : 3251533677930.31,
+		'2017' : 3216821043684.1,
 		'2018' : 17799598587.56,
                 },
             'XS' : 6549.,               #### 6.549e+03 +- 1.334e+01 pb
@@ -409,7 +409,7 @@ samples_info = {
 	'QCD_HT700to1000' : {
             'ngen_weight' : {
                 '2016' : 15629253.0,
-		'2017' : 47424646.0,
+		'2017' : 47405120.0,
 		'2018' : 48028221.62,
                 },
             'XS' : 6351.,                   #### 6.351e+03 +- 6.107e+00 pb
@@ -465,7 +465,7 @@ samples_info = {
 	'WJetsToQQ_HT400to600' : {
             "ngen_weight": {
 		'2017' : 9708539.0,
-		'2018' : 10046074.61,
+		'2018' : 9620454.25,
                 },
         'XS' : 314.6,       #### 3.146e+02 +- 2.797e-01 pb
 	},
@@ -479,13 +479,13 @@ samples_info = {
 	'WJetsToQQ_HT-800toInf' : {
             "ngen_weight": {
 		'2017' : 8028207.0,
-		'2018' : 14552824.37,
+		'2018' : 14476833.8,
                 },
         'XS' : 34.78,
 	},
 	'ZJetsToQQ_HT400to600' : {
             "ngen_weight": {
-		'2017' : 10285185.0,
+		'2017' : 10227695.0,
 		'2018' : 16669536.82,
                 },
         'XS' : 146.1,           #### 1.461e+02 +- 1.380e-01 pb
