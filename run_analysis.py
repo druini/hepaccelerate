@@ -20,7 +20,18 @@ from lib_analysis import *
 from pdb import set_trace
 import sys
 
-samplesMergeJes = ('ttH','TTbb','TTTo2L2Nu')
+samplesMergeJes = {
+        ### these samples already contain the merged jes uncertainties
+        '2016' : ('ttH','TTbb','TTTo2L2Nu'),
+        '2017' : ('ttH','TTbb','TTTo2L2Nu','ST','TTToHad','TTToSemi','WJets','WW','WZ','ZZ','ZJets','TTbb_4f_TTTo2','TTbb_4f_TTToSemi'),
+        '2018' : ('ttH','TTbb','TTTo2L2Nu','TTToSemiLeptonic'),
+        }
+samplesMetT1    = {
+        ### in a new version of the jetmetHelper the corrected met branches changed name. This dict is to keep track of which samples have the new names, and which the old ones, see https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD#JME_jetmet_HelperRun2
+        '2016' : ('ttH','TTbb','TTTo2L2Nu'),
+        '2017' : ('ttH','TTbb','TTTo2L2Nu','ST','TTToHad','TTToSemi','WJets','WW','WZ','ZZ','ZJets','TTbb_4f_TTTo2','TTbb_4f_TTToSemi'),
+        '2018' : ('ttH','TTbb','TTTo2L2Nu','TTToSemiLeptonic'),
+        }
 
 #This function will be called for every file in the dataset
 def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None, uncertaintyName=None, parametersName=None, extraCorrection=None):
@@ -43,7 +54,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     else:
       metstruct = 'MET'
 
-    if is_mc and uncertaintyName.startswith('jes') and not sample.startswith(samplesMergeJes):
+    if is_mc and uncertaintyName.startswith('jes') and not sample.startswith(samplesMergeJes[args.year]):
         jesMerged = {
                 'Absolute'                    : ['AbsoluteMPFBias','AbsoluteScale','Fragmentation','PileUpDataMC','PileUpPtRef','RelativeFSR','SinglePionECAL','SinglePionHCAL'],
                 f'Absolute_{args.year}'       : ['AbsoluteStat','RelativeStatFSR','TimePtEta'],
@@ -163,10 +174,11 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     elif args.year.startswith('2017'):
         #trigger = (scalars["HLT_Ele35_WPTight_Gsf"] | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"] | scalars["HLT_IsoMu27"] | scalars["HLT_IsoMu24_eta2p1"]) #FIXME for different runs
         if sample.endswith(('2017B','2017C')):
-            trigger_tmp = NUMPY_LIB.zeros_like(scalars["HLT_Ele32_WPTight_Gsf_L1DoubleEG"])
-            for t in [scalars[f'L1_SingleEG{n}er2p5'] for n in (10,15,26,34,36,38,40,42,45,8)]:
-                trigger_tmp |= t
-            trigger_tmp &= scalars['HLT_Ele32_WPTight_Gsf_L1DoubleEG']
+            trigger_tmp = NUMPY_LIB.zeros_like(trigger_el)
+            if sample.startswith('SingleElectron'):
+                for L1 in L1seeds:
+                    trigger_tmp |= scalars[L1]
+                trigger_tmp &= scalars['HLT_Ele32_WPTight_Gsf_L1DoubleEG']
         else:
             trigger_tmp = scalars["HLT_Ele32_WPTight_Gsf"]
         trigger_el &= (trigger_tmp | scalars["HLT_Ele28_eta2p1_WPTight_Gsf_HT150"])
@@ -258,6 +270,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         elif uncertaintyName=='AK4deepjetMDown':
             btag_sysType = 'down'
         weights['btag'] = compute_btag_weights(jets, mask_events, good_jets_nohiggs, parameters["btag_SF_target"], parameters["btagging_algorithm"], parameters['btagging_WP'], btag_sysType)
+        weights['btag'][ NUMPY_LIB.isinf(weights['btag']) | NUMPY_LIB.isnan(weights['btag']) ] = 1.
         weights["nominal"] = weights["nominal"] * weights['btag']
 
         # bbtag SF corrections
@@ -754,8 +767,12 @@ if __name__ == "__main__":
     elif args.year.startswith('2017'):
       arrays_event += [ "HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_IsoMu27", "HLT_IsoMu24_eta2p1" ]
       if args.sample.endswith(('2017B','2017C')):
-          arrays_event += ["HLT_Ele32_WPTight_Gsf_L1DoubleEG"]
-          arrays_event += [f'L1_SingleEG{n}er2p5' for n in (10,15,26,34,36,38,40,42,45,8)]
+          if args.sample.startswith('SingleElectron'):
+              arrays_event += ["HLT_Ele32_WPTight_Gsf_L1DoubleEG"]
+              #arrays_event += [f'L1_SingleEG{n}er2p5' for n in (10,15,26,34,36,38,40,42,45,8)]
+              ### The following are the L1 seeds needed to emulate "HLT_Ele32_WPTight_Gsf" according to https://cmswbm.cern.ch/cmsdb/servlet/HLTPath?PATHID=2082103
+              L1seeds = ['L1_SingleEG24', 'L1_SingleEG26', 'L1_SingleEG30', 'L1_SingleEG32', 'L1_SingleEG34', 'L1_SingleEG36', 'L1_SingleEG38', 'L1_SingleEG40', 'L1_SingleEG34er2p1', 'L1_SingleEG36er2p1', 'L1_SingleEG38er2p1', 'L1_SingleIsoEG24er2p1', 'L1_SingleIsoEG26er2p1', 'L1_SingleIsoEG28er2p1', 'L1_SingleIsoEG30er2p1', 'L1_SingleIsoEG32er2p1', 'L1_SingleIsoEG34er2p1', 'L1_SingleIsoEG36er2p1', 'L1_SingleIsoEG24', 'L1_SingleIsoEG26', 'L1_SingleIsoEG28', 'L1_SingleIsoEG30', 'L1_SingleIsoEG32', 'L1_SingleIsoEG34', 'L1_SingleIsoEG36', 'L1_SingleIsoEG38', 'L1_DoubleEG_18_17', 'L1_DoubleEG_20_18', 'L1_DoubleEG_22_10', 'L1_DoubleEG_22_12', 'L1_DoubleEG_22_12', 'L1_DoubleEG_22_15', 'L1_DoubleEG_23_10', 'L1_DoubleEG_24_17', 'L1_DoubleEG_25_12', 'L1_DoubleEG_25_14']
+              arrays_event += L1seeds
       else:
         arrays_event += ["HLT_Ele32_WPTight_Gsf"] #FIXME
     elif args.year.startswith('2018'): arrays_event += [ "HLT_Ele32_WPTight_Gsf", 'HLT_Ele28_eta2p1_WPTight_Gsf_HT150', "HLT_IsoMu24" ]
@@ -765,7 +782,7 @@ if __name__ == "__main__":
 
     if is_mc:
         arrays_event += ["PV_npvsGood", "Pileup_nTrueInt", "genWeight", "nGenPart"]#, 'PSWeight']
-        if not args.year.startswith('2017'): arrays_event += ['PSWeight']
+        if (not args.year.startswith('2017')) or args.sample.startswith('ttH'): arrays_event += ['PSWeight']
         if not args.sample.startswith(('WW','WZ','ZZ')):
             arrays_event += ['LHEPdfWeight']
         arrays_objects += [ "Jet_hadronFlavour", #"selectedPatJetsAK4PFPuppi_hadronFlavor",
@@ -775,18 +792,27 @@ if __name__ == "__main__":
     if args.corrections: 
       arrays_objects += [f'FatJet_{var}_{corr}' for var in ['msoftdrop','pt','mass'] for corr in ['raw','nom']]
       arrays_objects += [f'Jet_{var}_nom' for var in ['pt','mass']]
-      arrays_event   += [f'{metstruct}_{var}_nom' for var in ['pt','phi']]
+      #if (args.sample in samplesMetT1) and (args.year in samplesMetT1[args.sample]):
+      if args.sample.startswith(samplesMetT1[args.year]):
+          newMetName = True
+          metT1      = '_T1'
+          arrays_event += [f'{metstruct}_T1_{var}' for var in ['pt','phi']]
+      else:
+          newMetName = False
+          metT1 = ''
+          arrays_event   += [f'{metstruct}_{var}_nom' for var in ['pt','phi']]
       if is_mc:#args.sample.startswith('ttH'):
-        arrays_event   += [f'{metstruct}_{var}_jer{ud}' for var in ['pt','phi'] for ud in ['','Up','Down']]
+        if not newMetName: arrays_event += [f'{metstruct}_{var}_jer' for var in ['pt','phi']]
+        arrays_event   += [f'{metstruct}{metT1}_{var}_jer{ud}' for var in ['pt','phi'] for ud in ['Up','Down']]
         arrays_objects += [f'Jet_btagSF_deepjet_M{var}' for var in ['','_up','_down']]
         arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
         arrays_event   += [f'puWeight{var}' for var in ['','Up','Down']]
         jesSources = ['Total','Absolute',f'Absolute_{args.year}','FlavorQCD','BBEC1',f'BBEC1_{args.year}','EC2',f'EC2_{args.year}','HF','RelativeBal',f'RelativeSample_{args.year}']
         jesSourcesSplit = ['Total','AbsoluteMPFBias','AbsoluteScale','AbsoluteStat','FlavorQCD','Fragmentation','PileUpDataMC','PileUpPtBB','PileUpPtEC1','PileUpPtEC2','PileUpPtHF','PileUpPtRef','RelativeFSR','RelativeJEREC1','RelativeJEREC2','RelativeJERHF','RelativePtBB','RelativePtEC1','RelativePtEC2','RelativePtHF','RelativeBal','RelativeSample','RelativeStatEC','RelativeStatFSR','RelativeStatHF','SinglePionECAL','SinglePionHCAL','TimePtEta']
  
-        arrays_event   += [f'{metstruct}_{var}_{unc}{ud}' for var in ['pt','phi'] for unc in [f'jes{s}' for s in (jesSources if args.sample.startswith(samplesMergeJes) else jesSourcesSplit)] for ud in ['Up','Down']]
-        arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass','msoftdrop'] for unc in ['jer']+[f'jes{s}' for s in (jesSources if args.sample.startswith(samplesMergeJes) else jesSourcesSplit)] for ud in ['Up','Down']]
-        arrays_objects += [f'Jet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer']+[f'jes{s}' for s in (jesSources if args.sample.startswith(samplesMergeJes) else jesSourcesSplit)] for ud in ['Up','Down']]
+        arrays_event   += [f'{metstruct}{metT1}_{var}_{unc}{ud}' for var in ['pt','phi'] for unc in [f'jes{s}' for s in (jesSources if args.sample.startswith(samplesMergeJes[args.year]) else jesSourcesSplit)] for ud in ['Up','Down']]
+        arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass','msoftdrop'] for unc in ['jer']+[f'jes{s}' for s in (jesSources if args.sample.startswith(samplesMergeJes[args.year]) else jesSourcesSplit)] for ud in ['Up','Down']]
+        arrays_objects += [f'Jet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer']+[f'jes{s}' for s in (jesSources if args.sample.startswith(samplesMergeJes[args.year]) else jesSourcesSplit)] for ud in ['Up','Down']]
 
     filenames = None
     if not args.filelist is None:
@@ -843,7 +869,7 @@ if __name__ == "__main__":
             #signalUncertainties[f'AK8jer{variation}']             = [[],['FatJet','pt','pt_jer{variation}','FatJet','mass','mass_jer{variation}','FatJet','msoftdrop','msoftdrop_jer{variation}']]
             #signalUncertainties[f'AK4jer{variation}']             = [[],['Jet','pt','pt_jer{variation}','Jet','mass','mass_jer{variation}']]
             signalUncertainties[f'jer{variation}']                = [
-                    [f'{metstruct}_pt',f'{metstruct}_pt_jer{variation}',f'{metstruct}_phi',f'{metstruct}_phi_jer{variation}'],
+                    [f'{metstruct}_pt',f'{metstruct}{metT1}_pt_jer{variation}',f'{metstruct}_phi',f'{metstruct}{metT1}_phi_jer{variation}'],
                     ['FatJet','pt',f'pt_jer{variation}','FatJet','mass',f'mass_jer{variation}','FatJet','msoftdrop',f'msoftdrop_jer{variation}','Jet','pt',f'pt_jer{variation}','Jet','mass',f'mass_jer{variation}'] ]
             signalUncertainties[f'AK8DDBvLM1{variation}']         = [[],['FatJet','bbtagSF_DDBvL_M1',f'bbtagSF_DDBvL_M1_{variation.lower()}']]
             signalUncertainties[f'AK4deepjetM{variation}']        = [[],['Jet','btagSF_deepjet_M',f'btagSF_deepjet_M_{variation.lower()}']]
@@ -853,13 +879,16 @@ if __name__ == "__main__":
                 #signalUncertainties[f'AK8jes{source}{variation}'] = [[],['FatJet','pt','pt_jes{source}{variation}','FatJet','mass','mass_jes{source}{variation}','FatJet','msoftdrop','msoftdrop_jes{source}{variation}']]
                 #signalUncertainties[f'AK4jes{source}{variation}'] = [[],['Jet','pt','pt_jes{source}{variation}','Jet','mass','mass_jes{source}{variation}']]
                 signalUncertainties[f'jes{source}{variation}'] = [
-                        [f'{metstruct}_pt',f'{metstruct}_pt_jes{source}{variation}',f'{metstruct}_phi',f'{metstruct}_phi_jes{source}{variation}'],
+                        [f'{metstruct}_pt',f'{metstruct}{metT1}_pt_jes{source}{variation}',f'{metstruct}_phi',f'{metstruct}{metT1}_phi_jes{source}{variation}'],
                         ['FatJet','pt',f'pt_jes{source}{variation}','FatJet','mass',f'mass_jes{source}{variation}','FatJet','msoftdrop',f'msoftdrop_jes{source}{variation}','Jet','pt',f'pt_jes{source}{variation}','Jet','mass',f'mass_jes{source}{variation}']]
         uncertainties.update(signalUncertainties)
       for u in uncertainties.values():
         if not f'{metstruct}_pt' in u[0]:
-            metBranch = 'jer' if is_mc else 'nom'
-            u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_{metBranch}', f'{metstruct}_phi',f'{metstruct}_phi_{metBranch}']
+            if newMetName:
+                u[0] += [f'{metstruct}_pt',f'{metstruct}_T1_pt', f'{metstruct}_phi',f'{metstruct}_T1_phi']
+            else:
+                metBranch = 'jer' if is_mc else 'nom'
+                u[0] += [f'{metstruct}_pt',f'{metstruct}_pt_{metBranch}', f'{metstruct}_phi',f'{metstruct}_phi_{metBranch}']
         if not 'Jet' in u[1]:
             u[1] += ['Jet','pt','pt_nom', 'Jet','mass','mass_nom']
         if 'msoftdrop' not in u[1]:
@@ -951,7 +980,7 @@ if __name__ == "__main__":
           parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p] #
           for un,u in uncertainties.items():
           #### this is where the magic happens: run the main analysis
-            #if not 'jesEC2Up' in un: continue
+            #if not 'nominal' in un: continue
             #try:
             results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, uncertaintyName=un, parametersName=p, extraCorrection=extraCorrections['no_PUPPI'])
             #except:
@@ -972,6 +1001,7 @@ if __name__ == "__main__":
 #      results[r].save_json(os.path.join(outdir,f"out_{args.sample}_{r}{args.outtag}.json"))
     for pn,res in results.items():
       for rn,r in res.items():
+        #if not 'nominal' in rn: continue
         outdir = args.outdir
         if args.version!='':
           outdir = os.path.join(outdir,args.version)
