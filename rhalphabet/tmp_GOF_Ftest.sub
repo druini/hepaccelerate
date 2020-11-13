@@ -1,0 +1,10 @@
+year = 2017
+universe    =  vanilla
+arguments   = $(year)
+executable  =  $ENV(PWD)/my_submit_condor.sh
+log         =  $ENV(PWD)/condor_output/degptrho$(year).log
+error       =  $ENV(PWD)/condor_output/degptrho$(year).err
+output      =  $ENV(PWD)/condor_output/degptrho$(year).out
+getenv      =  True
++JobFlavour =  "tomorrow"
+queue
