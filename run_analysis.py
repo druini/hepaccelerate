@@ -28,10 +28,12 @@ samplesMergeJes = {
         }
 samplesMetT1    = {
         ### in a new version of the jetmetHelper the corrected met branches changed name. This dict is to keep track of which samples have the new names, and which the old ones, see https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD#JME_jetmet_HelperRun2
-        '2016' : ('ttH','TTbb','TTTo2L2Nu'),
-        '2017' : ('ttH','TTbb','TTTo2L2Nu','ST','TTToHad','TTToSemi','WJets','WW','WZ','ZZ','ZJets','TTbb_4f_TTTo2','TTbb_4f_TTToSemi'),
-        '2018' : ('ttH','TTbb','TTTo2L2Nu','TTToSemiLeptonic'),
+        '2016' : ('ttH','TTTo2L2Nu'),
+        '2017' : ('ttH','TTTo2L2Nu','ST','TTToHad','TTToSemi','WJets','WW','WZ','ZZ','ZJets','TTbb_4f_TTTo2','TTbb_4f_TTToSemi'),
+        '2018' : ('ttH','TTTo2L2Nu','TTToSemiLeptonic'),
         }
+
+samplesJesHEMIssue = ('ttH','TTToSemi','TTTo2L2Nu','TTbb') # these 2018 samples contain the jesHEMIssue branches
 
 #This function will be called for every file in the dataset
 def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, is_mc=True, lumimask=None, cat=False, boosted=False, uncertainty=None, uncertaintyName=None, parametersName=None, extraCorrection=None):
@@ -807,12 +809,12 @@ if __name__ == "__main__":
         arrays_objects += [f'Jet_btagSF_deepjet_M{var}' for var in ['','_up','_down']]
         arrays_objects += [f'FatJet_msoftdrop_{unc}{ud}' for unc in ['jmr','jms'] for ud in ['Up','Down']]
         arrays_event   += [f'puWeight{var}' for var in ['','Up','Down']]
-        jesSources = ['Total','Absolute',f'Absolute_{args.year}','FlavorQCD','BBEC1',f'BBEC1_{args.year}','EC2',f'EC2_{args.year}','HF','RelativeBal',f'RelativeSample_{args.year}']
+        jesSources = ['Total','Absolute',f'Absolute_{args.year}','FlavorQCD','BBEC1',f'BBEC1_{args.year}','EC2',f'EC2_{args.year}','HF',f'HF_{args.year}','RelativeBal',f'RelativeSample_{args.year}']
         jesSourcesSplit = ['Total','AbsoluteMPFBias','AbsoluteScale','AbsoluteStat','FlavorQCD','Fragmentation','PileUpDataMC','PileUpPtBB','PileUpPtEC1','PileUpPtEC2','PileUpPtHF','PileUpPtRef','RelativeFSR','RelativeJEREC1','RelativeJEREC2','RelativeJERHF','RelativePtBB','RelativePtEC1','RelativePtEC2','RelativePtHF','RelativeBal','RelativeSample','RelativeStatEC','RelativeStatFSR','RelativeStatHF','SinglePionECAL','SinglePionHCAL','TimePtEta']
  
-        arrays_event   += [f'{metstruct}{metT1}_{var}_{unc}{ud}' for var in ['pt','phi'] for unc in [f'jes{s}' for s in (jesSources if args.sample.startswith(samplesMergeJes[args.year]) else jesSourcesSplit)] for ud in ['Up','Down']]
+        arrays_event   += [f'{metstruct}{metT1}_{var}_{unc}{ud}' for var in ['pt','phi'] for unc in [f'jes{s}' for s in (['HEMIssue'] if (args.year=='2018' and args.sample.startswith(samplesJesHEMIssue)) else [])+(jesSources if args.sample.startswith(samplesMergeJes[args.year]) else jesSourcesSplit)] for ud in ['Up','Down']]
         arrays_objects += [f'FatJet_{var}_{unc}{ud}' for var in ['pt','mass','msoftdrop'] for unc in ['jer']+[f'jes{s}' for s in (jesSources if args.sample.startswith(samplesMergeJes[args.year]) else jesSourcesSplit)] for ud in ['Up','Down']]
-        arrays_objects += [f'Jet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer']+[f'jes{s}' for s in (jesSources if args.sample.startswith(samplesMergeJes[args.year]) else jesSourcesSplit)] for ud in ['Up','Down']]
+        arrays_objects += [f'Jet_{var}_{unc}{ud}' for var in ['pt','mass'] for unc in ['jer']+[f'jes{s}' for s in (['HEMIssue'] if (args.year=='2018' and args.sample.startswith(samplesJesHEMIssue)) else [])+(jesSources if args.sample.startswith(samplesMergeJes[args.year]) else jesSourcesSplit)] for ud in ['Up','Down']]
 
     filenames = None
     if not args.filelist is None:
@@ -881,6 +883,11 @@ if __name__ == "__main__":
                 signalUncertainties[f'jes{source}{variation}'] = [
                         [f'{metstruct}_pt',f'{metstruct}{metT1}_pt_jes{source}{variation}',f'{metstruct}_phi',f'{metstruct}{metT1}_phi_jes{source}{variation}'],
                         ['FatJet','pt',f'pt_jes{source}{variation}','FatJet','mass',f'mass_jes{source}{variation}','FatJet','msoftdrop',f'msoftdrop_jes{source}{variation}','Jet','pt',f'pt_jes{source}{variation}','Jet','mass',f'mass_jes{source}{variation}']]
+            if args.year=='2018' and args.sample.startswith(samplesJesHEMIssue):
+                signalUncertainties[f'jesHEMIssue{variation}'] = [
+                        [f'{metstruct}_pt',f'{metstruct}{metT1}_pt_jesHEMIssue{variation}',f'{metstruct}_phi',f'{metstruct}{metT1}_phi_jesHEMIssue{variation}'],
+                        [], # not sure why we don't have it for FatJets...
+                        ]
         uncertainties.update(signalUncertainties)
       for u in uncertainties.values():
         if not f'{metstruct}_pt' in u[0]:
@@ -896,7 +903,7 @@ if __name__ == "__main__":
         if not ('FatJet','pt') in zip(u[1][::3],u[1][1::3]):
             u[1] += ['FatJet','pt','pt_nom', 'FatJet','mass','mass_nom']
       extraCorrections = {
-          'no_PUPPI'         : ['PUPPI'],
+          'no_PUPPI'         : ['PUPPI','JMR'],
           }
       arrays_objects += [f'FatJet_msoftdrop_corr_{e}' for e in sum(extraCorrections.values(),[])]
       #results = {u : Results() for u in uncertainties} 
@@ -980,11 +987,11 @@ if __name__ == "__main__":
           parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p] #
           for un,u in uncertainties.items():
           #### this is where the magic happens: run the main analysis
-            #if not 'nominal' in un: continue
-            #try:
-            results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, uncertaintyName=un, parametersName=p, extraCorrection=extraCorrections['no_PUPPI'])
-            #except:
-            #    print(f'skipping {p}/{un}...')
+            #if not un.startswith((f'jesHF_{args.year}','jesHEMIssue')): continue
+            try:
+                results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, uncertaintyName=un, parametersName=p, extraCorrection=extraCorrections['no_PUPPI'])
+            except:
+                print(f'skipping {p}/{un}...')
 
     #print(results)
 
@@ -1001,7 +1008,7 @@ if __name__ == "__main__":
 #      results[r].save_json(os.path.join(outdir,f"out_{args.sample}_{r}{args.outtag}.json"))
     for pn,res in results.items():
       for rn,r in res.items():
-        #if not 'nominal' in rn: continue
+        #if not rn.startswith((f'jesHF_{args.year}','jesHEMIssue')): continue
         outdir = args.outdir
         if args.version!='':
           outdir = os.path.join(outdir,args.version)
