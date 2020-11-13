@@ -1,0 +1,59 @@
+universe    =  vanilla
+arguments   =  $(r) $(year) $(Cheb) $(Bern) $(binSize) $(mcSB)
+executable  =  $ENV(PWD)/$F(exec)
+log         =  $ENV(PWD)/condor_output/degptrho$Fn(exec)_$(r)_$(year)_$(binSize)_$(mcSB)_$(ProcId).log
+error       =  $ENV(PWD)/condor_output/degptrho$Fn(exec)_$(r)_$(year)_$(binSize)_$(mcSB)_$(ProcId).err
+output      =  $ENV(PWD)/condor_output/degptrho$Fn(exec)_$(r)_$(year)_$(binSize)_$(mcSB)_$(ProcId).out
+getenv      =  True
++JobFlavour =  "nextweek"
+##### {1}: r value, {2} year, {3} Cheb degree, {4} Bern degree, {5} bin size, {6} mcSB or data
+queue r, year, Cheb, Bern, binSize, mcSB, exec from (
+    0   2016    3    4   1   mcSB    tmp_Bias.sh
+    0   2016    3    4   5   mcSB    tmp_Bias.sh
+    0   2016    3    4   1   data    tmp_Bias.sh
+    0   2016    3    4   5   data    tmp_Bias.sh
+    1   2016    3    4   1   mcSB    tmp_Bias.sh
+    1   2016    3    4   5   mcSB    tmp_Bias.sh
+    1   2016    3    4   1   data    tmp_Bias.sh
+    1   2016    3    4   5   data    tmp_Bias.sh
+    3   2016    3    4   1   mcSB    tmp_Bias.sh
+    3   2016    3    4   5   mcSB    tmp_Bias.sh
+    3   2016    3    4   1   data    tmp_Bias.sh
+    3   2016    3    4   5   data    tmp_Bias.sh
+    0   2016    3    4   1   mcSB    tmp_Bias1.sh
+    0   2016    3    4   5   mcSB    tmp_Bias1.sh
+    0   2016    3    4   1   data    tmp_Bias1.sh
+    0   2016    3    4   5   data    tmp_Bias1.sh
+    1   2016    3    4   1   mcSB    tmp_Bias1.sh
+    1   2016    3    4   5   mcSB    tmp_Bias1.sh
+    1   2016    3    4   1   data    tmp_Bias1.sh
+    1   2016    3    4   5   data    tmp_Bias1.sh
+    3   2016    3    4   1   mcSB    tmp_Bias1.sh
+    3   2016    3    4   5   mcSB    tmp_Bias1.sh
+    3   2016    3    4   1   data    tmp_Bias1.sh
+    3   2016    3    4   5   data    tmp_Bias1.sh
+    0   2016    3    4   1   mcSB    tmp_Bias2.sh
+    0   2016    3    4   5   mcSB    tmp_Bias2.sh
+    0   2016    3    4   1   data    tmp_Bias2.sh
+    0   2016    3    4   5   data    tmp_Bias2.sh
+    1   2016    3    4   1   mcSB    tmp_Bias2.sh
+    1   2016    3    4   5   mcSB    tmp_Bias2.sh
+    1   2016    3    4   1   data    tmp_Bias2.sh
+    1   2016    3    4   5   data    tmp_Bias2.sh
+    3   2016    3    4   1   mcSB    tmp_Bias2.sh
+    3   2016    3    4   5   mcSB    tmp_Bias2.sh
+    3   2016    3    4   1   data    tmp_Bias2.sh
+    3   2016    3    4   5   data    tmp_Bias2.sh
+    0   2016    3    4   1   mcSB    tmp_Bias3.sh
+    0   2016    3    4   5   mcSB    tmp_Bias3.sh
+    0   2016    3    4   1   data    tmp_Bias3.sh
+    0   2016    3    4   5   data    tmp_Bias3.sh
+    1   2016    3    4   1   mcSB    tmp_Bias3.sh
+    1   2016    3    4   5   mcSB    tmp_Bias3.sh
+    1   2016    3    4   1   data    tmp_Bias3.sh
+    1   2016    3    4   5   data    tmp_Bias3.sh
+    3   2016    3    4   1   mcSB    tmp_Bias3.sh
+    3   2016    3    4   5   mcSB    tmp_Bias3.sh
+    3   2016    3    4   1   data    tmp_Bias3.sh
+    3   2016    3    4   5   data    tmp_Bias3.sh
+)
