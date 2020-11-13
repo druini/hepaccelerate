@@ -531,7 +531,8 @@ if __name__ == '__main__':
   polyDegPt    = args.polyDegPt
   polyDegRho   = args.polyDegRho
   rebin_factor = args.rebin_factor
-  uncList = [ 'AK4deepjetM', 'AK8DDBvLM1', 'jer', 'jesAbsolute', 'jesAbsolute_'+args.year, 'jesBBEC1', 'jesBBEC1_'+args.year, 'jesEC2', 'jesEC2_'+args.year, 'jesFlavorQCD', 'jesHF', 'jesRelativeBal', 'jesRelativeSample_'+args.year, 'jmr', 'jms', 'pdfWeight', 'psWeight_FSR', 'psWeight_ISR', 'puWeight'  ]
+  uncList = [ 'AK4deepjetM', 'AK8DDBvLM1', 'jer', 'jesAbsolute', 'jesAbsolute_'+args.year, 'jesBBEC1', 'jesBBEC1_'+args.year, 'jesEC2', 'jesEC2_'+args.year, 'jesFlavorQCD', 'jesHF', 'jesHF_'+args.year, 'jesRelativeBal', 'jesRelativeSample_'+args.year, 'jmr', 'jms', 'pdfWeight', 'psWeight_FSR', 'psWeight_ISR', 'puWeight'  ]
+  if args.year=='2018': uncList += ['jesHEMIssue']
   for iunc in uncList:
       if iunc.endswith('allyears'):
           j = uncList.index(iunc)
