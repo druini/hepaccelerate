@@ -1,0 +1,22 @@
+year = 2017
+universe    =  vanilla
+arguments   = $(year)
+#arguments   =  $(ptdeg) $(rhodeg) 2016 100
+executable  =  $ENV(PWD)/my_submit_condor_data.sh
+log         =  $ENV(PWD)/condor_output/degptrho_data$(year).log
+error       =  $ENV(PWD)/condor_output/degptrho_data$(year).err
+output      =  $ENV(PWD)/condor_output/degptrho_data$(year).out
+getenv      =  True
++JobFlavour =  "tomorrow"
+queue
+#queue ptdeg,rhodeg from (
+##        1 1
+##        1 2
+##        2 1
+#        2 2
+#        2 3
+#        3 2
+#        3 3
+#        3 4
+#        4 3
+#  )
