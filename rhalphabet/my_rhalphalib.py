@@ -59,6 +59,7 @@ def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_id
 #                data['contents_w2'][msd_start_idx+nBin] = 0
       tmpHisto.SetBinContent( nBin+1, data['contents'][msd_start_idx+nBin] )
       tmpHisto.SetBinError( nBin+1, ROOT.TMath.Sqrt(data['contents_w2'][msd_start_idx+nBin] ) )
+###  tmpHisto.Scale( 20 )
 
   return(tmpHisto)
 
@@ -328,7 +329,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
             uncDataHists[iuncName] = ROOT.RooDataHist('TTH_PTH_GT300_'+iuncName, 'TTH_PTH_GT300_'+iuncName, ROOT.RooArgList(msd), iunc )
 
     polyArgList = ROOT.RooArgList( )
-    ###polyArgList.add(msd)
+    if args.pdf.startswith('poly'): polyArgList.add(msd)
     rooDict = {}
     for i in range( int(polyDegPt) ):
         if args.pdf.startswith('Cheb'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1./ROOT.TMath.Power(10,i), -1000., 1000. )
@@ -353,12 +354,14 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
 #    polyArgList.add( rooDict[ 'boosted_bkg_paramX3' ] )
     polyArgList.Print()
     rooDict['bkgFunc'] = ROOT.RooBernstein("boosted_bkg", "boosted_bkg", msd, polyArgList ) if args.pdf.startswith('Bern') else ROOT.RooChebychev("boosted_bkg", "boosted_bkg", msd, polyArgList)
-    #rooDict['bkgFunc'] = ROOT.RooGenericPdf("bkg", "pow(1-@0/13000,@1)/pow(@0/13000,@2+@3*log(@0/13000))", polyArgList )
-    ##rooDict['bkg_norm'] = ROOT.RooRealVar( 'bkg_norm', 'bkg_norm', int(templates['background'].Integral()), 0, 100000 )
+    if args.pdf.startswith('poly'):
+        rooDict['bkg_norm'] = ROOT.RooRealVar( 'boosted_bkg_norm', 'boosted_bkg_norm', round(templates['background'].Integral(),2), 0., 10000000000. )
+        rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "pow(1-@0/13000,@1)/pow(@0/13000,@2+@3*log(@0/13000))", polyArgList )
+        rooDict['bkgFunc'] = ROOT.RooExtendPdf("extboosted_bkg", 'extboosted_bkg', rooDict['bkgFuncWithoutNorm'], rooDict['bkg_norm'] )
 
     #simpdf, obs = bkgmodel.renderRoofit(bkgfit_ws)
     bkgfit = rooDict['bkgFunc'].fitTo(data_obs,
-                          #ROOT.RooFit.Extended(True),
+                          ##ROOT.RooFit.Extended(True),
                           ROOT.RooFit.SumW2Error(True),
                           ROOT.RooFit.Strategy(2),
                           ROOT.RooFit.Save(),
@@ -367,7 +370,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
                           )
     bkgfit.Print()
     prefit_bkgpar = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getVal() for i in range(polyDegPt) ]
-    prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getError() for i in range(polyDegPt) ]
+    prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getError()/(1. if args.pdf.startswith('Cheb') else 10.) for i in range(polyDegPt) ]
 
     mean = ROOT.RooRealVar("mean","Mean of Gaussian",110,140)
     sigma = ROOT.RooRealVar("sigma","Width of Gaussian",1,-30,30)
@@ -423,8 +426,11 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     getattr(ws, 'import')( ttH )
     for ih in uncDataHists:
         getattr(ws, 'import')( uncDataHists[ih] )
-    getattr(ws, 'import')( rooDict['bkgFunc'] )
-    #getattr(ws, 'import')( rooDict['bkg_norm'] )
+    if args.pdf.startswith('poly'):
+        getattr(ws, 'import')( rooDict['bkgFuncWithoutNorm'] )
+        getattr(ws, 'import')( rooDict['bkg_norm'] )
+    else:
+        getattr(ws, 'import')( rooDict['bkgFunc'] )
     ws.writeToFile( combineFolder+'/ws_ttHbb.root' )
     ws.Print()
 
@@ -443,14 +449,11 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.write("bin           boosted_ttH      boosted_ttH\n")
     datacard.write("process       boosted_bkg       TTH_PTH_GT300\n")
     datacard.write("process       1         0\n")
-    #datacard.write('rate          1         -1\n')
+    #datacard.write('rate          1         '+str(round(templates['ttH'].Integral(),2))+'\n')
     datacard.write('rate          '+str(round(templates['background'].Integral(),2))+'         '+str(round(templates['ttH'].Integral(),2))+'\n')
     datacard.write("-------------------------------\n")
     datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
     for iunc in uncList: datacard.write("CMS_ttHbb_"+iunc+"     shape   -        1\n")
-#    datacard.write("CMS_ttHbb_jmr     shape   -        1\n")
-#    datacard.write("CMS_ttHbb_jms     shape   -        1\n")
-#    datacard.write("CMS_ttHbb_PU      shape   -        1\n")
     for q in range( int(polyDegPt) ):
 #        datacard.write('boosted_bkg_paramX'+str(q)+"    flatParam\n")
         datacard.write('boosted_bkg_paramX'+str(q)+"    param    "+str(prefit_bkgpar[q])+"     "+str(prefit_bkgparerror[q])+"\n")
@@ -462,9 +465,10 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     exec_me(combineCmd, folder=combineFolder)
 
     if args.runImpacts:
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel+' -m 125 --doInitialFit --robustFit 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel+' -m 125 --doFits --robustFit 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel+' -m 125 -o impacts.json' )
+        exec_me( 'text2workspace.py '+datacardLabel )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doInitialFit --robustFit 1 --rMin -20 --rMax 20' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doFits --robustFit 1 --rMin -20 --rMax 20' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 -o impacts.json' )
         exec_me( 'plotImpacts.py -i impacts.json -o impacts' )
 
     ##### Priting parameters
