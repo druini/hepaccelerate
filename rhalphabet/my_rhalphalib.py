@@ -280,7 +280,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         exec_me( 'combineTool.py -M Impacts -d ttHbb_'+str_polylims+'_combined.root -m 125 --doInitialFit --robustFit 1' )
         exec_me( 'combineTool.py -M Impacts -d ttHbb_'+str_polylims+'_combined.root -m 125 --doFits --robustFit 1' )
         exec_me( 'combineTool.py -M Impacts -d ttHbb_'+str_polylims+'_combined.root -m 125 -o impacts.json' )
-        exec_me( 'plotImpacts.py -i impacts.json -o impacts' )
+        exec_me( 'plotImpacts.py -i impacts.json -o impacts --blind' )
 
     ##### Priting parameters
     rootFile = ROOT.TFile.Open(os.getcwd()+'/fitDiagnostics_r'+str(int(args.rMin))+'to'+str(int(args.rMax))+'_'+str_polylims+'.root')
@@ -462,10 +462,11 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     exec_me(combineCmd, folder=combineFolder)
 
     if args.runImpacts:
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel+' -m 125 --doInitialFit --robustFit 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel+' -m 125 --doFits --robustFit 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel+' -m 125 -o impacts.json' )
-        exec_me( 'plotImpacts.py -i impacts.json -o impacts' )
+        exec_me( 'text2workspace.py '+datacardLabel )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt','root')+' -m 125 --rMin -20 --rMax 20 --doInitialFit --robustFit 1' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt','root')+' -m 125 --rMin -20 --rMax 20 --doFits --robustFit 1' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt','root')+' -m 125 --rMin -20 --rMax 20 -o impacts.json' )
+        exec_me( 'plotImpacts.py -i impacts.json -o impacts --blind' )
 
     ##### Priting parameters
     rootFile = ROOT.TFile.Open(os.getcwd()+'/fitDiagnostics_r'+str(args.rMin)+'to'+str(args.rMax)+'.root')
