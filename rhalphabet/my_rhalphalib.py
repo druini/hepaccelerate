@@ -6,6 +6,7 @@ import scipy.stats
 import pickle
 import ROOT
 import json
+from pdb import set_trace
 ROOT.gROOT.SetBatch()
 ROOT.gROOT.ForceStyle()
 rl.util.install_roofit_helpers()
@@ -43,13 +44,17 @@ def loadTH1_from_json(indir, sample, ptStart, ptStop, msd_start_idx, msd_stop_id
       elif args.year.startswith('2018'): sample = sample.replace('_nominal', '_noDY_nominal')
       else: sample = sample
   filepath = os.path.join(indir, 'out_'+sample+'.json')
-  if ptStop==2000: ptStop = 5000
   with open(filepath) as json_file:
     data = json.load(json_file)
-    data = data['hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop)]
+    if ptStart is None:
+      hName = 'hist_leadAK8JetMass_2J2WdeltaR_'+region+'_weights_nominal'
+    else:
+      if ptStop==2000: ptStop = 5000
+      hName = 'hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop)
+    data = data[hName]
     rebin(data,rebin_factor)
   assert( np.all(np.array(obs.binning)==np.array(data['edges'])[msd_start_idx:msd_stop_idx+1]) )
-  tmpHisto = ROOT.TH1F( obs.name, 'hist_leadAK8JetMass_2J2WdeltaR_'+region+'_pt%sto%s' % (ptStart, ptStop), len(obs.binning)-1, data['edges'][msd_start_idx], data['edges'][msd_stop_idx])
+  tmpHisto = ROOT.TH1F( obs.name, hName, len(obs.binning)-1, data['edges'][msd_start_idx], data['edges'][msd_stop_idx])
   for nBin in range( len( data['contents'][msd_start_idx:msd_stop_idx] ) ):
       #print( data['contents'][msd_start_idx+nBin], ROOT.TMath.Sqrt(data['contents'][msd_start_idx+nBin]), ROOT.TMath.Sqrt(data['contents_w2'][msd_start_idx+nBin] ) )
 #      if args.simpleFit and sample.startswith('data'):
@@ -78,7 +83,158 @@ def rebin(hist, rebin_factor):
     hist['contents'] = new_counts
     hist['contents_w2'] = new_countsErr
 
+def simpleFit_rhalpha(indir,outdir,msd_start,msd_stop,polyDeg,rebin_factor,ptbins,uncList,isData=True,runExp=False):
+    #dataOrBkg = 'data' if isData else ('all' if args.sig_and_bkg else 'background')
+    dataOrBkg = 'data' if isData else 'background'
 
+    npt = len(ptbins) - 1
+    msdbins = np.linspace(0,300,301)[::rebin_factor]
+    msd_start_idx = np.where(msdbins==msd_start)[0][0]
+    msd_stop_idx  = np.where(msdbins==msd_stop)[0][0]
+    msdbins = msdbins[msd_start_idx:msd_stop_idx+1]
+    msd = rl.Observable('msd', msdbins)
+
+    # here we derive these all at once with 2D array
+    ptpts, msdpts = np.meshgrid(ptbins[:-1] + 0.3 * np.diff(ptbins), msdbins[:-1] + 0.5 * np.diff(msdbins), indexing='ij')
+    #rhopts = 2*np.log(msdpts/ptpts)
+    msdscaled = (msdpts - msdbins[0]) / (msdbins[-1] - msdbins[0])
+    #ptscaled  = (ptpts - ptbins[0]) / (ptbins[-1] - ptbins[0])
+    #rho_start = -6
+    #rho_stop  = -1.2
+    #rhoscaled = (rhopts - rho_start) / (rho_stop - rho_start)
+    #validbins = (rhoscaled >= 0) & (rhoscaled <= 1)
+    #rhoscaled[~validbins] = 1  # we will mask these out later
+
+    # Build bkg MC pass+fail model and fit to polynomial
+    ### This model is for the prefit but helps to compute the ratio pass/fail
+    bkgmodel = rl.Model("bkgmodel")
+    bkgpass = 0.
+    bkgCh = rl.Channel("msd")
+    bkgmodel.addChannel(bkgCh)
+    # mock template
+    ptnorm = 1
+    bkgTempl = loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', None, None, msd_start_idx, msd_stop_idx, 'Pass', rebin_factor,  msd)
+    bkgCh.setObservation(bkgTempl)
+    bkgpass += bkgCh.getObservation().sum()/msd.nbins
+
+    if args.runPrefit:
+        MCtempl = rl.BernsteinPoly("MCtempl", (polyDeg,), ['msd'], limits=(-args.poly_limit, args.poly_limit), coefficient_transform=(np.exp if runExp else None))
+        MCtempl_params = bkgpass * MCtempl(msdscaled)
+        bkgCh = bkgmodel['msd']
+
+        bkg = rl.ParametericSample('msd_bkg', rl.Sample.BACKGROUND, msd, MCtempl_params[0])
+        bkgCh.addSample(bkg)
+
+        bkgfit_ws = ROOT.RooWorkspace('bkgfit_ws')
+        simpdf, obs = bkgmodel.renderRoofit(bkgfit_ws)
+        bkgfit = simpdf.fitTo(obs,
+                              ROOT.RooFit.Extended(True),
+                              ROOT.RooFit.SumW2Error(True),
+                              ROOT.RooFit.Strategy(2),
+                              ROOT.RooFit.Save(),
+                              ROOT.RooFit.Minimizer('Minuit2', 'migrad'),
+                              ROOT.RooFit.PrintLevel(-1),
+                              )
+        bkgfit.Print()
+
+        bkgfit_ws.add(bkgfit)
+        if "pytest" not in sys.modules:
+             bkgfit_ws.writeToFile(os.path.join(str(outdir), 'ttHbb_bkgfit.root'))
+        if bkgfit.status() != 0:
+            raise RuntimeError('Could not fit bkg')
+
+        bkgpar_names = [p for p in bkgfit.floatParsFinal().contentsString().split(',') if 'MC' in p]
+        #for pn in bkgpar_names: print( pn, round(bkgfit.floatParsFinal().find(pn).getVal(), 4))
+        prefit_bkgpar = np.array([ round(bkgfit.floatParsFinal().find(pn).getVal(), 4) for pn in bkgpar_names ])
+        prefit_bkgparerror = [ round(bkgfit.floatParsFinal().find(pn).getError(), 4) for pn in bkgpar_names ]
+
+    #### Actual transfer function for combine
+    polyLimit = max(prefit_bkgparerror)*10 if args.runPrefit else args.poly_limit
+    dataModel = rl.BernsteinPoly("dataModel", (polyDeg,), ['msd'], limits=(-polyLimit, polyLimit), coefficient_transform=(np.exp if runExp else None), init_params=(prefit_bkgpar if args.runPrefit else None))
+    dataModel_params = bkgpass * dataModel(msdscaled)
+    #tf_params = bkgeff * tf_dataResidual_params
+
+    # build actual fit model now
+    str_polylims = ('data_' if args.isData else ('sig_' if args.sig_and_bkg else ''))+"polylims%ito%i"%(-args.poly_limit,args.poly_limit)
+    model = rl.Model('ttHbb_'+str_polylims)
+
+    ch = rl.Channel("ttHbb")
+    model.addChannel(ch)
+
+    templates = {
+        'signal'     : loadTH1_from_json(indir+'/nominal/', 'signal_nominal_merged', None, None, msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+        'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', None, None, msd_start_idx, msd_stop_idx, 'Pass', rebin_factor,  msd),
+    }
+    if not isData and args.sig_and_bkg: templates['background'].Add( templates['signal'] )
+
+    for unc in uncList:
+        for UpDown in [ 'Up', 'Down' ]:
+            print(unc+UpDown)
+            if args.year.startswith('allyears') and unc.endswith(('2016','2017','2018')): tmpdir = indir.replace('allyears', unc.split('_')[1])
+            else: tmpdir = indir
+            templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', 'signal_'+unc+UpDown+'_merged', None, None, msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
+
+    nuisanceParams = { 'CMS_ttHbb_'+unc : rl.NuisanceParameter('CMS_ttHbb_'+unc, 'shape') for unc in uncList }
+
+    # some mock expectations
+    templ = templates['signal']
+    stype = rl.Sample.SIGNAL
+    sample = rl.TemplateSample(ch.name + '_signal', stype, templ)
+
+    for nPname,nP in nuisanceParams.items():
+        sample.setParamEffect( nP, templates[nPname+'Up'], templates[nPname+'Down'] )
+
+    ch.addSample(sample)
+
+    if not isData and args.sig_and_bkg: templates['background'].Add( templates['signal'] )
+    data_obs = templates['background']
+    ch.setObservation(data_obs)
+
+#    # drop bins outside rho validity
+#    mask = validbins[ptbin]
+#    # blind bins 11, 12, 13
+#    # mask[11:14] = False
+#    if isData:
+#      msdWindow_start_idx = np.where(msd.binning==110)[0][0]
+#      msdWindow_stop_idx  = np.where(msd.binning==140)[0][0]
+#      mask[msdWindow_start_idx:msdWindow_stop_idx] = False
+#    ch.mask = mask
+
+    bkgCh = model['ttHbb']
+
+    bkg = rl.ParametericSample('ttHbb_bkg', rl.Sample.BACKGROUND, msd, dataModel_params[0])
+    bkgCh.addSample(bkg)
+
+    #with open(os.path.join(str(outdir), 'ttHbb.pkl'), "wb") as fout:       ### ALE: still dont understand why we need this
+    #    pickle.dump(model, fout)
+
+    pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1,('exp' if args.runExp else ''), polyDegPt,polyDegRho))
+    model.renderCombine(combineFolder)
+    #exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%si -t -1 --expectSignal 0 '%(str_polylims,args.rMin,args.rMax), folder=combineFolder)
+    #exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --expectSignal 0 -t -1 --toysFrequentist'%(str_polylims,args.rMin,args.rMax,str_polylims), folder=combineFolder)
+    exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(str_polylims,args.rMin,args.rMax,str_polylims,args.rMin,args.rMax), folder=combineFolder)
+    if args.runImpacts:
+        exec_me( 'combineTool.py -M Impacts -d ttHbb_'+str_polylims+'_combined.root -m 125 --doInitialFit --robustFit 1' )
+        exec_me( 'combineTool.py -M Impacts -d ttHbb_'+str_polylims+'_combined.root -m 125 --doFits --robustFit 1' )
+        exec_me( 'combineTool.py -M Impacts -d ttHbb_'+str_polylims+'_combined.root -m 125 -o impacts.json' )
+        exec_me( 'plotImpacts.py -i impacts.json -o impacts --blind' )
+
+    ##### Priting parameters
+    rootFile = ROOT.TFile.Open(os.getcwd()+'/fitDiagnostics_r'+str(int(args.rMin))+'to'+str(int(args.rMax))+'_'+str_polylims+'.root')
+    par_names = rootFile.Get('fit_s').floatParsFinal().contentsString().split(',')
+    par_names = [p for p in par_names if 'dataModel_msd' in p]
+    for pn in par_names:
+        print( 'fit_s', pn, round(rootFile.Get('fit_s').floatParsFinal().find(pn).getVal(), 4), '+/-', round(rootFile.Get('fit_s').floatParsFinal().find(pn).getError(), 4))
+    par_names = rootFile.Get('fit_b').floatParsFinal().contentsString().split(',')
+    par_names = [p for p in par_names if 'dataModel_msd' in p]
+    for pn in par_names:
+        print( 'fit_b', pn, round(rootFile.Get('fit_b').floatParsFinal().find(pn).getVal(), 4), '+/-', round(rootFile.Get('fit_b').floatParsFinal().find(pn).getError(), 4))
+    if args.runPrefit:
+        print(prefit_bkgpar)
+        print(prefit_bkgparerror)
+
+##############################
 def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runExp=False):
     #dataOrBkg = 'data' if isData else ('all' if args.sig_and_bkg else 'background')
     dataOrBkg = 'data_merged' if isData else 'background'
@@ -221,7 +377,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
 #            # for jec we set lnN prior, shape will automatically be converted to norm systematic
             #sample.setParamEffect(jec, jecup_ratio)
             #sample.setParamEffect(massScale, msdUp, msdDn)
-            #sample.setParamEffect(lumi, 1.027)      ### for bias/ftest/GOF signal needs at least one unc.
+            sample.setParamEffect(lumi, 1.027)      ### for bias/ftest/GOF signal needs at least one unc.
 
             ch.addSample(sample)
 
@@ -332,10 +488,10 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     if args.pdf.startswith('poly'): polyArgList.add(msd)
     rooDict = {}
     for i in range( int(polyDegPt) ):
-        if args.pdf.startswith('Cheb'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1./ROOT.TMath.Power(10,i), -1000., 1000. )
-        #else: rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 10000., 0, 100000 )
-        else: rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1000./ROOT.TMath.Power(10,i), 0, 100000./ROOT.TMath.Power(10,i) )
-        polyArgList.add( rooDict[ 'boosted_bkg_paramX'+str(i) ] )
+        if args.pdf.startswith('Cheb'): rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+args.year ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+args.year, 'boosted_bkg_paramX'+str(i)+'_'+args.year, 1./ROOT.TMath.Power(10,i), -1000., 1000. )
+        #else: rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+args.year ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+args.year, 'boosted_bkg_paramX'+str(i)+'_'+args.year, 10000., 0, 100000 )
+        else: rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+args.year ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+args.year, 'boosted_bkg_paramX'+str(i)+'_'+args.year, 1000./ROOT.TMath.Power(10,i), 0, 100000./ROOT.TMath.Power(10,i) )
+        polyArgList.add( rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+args.year ] )
 #################2016
 #    rooDict[ 'boosted_bkg_paramX0' ] = ROOT.RooRealVar('boosted_bkg_paramX0', 'boosted_bkg_paramX0', 800., 0., 2000. )
 #    polyArgList.add( rooDict[ 'boosted_bkg_paramX0' ] )
@@ -369,8 +525,8 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
                           ROOT.RooFit.PrintLevel(3),
                           )
     bkgfit.Print()
-    prefit_bkgpar = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getVal() for i in range(polyDegPt) ]
-    prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getError()/(1. if args.pdf.startswith('Cheb') else 10.) for i in range(polyDegPt) ]
+    prefit_bkgpar = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)+'_'+args.year).getVal() for i in range(polyDegPt) ]
+    prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)+'_'+args.year).getError()/(1. if args.pdf.startswith('Cheb') else 10.) for i in range(polyDegPt) ]
 
     mean = ROOT.RooRealVar("mean","Mean of Gaussian",110,140)
     sigma = ROOT.RooRealVar("sigma","Width of Gaussian",1,-30,30)
@@ -455,8 +611,8 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
     for iunc in uncList: datacard.write("CMS_ttHbb_"+iunc+"     shape   -        1\n")
     for q in range( int(polyDegPt) ):
-#        datacard.write('boosted_bkg_paramX'+str(q)+"    flatParam\n")
-        datacard.write('boosted_bkg_paramX'+str(q)+"    param    "+str(prefit_bkgpar[q])+"     "+str(prefit_bkgparerror[q])+"\n")
+#        datacard.write('boosted_bkg_paramX'+str(q)+'_'+args.year+"    flatParam\n")
+        datacard.write('boosted_bkg_paramX'+str(q)+'_'+args.year+"    param    "+str(prefit_bkgpar[q])+"     "+str(prefit_bkgparerror[q])+"\n")
     datacard.close()
 
     combineCmd = 'combine -M FitDiagnostics %s -n %s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(datacardLabel,combineLabel,args.rMin,args.rMax)
@@ -489,6 +645,7 @@ if __name__ == '__main__':
   parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
   parser.add_argument('--sig-and-bkg', action='store_true', default=False, help='sum signal and background samples when running on MC')
   parser.add_argument('--simpleFit', action='store_true', default=False, help='sum signal and background samples when running on MC')
+  parser.add_argument('--simpleFitRhalpha', action='store_true', default=False)
   parser.add_argument('-f', '--runPrefit', action='store_true', help='Run prefit on MC.' )
   parser.add_argument('-i', '--runImpacts', action='store_true', help='Run impacts.' )
   #parser.add_argument('-e', '--runExp', action='store_true', help='Run with exponential Bernstein.' )
@@ -558,6 +715,8 @@ if __name__ == '__main__':
     if args.simpleFit:
         ptbins = np.array([300,2000])
         simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncList,args.isData,runExp=args.runExp)
+    elif args.simpleFitRhalpha:
+        simpleFit_rhalpha(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncList,args.isData,runExp=args.runExp)
     else:
         if not (args.scanMassRange or args.scanPolyDeg):
           test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,args.isData,runExp=args.runExp)
