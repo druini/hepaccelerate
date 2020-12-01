@@ -463,15 +463,15 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     msd = rl.Observable('msd', msdbins)
 
     templates = {
-        'ttH'     : loadTH1_from_json(indir+'/nominal/', 'signal_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-        'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor,  msd),
+        'ttH'     : loadTH1_from_json(indir+'/nominal/', 'signal_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd),
+        'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor,  msd),
     }
     for unc in uncList:
         for UpDown in [ 'Up', 'Down' ]:
             print(unc+UpDown)
             if args.year.startswith('allyears') and unc.endswith(('2016','2017','2018')): tmpdir = indir.replace('allyears', unc.split('_')[1])
             else: tmpdir = indir
-            templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', 'signal_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
+            templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', 'signal_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
     print(templates)
 
     if not isData and args.sig_and_bkg: templates['background'].Add( templates['ttH'] )
@@ -485,19 +485,26 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
             uncDataHists[iuncName] = ROOT.RooDataHist('TTH_PTH_GT300_'+iuncName, 'TTH_PTH_GT300_'+iuncName, ROOT.RooArgList(msd), iunc )
 
     polyArgList = ROOT.RooArgList( )
-    if args.pdf.startswith('poly'): polyArgList.add(msd)
+    if args.pdf.startswith(('poly','exp')): polyArgList.add(msd)
     rooDict = {}
     for i in range( int(polyDegPt) ):
-        if args.pdf.startswith('Cheb'): rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+args.year ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+args.year, 'boosted_bkg_paramX'+str(i)+'_'+args.year, 1./ROOT.TMath.Power(10,i), -1000., 1000. )
-        #else: rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+args.year ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+args.year, 'boosted_bkg_paramX'+str(i)+'_'+args.year, 10000., 0, 100000 )
-        else: rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+args.year ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+args.year, 'boosted_bkg_paramX'+str(i)+'_'+args.year, 1000./ROOT.TMath.Power(10,i), 0, 100000./ROOT.TMath.Power(10,i) )
-        polyArgList.add( rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+args.year ] )
+        if args.pdf.startswith('Cheb'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1./ROOT.TMath.Power(10,i), -1000., 1000. )
+        elif args.pdf.startswith('poly'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1./ROOT.TMath.Power(10.,i), -1000./ROOT.TMath.Power(10.,i), 1000./ROOT.TMath.Power(10.,i) )
+        elif args.pdf.startswith('exp'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1./ROOT.TMath.Power(10.,i), -ROOT.TMath.Power(10,i), ROOT.TMath.Power(10,i) )
+        else: rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1000./ROOT.TMath.Power(10,i), 0, 100000./ROOT.TMath.Power(10,i) )
+        polyArgList.add( rooDict[ 'boosted_bkg_paramX'+str(i) ] )
 #################2016
-#    rooDict[ 'boosted_bkg_paramX0' ] = ROOT.RooRealVar('boosted_bkg_paramX0', 'boosted_bkg_paramX0', 800., 0., 2000. )
+#    #rooDict[ 'boosted_bkg_paramX0' ] = ROOT.RooRealVar('boosted_bkg_paramX0', 'boosted_bkg_paramX0', 500., 300., 800. ) ## Bern
+#    #rooDict[ 'boosted_bkg_paramX0' ] = ROOT.RooRealVar('boosted_bkg_paramX0', 'boosted_bkg_paramX0', -.1, -1., 1. ) ## Cheb
+#    rooDict[ 'boosted_bkg_paramX0' ] = ROOT.RooRealVar('boosted_bkg_paramX0', 'boosted_bkg_paramX0', 1000., 900., 1100. ) ## P3
 #    polyArgList.add( rooDict[ 'boosted_bkg_paramX0' ] )
-#    rooDict[ 'boosted_bkg_paramX1' ] = ROOT.RooRealVar('boosted_bkg_paramX1', 'boosted_bkg_paramX1', 40., 0., 200. )
+#    #rooDict[ 'boosted_bkg_paramX1' ] = ROOT.RooRealVar('boosted_bkg_paramX1', 'boosted_bkg_paramX1', 500., 300., 800. ) ## Bern
+#    #rooDict[ 'boosted_bkg_paramX1' ] = ROOT.RooRealVar('boosted_bkg_paramX1', 'boosted_bkg_paramX1', -.01, -.1, .1 ) ## Cheb
+#    rooDict[ 'boosted_bkg_paramX1' ] = ROOT.RooRealVar('boosted_bkg_paramX1', 'boosted_bkg_paramX1', -7., -14., 0 ) ## P3
 #    polyArgList.add( rooDict[ 'boosted_bkg_paramX1' ] )
-#    rooDict[ 'boosted_bkg_paramX2' ] = ROOT.RooRealVar('boosted_bkg_paramX2', 'boosted_bkg_paramX2', 10., 0., 100. )
+#    #rooDict[ 'boosted_bkg_paramX2' ] = ROOT.RooRealVar('boosted_bkg_paramX2', 'boosted_bkg_paramX2', 300., 100., 500. ) ## Bern
+#    #rooDict[ 'boosted_bkg_paramX2' ] = ROOT.RooRealVar('boosted_bkg_paramX2', 'boosted_bkg_paramX2', -.001, -1., 1. ) ## Cheb
+#    rooDict[ 'boosted_bkg_paramX2' ] = ROOT.RooRealVar('boosted_bkg_paramX2', 'boosted_bkg_paramX2', -5., -10., 0. ) ## P3
 #    polyArgList.add( rooDict[ 'boosted_bkg_paramX2' ] )
 #################allyears
 #    rooDict[ 'boosted_bkg_paramX0' ] = ROOT.RooRealVar('boosted_bkg_paramX0', 'boosted_bkg_paramX0', 10000., 0., 100000. )
@@ -510,23 +517,41 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
 #    polyArgList.add( rooDict[ 'boosted_bkg_paramX3' ] )
     polyArgList.Print()
     rooDict['bkgFunc'] = ROOT.RooBernstein("boosted_bkg", "boosted_bkg", msd, polyArgList ) if args.pdf.startswith('Bern') else ROOT.RooChebychev("boosted_bkg", "boosted_bkg", msd, polyArgList)
-    if args.pdf.startswith('poly'):
-        rooDict['bkg_norm'] = ROOT.RooRealVar( 'boosted_bkg_norm', 'boosted_bkg_norm', round(templates['background'].Integral(),2), 0., 10000000000. )
-        rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "pow(1-@0/13000,@1)/pow(@0/13000,@2+@3*log(@0/13000))", polyArgList )
+    if args.pdf.startswith(('poly', 'exp')):
+        bkgNorm = round(templates['background'].Integral(),2)
+        rooDict['bkg_norm'] = ROOT.RooRealVar( 'boosted_bkg_norm', 'boosted_bkg_norm', bkgNorm, bkgNorm, bkgNorm )
+        #rooDict['bkg_norm'] = ROOT.RooRealVar( 'boosted_bkg_norm', 'boosted_bkg_norm', bkgNorm, bkgNorm-ROOT.TMath.Sqrt(bkgNorm), bkgNorm+ROOT.TMath.Sqrt(bkgNorm) )
+        if args.pdf.startswith('poly'):
+            if int(polyDegPt)==3: rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "pow(1-@0/13000,@1)/pow(@0/13000,@2)", polyArgList )
+            if int(polyDegPt)==4: rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "pow(1-@0/13000,@1)/pow(@0/13000,@2+@3*log(@0/13000))", polyArgList )
+        if args.pdf.startswith('exp'):
+            if int(polyDegPt)==3: rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "exp( 1 - (@0/13000) + @1*pow(@0/13000,2) * pow(@0/13000,@2) )", polyArgList )
+            #if int(polyDegPt)==3: rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "pow( (1 - (@0/13000) ), @2 )/ pow(@0,@1)", polyArgList )
+            if int(polyDegPt)==4: rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "pow( (1 - (@0/13000) + (@3*pow(@0,2)/pow(13000,2)) ), @2 )/ pow(@0,@1)", polyArgList )
+            if int(polyDegPt)==5: rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "pow( (1 - (@0/13000) + (@3*pow(@0,2)/pow(13000,2) - (@4*pow(@0,3)/pow(13000,3)) ), @2 )/ pow(@0,@1)", polyArgList )
         rooDict['bkgFunc'] = ROOT.RooExtendPdf("extboosted_bkg", 'extboosted_bkg', rooDict['bkgFuncWithoutNorm'], rooDict['bkg_norm'] )
 
     #simpdf, obs = bkgmodel.renderRoofit(bkgfit_ws)
     bkgfit = rooDict['bkgFunc'].fitTo(data_obs,
                           ##ROOT.RooFit.Extended(True),
-                          ROOT.RooFit.SumW2Error(True),
                           ROOT.RooFit.Strategy(2),
                           ROOT.RooFit.Save(),
                           ROOT.RooFit.Minimizer('Minuit2', 'Migrad'),
                           ROOT.RooFit.PrintLevel(3),
                           )
+    if int(bkgfit.status())>1:
+        bkgfit = rooDict['bkgFunc'].fitTo(data_obs,
+                          ROOT.RooFit.Extended(True),
+                          ROOT.RooFit.Strategy(2),
+                          ROOT.RooFit.Save(),
+                          ROOT.RooFit.PrintLevel(3),
+                          )
+    print(bkgfit.status())
+
     bkgfit.Print()
-    prefit_bkgpar = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)+'_'+args.year).getVal() for i in range(polyDegPt) ]
-    prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)+'_'+args.year).getError()/(1. if args.pdf.startswith('Cheb') else 10.) for i in range(polyDegPt) ]
+    #sys.exit(0)
+    prefit_bkgpar = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getVal() for i in range(polyDegPt) ]
+    prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getError()/(10. if args.pdf.startswith('Bern') else 1.) for i in range(polyDegPt) ]
 
     mean = ROOT.RooRealVar("mean","Mean of Gaussian",110,140)
     sigma = ROOT.RooRealVar("sigma","Width of Gaussian",1,-30,30)
@@ -542,7 +567,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
 
 
     pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
-    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_%spolyDegs%d'%(msd_start,msd_stop,rebin_factor,args.pdf, polyDegPt))
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_%spolyDegs%d'%(msd_start,msd_stop,rebin_factor,args.pdf, polyDegPt)+('' if args.PASS.startswith('Pass') else '_Fail'))
     try: os.makedirs(combineFolder)
     except OSError: print('|===>'+combineFolder+' Folder already exist')
 
@@ -582,7 +607,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     getattr(ws, 'import')( ttH )
     for ih in uncDataHists:
         getattr(ws, 'import')( uncDataHists[ih] )
-    if args.pdf.startswith('poly'):
+    if args.pdf.startswith(('poly','exp')):
         getattr(ws, 'import')( rooDict['bkgFuncWithoutNorm'] )
         getattr(ws, 'import')( rooDict['bkg_norm'] )
     else:
@@ -605,14 +630,13 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.write("bin           boosted_ttH      boosted_ttH\n")
     datacard.write("process       boosted_bkg       TTH_PTH_GT300\n")
     datacard.write("process       1         0\n")
-    #datacard.write('rate          1         '+str(round(templates['ttH'].Integral(),2))+'\n')
-    datacard.write('rate          '+str(round(templates['background'].Integral(),2))+'         '+str(round(templates['ttH'].Integral(),2))+'\n')
+    datacard.write('rate          '+str( 1 if args.pdf.startswith(('poly','exp')) else round(templates['background'].Integral(),2) )+'         '+str(round(templates['ttH'].Integral(),2))+'\n')
     datacard.write("-------------------------------\n")
     datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
     for iunc in uncList: datacard.write("CMS_ttHbb_"+iunc+"     shape   -        1\n")
     for q in range( int(polyDegPt) ):
-#        datacard.write('boosted_bkg_paramX'+str(q)+'_'+args.year+"    flatParam\n")
-        datacard.write('boosted_bkg_paramX'+str(q)+'_'+args.year+"    param    "+str(prefit_bkgpar[q])+"     "+str(prefit_bkgparerror[q])+"\n")
+#        datacard.write('boosted_bkg_paramX'+str(q)+"    flatParam\n")
+        datacard.write('boosted_bkg_paramX'+str(q)+"    param    "+str(prefit_bkgpar[q])+"     "+str(prefit_bkgparerror[q])+"\n")
     datacard.close()
 
     combineCmd = 'combine -M FitDiagnostics %s -n %s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(datacardLabel,combineLabel,args.rMin,args.rMax)
@@ -622,9 +646,9 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
 
     if args.runImpacts:
         exec_me( 'text2workspace.py '+datacardLabel )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt','root')+' -m 125 --rMin -20 --rMax 20 --doInitialFit --robustFit 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt','root')+' -m 125 --rMin -20 --rMax 20 --doFits --robustFit 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt','root')+' -m 125 --rMin -20 --rMax 20 -o impacts.json' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doInitialFit --robustFit 1 --rMin -20 --rMax 20' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doFits --robustFit 1 --rMin -20 --rMax 20' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 -o impacts.json' )
         exec_me( 'plotImpacts.py -i impacts.json -o impacts --blind' )
 
     ##### Priting parameters
@@ -663,6 +687,7 @@ if __name__ == '__main__':
   parser.add_argument('-l','--poly-limit', default=2, type=int, help='sets the limit for the parameters of the Bernsetin polynomial')
   parser.add_argument('-y', '--year', default='2017', type=str, help='year to process, in file paths')
   parser.add_argument('-v', '--version', default='v05', help='version, in file paths')
+  parser.add_argument('-p', '--PASS', default='Pass', help='Pass or Fail region')
   parser.add_argument('-s', '--selection', nargs='+', default=['met20_btagDDBvL_noMD07','met20_deepTagMD_bbvsLight05845','met20_deepTagMD_bbvsLight08695'], help='event selection, in file paths')
   parser.add_argument('-j', '--jsonpath', default='/afs/cern.ch/work/d/druini/public/hepaccelerate/results', help='path to json files')
   parser.add_argument('-o','--outdir', default=None, help='specifiy a custom output directory')
