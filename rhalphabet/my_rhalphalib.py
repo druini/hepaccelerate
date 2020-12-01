@@ -209,7 +209,7 @@ def simpleFit_rhalpha(indir,outdir,msd_start,msd_stop,polyDeg,rebin_factor,ptbin
     #    pickle.dump(model, fout)
 
     pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
-    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1,('exp' if args.runExp else ''), polyDegPt,polyDegRho))
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_simpleFitRhalpha_%spolyDeg%d'%(msd_start,msd_stop,rebin_factor,('exp' if args.runExp else ''), polyDegPt), 'r%ito%i_%s'%(args.rMin,args.rMax,str_polylims))
     model.renderCombine(combineFolder)
     #exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%si -t -1 --expectSignal 0 '%(str_polylims,args.rMin,args.rMax), folder=combineFolder)
     #exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --expectSignal 0 -t -1 --toysFrequentist'%(str_polylims,args.rMin,args.rMax,str_polylims), folder=combineFolder)
@@ -224,15 +224,18 @@ def simpleFit_rhalpha(indir,outdir,msd_start,msd_stop,polyDeg,rebin_factor,ptbin
     rootFile = ROOT.TFile.Open(os.getcwd()+'/fitDiagnostics_r'+str(int(args.rMin))+'to'+str(int(args.rMax))+'_'+str_polylims+'.root')
     par_names = rootFile.Get('fit_s').floatParsFinal().contentsString().split(',')
     par_names = [p for p in par_names if 'dataModel_msd' in p]
-    for pn in par_names:
-        print( 'fit_s', pn, round(rootFile.Get('fit_s').floatParsFinal().find(pn).getVal(), 4), '+/-', round(rootFile.Get('fit_s').floatParsFinal().find(pn).getError(), 4))
-    par_names = rootFile.Get('fit_b').floatParsFinal().contentsString().split(',')
-    par_names = [p for p in par_names if 'dataModel_msd' in p]
-    for pn in par_names:
-        print( 'fit_b', pn, round(rootFile.Get('fit_b').floatParsFinal().find(pn).getVal(), 4), '+/-', round(rootFile.Get('fit_b').floatParsFinal().find(pn).getError(), 4))
-    if args.runPrefit:
-        print(prefit_bkgpar)
-        print(prefit_bkgparerror)
+    with open('fitParams.txt','w') as f:
+        for pn in par_names:
+            f.write('fit_s '+pn+' '+str(round(rootFile.Get('fit_s').floatParsFinal().find(pn).getVal(), 4))+' +/- '+str(round(rootFile.Get('fit_s').floatParsFinal().find(pn).getError(), 4))+'\n')
+            print( 'fit_s', pn, round(rootFile.Get('fit_s').floatParsFinal().find(pn).getVal(), 4), '+/-', round(rootFile.Get('fit_s').floatParsFinal().find(pn).getError(), 4))
+        par_names = rootFile.Get('fit_b').floatParsFinal().contentsString().split(',')
+        par_names = [p for p in par_names if 'dataModel_msd' in p]
+        for pn in par_names:
+            f.write('fit_b '+pn+' '+str(round(rootFile.Get('fit_b').floatParsFinal().find(pn).getVal(), 4))+' +/- '+str(round(rootFile.Get('fit_b').floatParsFinal().find(pn).getError(), 4))+'\n')
+            print( 'fit_b', pn, round(rootFile.Get('fit_b').floatParsFinal().find(pn).getVal(), 4), '+/-', round(rootFile.Get('fit_b').floatParsFinal().find(pn).getError(), 4))
+        if args.runPrefit:
+            print(prefit_bkgpar)
+            print(prefit_bkgparerror)
 
 ##############################
 def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_factor,ptbins,isData=True,runExp=False):
