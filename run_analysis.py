@@ -108,6 +108,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     
     if extraCorrection is not None:
       for e in extraCorrection:
+          if e=='JMR': fatjets.msoftdrop_corr_JMR[fatjets.msoftdrop_corr_JMR==0] = 1
           fatjets.msoftdrop /= getattr(fatjets, f'msoftdrop_corr_{e}')
     jets.p4 = TLorentzVectorArray.from_ptetaphim(jets.pt, jets.eta, jets.phi, jets.mass)
 
@@ -278,12 +279,16 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         # bbtag SF corrections
         if parameters['bbtagging_algorithm']=='btagDDBvL':
             weights['bbtag'] = NUMPY_LIB.ones_like(mask_events,dtype=NUMPY_LIB.float64) 
-            if 'bbtagSF_DDBvL_M1_up' in uncertainty[1]:
-                bbtagSF_loPt = parameters['bbtagSF_DDBvL_M1_loPt_up']
-                bbtagSF_hiPt = parameters['bbtagSF_DDBvL_M1_hiPt_up']
-            elif 'bbtagSF_DDBvL_M1_down' in uncertainty[1]:
-                bbtagSF_loPt = parameters['bbtagSF_DDBvL_M1_loPt_down']
-                bbtagSF_hiPt = parameters['bbtagSF_DDBvL_M1_hiPt_down']
+            if uncertainty is not None:
+                if 'bbtagSF_DDBvL_M1_up' in uncertainty[1]:
+                    bbtagSF_loPt = parameters['bbtagSF_DDBvL_M1_loPt_up']
+                    bbtagSF_hiPt = parameters['bbtagSF_DDBvL_M1_hiPt_up']
+                elif 'bbtagSF_DDBvL_M1_down' in uncertainty[1]:
+                    bbtagSF_loPt = parameters['bbtagSF_DDBvL_M1_loPt_down']
+                    bbtagSF_hiPt = parameters['bbtagSF_DDBvL_M1_hiPt_down']
+                else:
+                    bbtagSF_loPt = parameters['bbtagSF_DDBvL_M1_loPt']
+                    bbtagSF_hiPt = parameters['bbtagSF_DDBvL_M1_hiPt']
             else:
                 bbtagSF_loPt = parameters['bbtagSF_DDBvL_M1_loPt']
                 bbtagSF_hiPt = parameters['bbtagSF_DDBvL_M1_hiPt']
@@ -488,10 +493,14 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
     #synch
 #    evts = [1550213, 1550290, 1550342, 1550361, 1550369, 1550387, 1550396, 1550467, 1550502, 1550566]
 ##    evts = [1550251, 1556872, 1557197, 1558222, 1558568, 1600001, 1602391, 3928629, 3930963, 3931311, 4086276]
-#    mask = NUMPY_LIB.zeros_like(mask_events)
+#    evts = [ 60571, 60754, 61496]
+#    mask = NUMPY_LIB.zeros_like(mask_events['basic'])
 #    for iev in evts:
 #      mask |= (scalars["event"] == iev)
 #    print('nevt', scalars["event"][mask])
+#    print('deltaRhadWHiggs', deltaRhadWHiggs[mask])
+#    print('deltaRlepWHiggs', deltaRlepWHiggs[mask])
+#    set_trace()
 #    print('pass sel', mask_events[mask])
 #    print('nleps', nleps[mask])
 #    print('njets', njets[mask])
@@ -507,23 +516,24 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #    print('nevents', np.count_nonzero(mask_events))
 
 #    np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-#    evts = [1550290, 1550342, 1550361, 1550387, 1550467, 1550502, 1550607, 1550660]
+#    evts = [3026508, 2068092]
+##    evts = [1550290, 1550342, 1550361, 1550387, 1550467, 1550502, 1550607, 1550660]
+#    mmm = ha.mask_deltar_first(jets, good_jets, fatjets, good_fatjets, 1.2, indices['leading'])
 #    for evt in evts:
 #      evt_idx = NUMPY_LIB.where( scalars["event"] == evt )[0][0]
 #      start = jets.offsets[evt_idx]
 #      stop  = jets.offsets[evt_idx+1]
 #      print(f'!!! EVENT {evt} !!!')
 #      print(f'njets good {njets[evt_idx]}, total {stop-start}')
-#      print('jets mask', nonbjets[start:stop])
-#      print('jets pt', jets.pt[start:stop])
-#      print('jets eta', jets.eta[start:stop])
-#      print('jets btag', getattr(jets, parameters["btagging_algorithm"])[start:stop])
-#      print('jet Id', jets.jetId[start:stop]),
-#      print('jet puId', jets.puId[start:stop])
-#    with open('events_pass_selection.txt','w+') as f:
-#      for nevt in scalars['event'][mask_events['2J']]:
-#        f.write(str(nevt)+'\n')
-#    pdb.set_trace()
+#      print('good_jets', good_jets[start:stop], NUMPY_LIB.sum(good_jets[start:stop]))
+#      print('mmm', mmm[start:stop], NUMPY_LIB.sum(mmm[start:stop]))
+#      print('dr', [ha.calc_dr(np.array([jets.phi[i]]),np.array([jets.eta[i]]), np.array([leading_fatjet_phi[evt_idx]]),np.array([leading_fatjet_eta[evt_idx]]),np.array([good_jets[i]])) for i in range(start,stop)] )
+#      print('good_jets_nohiggs', good_jets_nohiggs[start:stop], NUMPY_LIB.sum(good_jets_nohiggs[start:stop]))
+#      print('nonbjets', nonbjets[start:stop], NUMPY_LIB.sum(nonbjets[start:stop]))
+#    #with open('events_pass_selection.txt','w+') as f:
+#    #  for nevt in scalars['event'][mask_events['2J']]:
+#    #    f.write(str(nevt)+'\n')
+#      set_trace()
     
 
     ###### synch with resolved analysis
@@ -556,6 +566,17 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
 #        for pass_hepaccelerate,nev,r,l,nj,nb,jpt,jeta,jphi,nel,nmu,lpt,leta,met,vetoLep in zip(mask_events_res[mask],scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock'][mask], ngoodjets[mask], btags_resolved[mask], leading_goodjet_pt[mask], leading_goodjet_eta[mask], leading_goodjet_phi[mask], nelectrons[mask], nmuons[mask], leading_lepton_pt[mask], leading_lepton_eta[mask], scalars[metstruct+'_pt'][mask], lepton_veto[mask]):
 #          f.write(f'{pass_hepaccelerate}, {nev}, {r}, {l}, {nj}, {nb}, {jpt}, {jeta}, {jphi}, {nel}, {nmu}, {lpt}, {leta}, {met}, {vetoLep}\n')
 
+### synch with Matteo
+#    if not NUMPY_LIB.any(mask_events['basic']): print('!!!! no events here')
+#    mask = NUMPY_LIB.zeros_like(mask_events_res)
+#    mask[mask_events['2J2WdeltaR']] = True
+#    leading_jet_phi = ha.get_in_offsets(jets.phi, jets.offsets, indices['leading'], mask, nonbjets)
+#    outf = f'synchMatteo/{sample}_hepaccelerate_2017_2J2WdeltaR.txt'
+#    exists = os.path.isfile(outf)
+#    with open(outf,'a+') as f:
+#      if not exists: f.write('nevt, run, lumi, njets, btags, leading_jet_pt, leading_jet_eta,  leading_jet_phi, nelectrons, nmuons, leading_lepton_pt, leading_lepton_eta, met_pt, vetoLep, deltaRhadWHiggs, deltaRlepWHiggs\n')
+#      for nev,r,l,nj,nb,jpt,jeta,jphi,nel,nmu,lpt,leta,met,vetoLep,dRhadWH,dRlepWH in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock'][mask], njets[mask], btags[mask], leading_jet_pt[mask], leading_jet_eta[mask], leading_jet_phi[mask], nelectrons[mask], nmuons[mask], leading_lepton_pt[mask], leading_lepton_eta[mask], scalars[metstruct+'_pt'][mask], lepton_veto[mask], deltaRhadWHiggs[mask], deltaRlepWHiggs[mask]):
+#        f.write(f'{nev}, {r}, {l}, {nj}, {nb}, {jpt}, {jeta}, {jphi}, {nel}, {nmu}, {lpt}, {leta}, {met}, {vetoLep}, {dRhadWH}, {dRlepWH}\n')
 
 ##
 #    variables = [
@@ -842,12 +863,9 @@ if __name__ == "__main__":
 
     results  = {p : {} for p in pars}
 
+    uncertainties = {'noCorrections' : None}
     if args.corrections: 
-      uncertainties = {
-            'nominal'      : [[],['FatJet','msoftdrop','msoftdrop_nom']],
-            #'msd_raw'      : [[],['FatJet','msoftdrop','msoftdrop_raw']],
-            #'msd_nanoAOD'  : ['FatJet','msoftdrop','msoftdrop']
-            }
+      uncertainties['nominal'] = [[],['FatJet','msoftdrop','msoftdrop_nom']]
       if is_mc:#args.sample.startswith('ttH'):
         signalUncertainties = {
             #'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
@@ -890,6 +908,7 @@ if __name__ == "__main__":
                         ]
         uncertainties.update(signalUncertainties)
       for u in uncertainties.values():
+        if u is None: continue
         if not f'{metstruct}_pt' in u[0]:
             if newMetName:
                 u[0] += [f'{metstruct}_pt',f'{metstruct}_T1_pt', f'{metstruct}_phi',f'{metstruct}_T1_phi']
@@ -910,8 +929,6 @@ if __name__ == "__main__":
       print(uncertainties)
       #with open('unc_dump.json','w') as f: json.dump(uncertainties, f, indent=4)
       #sys.exit()
-      for p in results:
-        results[p] = {u : Results() for u in uncertainties}
       ######### this block was for testing which corrections we should remove
 #      if is_mc:
 #        extraCorrections = {
@@ -930,9 +947,8 @@ if __name__ == "__main__":
 #      combinations = [('msd_nom',e) for e in extraCorrections]
 #      combinations += [('msd_raw','')]
 #      results = {(u[0] if u[1]=='' else u[1]) : Results() for u in combinations}
-    else:
-      uncertainties = {'' : None}
-      results       = {'' : Results()}
+    for p in results:
+      results[p] = {u : Results() for u in uncertainties}
 
     for ibatch, files_in_batch in enumerate(chunks(filenames, args.files_per_batch)):
         print(f'!!!!!!!!!!!!! loading {ibatch}: {files_in_batch}')
@@ -984,14 +1000,15 @@ if __name__ == "__main__":
             print(dataset.printout())
 
         for p in pars:
+          #if not '1btag' in p: continue
           parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p] #
           for un,u in uncertainties.items():
           #### this is where the magic happens: run the main analysis
             #if not un.startswith((f'jesHF_{args.year}','jesHEMIssue')): continue
-            try:
-                results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, uncertaintyName=un, parametersName=p, extraCorrection=extraCorrections['no_PUPPI'])
-            except:
-                print(f'skipping {p}/{un}...')
+            #try:
+                results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, uncertaintyName=un, parametersName=p, extraCorrection=(None if not args.corrections else extraCorrections['no_PUPPI']))
+            #except:
+            #    print(f'skipping {p}/{un}...')
 
     #print(results)
 
@@ -1007,6 +1024,7 @@ if __name__ == "__main__":
 #    for r in results:
 #      results[r].save_json(os.path.join(outdir,f"out_{args.sample}_{r}{args.outtag}.json"))
     for pn,res in results.items():
+      #if not '1btag' in pn: continue
       for rn,r in res.items():
         #if not rn.startswith((f'jesHF_{args.year}','jesHEMIssue')): continue
         outdir = args.outdir
