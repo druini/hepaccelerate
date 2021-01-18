@@ -162,7 +162,7 @@ def simpleFit_rhalpha(indir,outdir,msd_start,msd_stop,polyDeg,rebin_factor,ptbin
     model.addChannel(ch)
 
     templates = {
-        'signal'     : loadTH1_from_json(indir+'/nominal/', 'signal_nominal_merged', None, None, msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+        'signal'     : loadTH1_from_json(indir+'/nominal/', args.signal+'_nominal_merged', None, None, msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
         'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', None, None, msd_start_idx, msd_stop_idx, 'Pass', rebin_factor,  msd),
     }
     if not isData and args.sig_and_bkg: templates['background'].Add( templates['signal'] )
@@ -172,7 +172,7 @@ def simpleFit_rhalpha(indir,outdir,msd_start,msd_stop,polyDeg,rebin_factor,ptbin
             print(unc+UpDown)
             if args.year.startswith('allyears') and unc.endswith(('2016','2017','2018')): tmpdir = indir.replace('allyears', unc.split('_')[1])
             else: tmpdir = indir
-            templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', 'signal_'+unc+UpDown+'_merged', None, None, msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
+            templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', args.signal+'_'+unc+UpDown+'_merged', None, None, msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd)
 
     nuisanceParams = { 'CMS_ttHbb_'+unc : rl.NuisanceParameter('CMS_ttHbb_'+unc, 'shape') for unc in uncList }
 
@@ -209,7 +209,7 @@ def simpleFit_rhalpha(indir,outdir,msd_start,msd_stop,polyDeg,rebin_factor,ptbin
     #    pickle.dump(model, fout)
 
     pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
-    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_simpleFitRhalpha_%spolyDeg%d'%(msd_start,msd_stop,rebin_factor,('exp' if args.runExp else ''), polyDegPt), 'r%ito%i_%s'%(args.rMin,args.rMax,str_polylims))
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_simpleFitRhalpha_%spolyDeg%d_%s'%(msd_start,msd_stop,rebin_factor,('exp' if args.runExp else ''), polyDegPt, args.signal), 'r%ito%i_%s'%(args.rMin,args.rMax,str_polylims))
     model.renderCombine(combineFolder)
     #exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%si -t -1 --expectSignal 0 '%(str_polylims,args.rMin,args.rMax), folder=combineFolder)
     #exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --expectSignal 0 -t -1 --toysFrequentist'%(str_polylims,args.rMin,args.rMax,str_polylims), folder=combineFolder)
@@ -356,15 +356,15 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
             model.addChannel(ch)
 
             templates = {
-                'signal'     : loadTH1_from_json(indir, 'signal_msd_nom_merged', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd),
-                'CMS_ttHbb_jerDown'     : loadTH1_from_json(indir, 'signal_jerDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-                'CMS_ttHbb_jerUp'     : loadTH1_from_json(indir, 'signal_jerUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-                'CMS_ttHbb_jmrDown'     : loadTH1_from_json(indir, 'signal_jmrDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-                'CMS_ttHbb_jmrUp'     : loadTH1_from_json(indir, 'signal_jmrUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-                'CMS_ttHbb_jmsDown'     : loadTH1_from_json(indir, 'signal_jmsDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-                'CMS_ttHbb_jmsUp'     : loadTH1_from_json(indir, 'signal_jmsUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-                'CMS_ttHbb_PUDown'     : loadTH1_from_json(indir, 'signal_puWeightDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
-                'CMS_ttHbb_PUUp'     : loadTH1_from_json(indir, 'signal_puWeightUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'signal'     : loadTH1_from_json(indir, args.signal+'_msd_nom_merged', ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor, msd),
+                'CMS_ttHbb_jerDown'     : loadTH1_from_json(indir, args.signal+'_jerDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jerUp'     : loadTH1_from_json(indir, args.signal+'_jerUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jmrDown'     : loadTH1_from_json(indir, args.signal+'_jmrDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jmrUp'     : loadTH1_from_json(indir, args.signal+'_jmrUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jmsDown'     : loadTH1_from_json(indir, args.signal+'_jmsDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_jmsUp'     : loadTH1_from_json(indir, args.signal+'_jmsUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_PUDown'     : loadTH1_from_json(indir, args.signal+'_puWeightDown_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
+                'CMS_ttHbb_PUUp'     : loadTH1_from_json(indir, args.signal+'_puWeightUp_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, 'Pass', rebin_factor, msd),
                 'background' : loadTH1_from_json(indir, dataOrBkg, ptbins[ptbin], ptbins[ptbin+1], msd_start_idx, msd_stop_idx, region, rebin_factor,  msd),
             }
             # some mock expectations
@@ -431,7 +431,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
     #    pickle.dump(model, fout)
 
     pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
-    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1,('exp' if args.runExp else ''), polyDegPt,polyDegRho))
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_pt%dbin_%spolyDegs%d%d_%s'%(msd_start,msd_stop,rebin_factor,len(ptbins)-1,('exp' if args.runExp else ''), polyDegPt,polyDegRho, args.signal))
     model.renderCombine(combineFolder)
     #exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%si -t -1 --expectSignal 0 '%(str_polylims,args.rMin,args.rMax), folder=combineFolder)
     #exec_me('bash build.sh | combine -M FitDiagnostics ttHbb_%s_combined.txt -n _r%ito%i_%s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --plot --saveShapes --saveWorkspace --expectSignal 0 -t -1 --toysFrequentist'%(str_polylims,args.rMin,args.rMax,str_polylims), folder=combineFolder)
@@ -466,7 +466,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     msd = rl.Observable('msd', msdbins)
 
     templates = {
-        'ttH'     : loadTH1_from_json(indir+'/nominal/', 'signal_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd),
+        'ttH'     : loadTH1_from_json(indir+'/nominal/', args.signal+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd),
         'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor,  msd),
     }
     for unc in uncList:
@@ -474,7 +474,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
             print(unc+UpDown)
             if args.year.startswith('allyears') and unc.endswith(('2016','2017','2018')): tmpdir = indir.replace('allyears', unc.split('_')[1])
             else: tmpdir = indir
-            templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', 'signal_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
+            templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', args.signal+'_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
     print(templates)
 
     if not isData and args.sig_and_bkg: templates['background'].Add( templates['ttH'] )
@@ -570,7 +570,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
 
 
     pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
-    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_%spolyDegs%d'%(msd_start,msd_stop,rebin_factor,args.pdf, polyDegPt)+('' if args.PASS.startswith('Pass') else '_Fail'))
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_%spolyDegs%d_%s'%(msd_start,msd_stop,rebin_factor,args.pdf, polyDegPt, args.signal)+('' if args.PASS.startswith('Pass') else '_Fail'))
     try: os.makedirs(combineFolder)
     except OSError: print('|===>'+combineFolder+' Folder already exist')
 
@@ -692,6 +692,7 @@ if __name__ == '__main__':
   parser.add_argument('-v', '--version', default='v05', help='version, in file paths')
   parser.add_argument('-p', '--PASS', default='Pass', help='Pass or Fail region')
   parser.add_argument('-s', '--selection', nargs='+', default=['met20_btagDDBvL_noMD07','met20_deepTagMD_bbvsLight05845','met20_deepTagMD_bbvsLight08695'], help='event selection, in file paths')
+  parser.add_argument('--signal', default='signal', help='select which sample to use as signal. "signal": sum of ttHTobb+Nonbb')
   parser.add_argument('-j', '--jsonpath', default='/afs/cern.ch/work/d/druini/public/hepaccelerate/results', help='path to json files')
   parser.add_argument('-o','--outdir', default=None, help='specifiy a custom output directory')
 
@@ -735,7 +736,7 @@ if __name__ == '__main__':
     if not os.path.exists(indir):
       raise Exception('invalid input path: %s'%indir)
 
-    if args.outdir is None: outdir = os.path.join('output', args.year, args.version, sel)
+    if args.outdir is None: outdir = os.path.join('/eos/home-d/druini/hepaccelerate/rhalphabet/output', args.year, args.version, sel)
     else: outdir = args.outdir
     if not os.path.exists(outdir):
         os.makedirs(outdir)
