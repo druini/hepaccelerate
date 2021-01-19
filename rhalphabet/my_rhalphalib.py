@@ -570,7 +570,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
 
 
     pref = ('data' if isData else 'mc'+( 'SB' if args.sig_and_bkg else '' ) )
-    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_%spolyDegs%d_%s'%(msd_start,msd_stop,rebin_factor,args.pdf, polyDegPt, args.signal)+('' if args.PASS.startswith('Pass') else '_Fail'))
+    combineFolder = os.path.join(str(outdir), pref+'_msd%dto%d_msdbin%d_%spolyDegs%d_%s'%(msd_start,msd_stop,rebin_factor,args.pdf, polyDegPt, args.signal)+('' if args.PASS.startswith('Pass') else '_Fail')+('_statOnly' if args.statOnly else ''))
     try: os.makedirs(combineFolder)
     except OSError: print('|===>'+combineFolder+' Folder already exist')
 
@@ -693,6 +693,7 @@ if __name__ == '__main__':
   parser.add_argument('-p', '--PASS', default='Pass', help='Pass or Fail region')
   parser.add_argument('-s', '--selection', nargs='+', default=['met20_btagDDBvL_noMD07','met20_deepTagMD_bbvsLight05845','met20_deepTagMD_bbvsLight08695'], help='event selection, in file paths')
   parser.add_argument('--signal', default='signal', help='select which sample to use as signal. "signal": sum of ttHTobb+Nonbb')
+  parser.add_argument('--statOnly', action='store_true', default=False)
   parser.add_argument('-j', '--jsonpath', default='/afs/cern.ch/work/d/druini/public/hepaccelerate/results', help='path to json files')
   parser.add_argument('-o','--outdir', default=None, help='specifiy a custom output directory')
 
@@ -721,15 +722,18 @@ if __name__ == '__main__':
   polyDegPt    = args.polyDegPt
   polyDegRho   = args.polyDegRho
   rebin_factor = args.rebin_factor
-  uncList = [ 'AK4deepjetM', 'AK8DDBvLM1', 'jer', 'jesAbsolute', 'jesAbsolute_'+args.year, 'jesBBEC1', 'jesBBEC1_'+args.year, 'jesEC2', 'jesEC2_'+args.year, 'jesFlavorQCD', 'jesHF', 'jesHF_'+args.year, 'jesRelativeBal', 'jesRelativeSample_'+args.year, 'jmr', 'jms', 'pdfWeight', 'psWeight_FSR', 'psWeight_ISR', 'puWeight'  ]
-  if args.year=='2018': uncList += ['jesHEMIssue']
-  for iunc in uncList:
-      if iunc.endswith('allyears'):
-          j = uncList.index(iunc)
-          del uncList[j]
-          tmp = iunc.split("_")[0]
-          uncList+=[ tmp+'_2016', tmp+'_2017', tmp+'_2018' ]
-  print(uncList)
+  if args.statOnly:
+      uncList = []
+  else:
+      uncList = [ 'AK4deepjetM', 'AK8DDBvLM1', 'jer', 'jesAbsolute', 'jesAbsolute_'+args.year, 'jesBBEC1', 'jesBBEC1_'+args.year, 'jesEC2', 'jesEC2_'+args.year, 'jesFlavorQCD', 'jesHF', 'jesHF_'+args.year, 'jesRelativeBal', 'jesRelativeSample_'+args.year, 'jmr', 'jms', 'pdfWeight', 'psWeight_FSR', 'psWeight_ISR', 'puWeight'  ]
+      if args.year=='2018': uncList += ['jesHEMIssue']
+      for iunc in uncList:
+          if iunc.endswith('allyears'):
+              j = uncList.index(iunc)
+              del uncList[j]
+              tmp = iunc.split("_")[0]
+              uncList+=[ tmp+'_2016', tmp+'_2017', tmp+'_2018' ]
+      print(uncList)
 
   for sel in args.selection:
     indir = os.path.join(args.jsonpath, args.year, args.version, sel)
