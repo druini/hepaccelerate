@@ -491,11 +491,15 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     if args.pdf.startswith(('poly','exp')): polyArgList.add(msd)
     rooDict = {}
     for i in range( int(polyDegPt) ):
-        if args.pdf.startswith('Cheb'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1./ROOT.TMath.Power(10,i), -1000., 1000. )
-        elif args.pdf.startswith('poly'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1./ROOT.TMath.Power(10.,i), -1000./ROOT.TMath.Power(10.,i), 1000./ROOT.TMath.Power(10.,i) )
-        elif args.pdf.startswith('exp'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1./ROOT.TMath.Power(10.,i), -ROOT.TMath.Power(10,i), ROOT.TMath.Power(10,i) )
-        else: rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i), 'boosted_bkg_paramX'+str(i), 1000./ROOT.TMath.Power(10,i), 0, 100000./ROOT.TMath.Power(10,i) )
-        polyArgList.add( rooDict[ 'boosted_bkg_paramX'+str(i) ] )
+        if args.pdf.startswith('Cheb'): rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10,i), -1000., 1000. )
+        elif args.pdf.startswith('poly'): rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10.,i), -10000./ROOT.TMath.Power(10.,i), 10000./ROOT.TMath.Power(10.,i) )
+        elif args.pdf.startswith('exp'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10.,i), -ROOT.TMath.Power(10,i), ROOT.TMath.Power(10,i) )
+        else:
+            if args.year.startswith('2016'):
+                rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), -1000., 100000./ROOT.TMath.Power(10,i) )
+            else:
+                rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), (-1000. if i==0 else 0), 100000./ROOT.TMath.Power(10,i) )
+        polyArgList.add( rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] )
 #################2016
 #    #rooDict[ 'boosted_bkg_paramX0' ] = ROOT.RooRealVar('boosted_bkg_paramX0', 'boosted_bkg_paramX0', 500., 300., 800. ) ## Bern
 #    #rooDict[ 'boosted_bkg_paramX0' ] = ROOT.RooRealVar('boosted_bkg_paramX0', 'boosted_bkg_paramX0', -.1, -1., 1. ) ## Cheb
@@ -553,8 +557,8 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
 
     bkgfit.Print()
     #sys.exit(0)
-    prefit_bkgpar = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getVal() for i in range(polyDegPt) ]
-    prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)).getError()/(10. if args.pdf.startswith('Bern') else 1.) for i in range(polyDegPt) ]
+    prefit_bkgpar = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)+'_'+str(args.year)).getVal() for i in range(polyDegPt) ]
+    prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)+'_'+str(args.year)).getError()/(10. if args.pdf.startswith('Bern') else 1.) for i in range(polyDegPt) ]
 
     mean = ROOT.RooRealVar("mean","Mean of Gaussian",110,140)
     sigma = ROOT.RooRealVar("sigma","Width of Gaussian",1,-30,30)
@@ -639,7 +643,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     for iunc in uncList: datacard.write("CMS_ttHbb_"+iunc+"     shape   -        1\n")
     for q in range( int(polyDegPt) ):
 #        datacard.write('boosted_bkg_paramX'+str(q)+"    flatParam\n")
-        datacard.write('boosted_bkg_paramX'+str(q)+"    param    "+str(prefit_bkgpar[q])+"     "+str(prefit_bkgparerror[q])+"\n")
+        datacard.write('boosted_bkg_paramX'+str(q)+'_'+str(args.year)+"    param    "+str(prefit_bkgpar[q])+"     "+str(prefit_bkgparerror[q])+"\n")
     datacard.close()
 
     combineCmd = 'combine -M FitDiagnostics %s -n %s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(datacardLabel,combineLabel,args.rMin,args.rMax)
