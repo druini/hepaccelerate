@@ -485,14 +485,16 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     uncDataHists = {}
     for iuncName, iunc  in templates.iteritems():
         if not iuncName.startswith(('ttH', 'data', 'background')):
-            uncDataHists[iuncName] = ROOT.RooDataHist('TTH_PTH_GT300_'+iuncName, 'TTH_PTH_GT300_'+iuncName, ROOT.RooArgList(msd), iunc )
+            uncDataHists[iuncName] = ROOT.RooDataHist('TTH_PTH_GT300_CMS_ttHbb_'+iuncName, 'TTH_PTH_GT300_CMS_ttHbb_'+iuncName, ROOT.RooArgList(msd), iunc )
 
     polyArgList = ROOT.RooArgList( )
     if args.pdf.startswith(('poly','exp')): polyArgList.add(msd)
     rooDict = {}
     for i in range( int(polyDegPt) ):
         if args.pdf.startswith('Cheb'): rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10,i), -1000., 1000. )
-        elif args.pdf.startswith('poly'): rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10.,i), -10000./ROOT.TMath.Power(10.,i), 10000./ROOT.TMath.Power(10.,i) )
+        elif args.pdf.startswith('poly'):
+            parLim = 2e3 if i==0 else 20.
+            rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10.,i), -3*parLim, parLim )
         elif args.pdf.startswith('exp'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10.,i), -ROOT.TMath.Power(10,i), ROOT.TMath.Power(10,i) )
         else:
             if args.year.startswith('2016'):
@@ -526,8 +528,9 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     rooDict['bkgFunc'] = ROOT.RooBernstein("boosted_bkg", "boosted_bkg", msd, polyArgList ) if args.pdf.startswith('Bern') else ROOT.RooChebychev("boosted_bkg", "boosted_bkg", msd, polyArgList)
     if args.pdf.startswith(('poly', 'exp')):
         bkgNorm = round(templates['background'].Integral(),2)
-        rooDict['bkg_norm'] = ROOT.RooRealVar( 'boosted_bkg_norm', 'boosted_bkg_norm', bkgNorm, bkgNorm, bkgNorm )
-        #rooDict['bkg_norm'] = ROOT.RooRealVar( 'boosted_bkg_norm', 'boosted_bkg_norm', bkgNorm, bkgNorm-ROOT.TMath.Sqrt(bkgNorm), bkgNorm+ROOT.TMath.Sqrt(bkgNorm) )
+        #rooDict['bkg_norm'] = ROOT.RooRealVar( 'boosted_bkg_norm', 'boosted_bkg_norm', bkgNorm, bkgNorm, bkgNorm )
+        rooDict['bkg_norm'] = ROOT.RooRealVar( 'boosted_bkg_norm', 'boosted_bkg_norm', bkgNorm, bkgNorm-ROOT.TMath.Sqrt(bkgNorm), bkgNorm+ROOT.TMath.Sqrt(bkgNorm) )
+        #rooDict['bkg_norm'] = ROOT.RooRealVar( 'boosted_bkg_norm', 'boosted_bkg_norm', bkgNorm, 0., 100000000. )
         if args.pdf.startswith('poly'):
             if int(polyDegPt)==3: rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "pow(1-@0/13000,@1)/pow(@0/13000,@2)", polyArgList )
             if int(polyDegPt)==4: rooDict['bkgFuncWithoutNorm'] = ROOT.RooGenericPdf("boosted_bkg", "pow(1-@0/13000,@1)/pow(@0/13000,@2+@3*log(@0/13000))", polyArgList )
@@ -729,7 +732,28 @@ if __name__ == '__main__':
   if args.statOnly:
       uncList = []
   else:
-      uncList = [ 'AK4deepjetM', 'AK8DDBvLM1', 'jer', 'jesAbsolute', 'jesAbsolute_'+args.year, 'jesBBEC1', 'jesBBEC1_'+args.year, 'jesEC2', 'jesEC2_'+args.year, 'jesFlavorQCD', 'jesHF', 'jesHF_'+args.year, 'jesRelativeBal', 'jesRelativeSample_'+args.year, 'jmr', 'jms', 'pdfWeight', 'psWeight_FSR', 'psWeight_ISR', 'puWeight'  ]
+      uncList = [
+              'AK4deepjetM',
+              'AK8DDBvLM1',
+              'jer',
+              'jesAbsolute',
+              'jesAbsolute_'+args.year,
+              'jesBBEC1',
+              'jesBBEC1_'+args.year,
+              'jesEC2',
+              'jesEC2_'+args.year,
+              'jesFlavorQCD',
+              'jesHF',
+              'jesHF_'+args.year,
+              'jesRelativeBal',
+              'jesRelativeSample_'+args.year,
+              'jmr',
+              'jms',
+              'pdfWeight',
+              'psWeight_FSR',
+              'psWeight_ISR',
+              'puWeight'
+              ]
       if args.year=='2018': uncList += ['jesHEMIssue']
       for iunc in uncList:
           if iunc.endswith('allyears'):
