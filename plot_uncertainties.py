@@ -121,7 +121,7 @@ def plot_unc(indir, histName, uncName, outdir):
          plt.savefig(os.path.join(outdir,f'{sample}_{args.variable}_{args.mask}_{uncName}{ext}'))
     #plt.show()
 
-def plot_corrections(sample,histName,indir,outdir):
+def plot_allcorrections(sample,histName,indir,outdir):
     '''
     21.10.2020
     Just implemented all weights and uncertainties, version v12
@@ -157,6 +157,39 @@ def plot_corrections(sample,histName,indir,outdir):
     #plt.show()
     for ext in ['.png','.pdf']:
       plt.savefig(os.path.join(outdir,f'{args.variable}_{args.mask}_{sample}{ext}'), bbox_inches='tight')
+
+def plot_corrections(sample,histName,indir,outdir):
+    '''
+    21.10.2020
+    Just implemented all weights and uncertainties, version v12
+    Goal: show all AK8 jet mass distributions in a single plot. Will be very busy but just want to check if any particular distribution sticks out
+    '''
+    rebin_factor = 5
+    plt.style.use([hep.cms.style.ROOT, {'font.size': 24}])
+    mx = { 'sample' : '', 'max' : 0 }
+    mn = { 'sample' : '', 'max' : 1000 }
+    with open( glob(os.path.join(indir,'nominal',f'*{sample}*json'))[0] ) as f:
+        nominal = json.load(f)[histName]
+    nominal['edges'], nominal['contents'], nominal['contents_w2'] = rebin(nominal['edges'], nominal['contents'], nominal['contents_w2'], rebin_factor)
+    for variation in [v for v in os.listdir(indir) if v.endswith('Up')]:
+        f, ax = plt.subplots()
+        hep.cms.label(data=False, paper=False, year=args.year, ax=ax, loc=0)
+        variation = variation.replace('Up','')
+        if variation.startswith('jesTotal'): continue
+        hep.histplot(nominal['contents'], nominal['edges'], edges=True, label='nominal', color='k')
+        for v in ['Up','Down']:
+            with open( glob(os.path.join(indir,variation+v,f'*{sample}*json'))[0] ) as f:
+                hist = json.load(f)[histName]
+            hist['edges'], hist['contents'], hist['contents_w2'] = rebin(hist['edges'], hist['contents'], hist['contents_w2'], rebin_factor)
+            hep.histplot(hist['contents'], hist['edges'], edges=True, label=variation+v, color=('r' if v=='Up' else 'b'), ls='--')
+        plt.legend(fontsize=14)
+        plt.xlim(100,160)
+        ax.set_xlabel('Leading AK8 jet softdrop mass [GeV]', ha='right', x=1)
+        ax.set_ylabel(f'Events / {rebin_factor} GeV', ha='right', y=1)
+        #plt.show()
+        for ext in ['.png','.pdf']:
+          plt.savefig(os.path.join(outdir,f'{args.variable}_{args.mask}_{sample}_{variation}{ext}'), bbox_inches='tight')
+        plt.close()
 
 def plot_weights(sample,variation,indir,outdir):
     '''
@@ -215,13 +248,15 @@ if __name__ == '__main__':
       os.makedirs(outdir)
 
   histName = f'hist_{args.variable}_{args.mask}_weights_nominal'
-  #plot_corrections(args.sample,histName,indir,outdir)
-  for variation in os.listdir(indir):
-      if variation.startswith('jesTotal'): continue
-      odir = os.path.join(outdir,variation)
-      if not os.path.exists(odir):
-          os.makedirs(odir)
-      plot_weights(args.sample,variation,indir,odir)
+  plot_corrections(args.sample,histName,indir,outdir)
+  plot_allcorrections(args.sample,histName,indir,outdir)
+  #for variation in os.listdir(indir):
+  #    #if not variation=='nominal': continue
+  #    if not variation.startswith('nominal'): continue
+  #    odir = os.path.join(outdir,variation)
+  #    if not os.path.exists(odir):
+  #        os.makedirs(odir)
+  #    plot_weights(args.sample,variation,indir,odir)
 
 #  corrList = ['no_PUPPI']#, 'no_PUPPI_JMS_JMR','no_JMS_JMR']#, 'no_JMS', 'no_JMR']
 #  hist, col, ls = prepare_removeCorrections(indir, histName, corrList, args.sample)
