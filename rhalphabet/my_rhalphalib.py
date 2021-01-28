@@ -701,7 +701,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-d', '--isData', action='store_true', default=False, help='flag to run on data or mc')
   parser.add_argument('--sig-and-bkg', action='store_true', default=False, help='sum signal and background samples when running on MC')
-  parser.add_argument('--simpleFit', action='store_true', default=False, help='sum signal and background samples when running on MC')
+  parser.add_argument('--simpleFit', action='store_true', default=True, help='sum signal and background samples when running on MC')
   parser.add_argument('--simpleFitRhalpha', action='store_true', default=False)
   parser.add_argument('-f', '--runPrefit', action='store_true', default=False, help='Run prefit on MC.' )
   parser.add_argument('-i', '--runImpacts', action='store_true', help='Run impacts.' )
