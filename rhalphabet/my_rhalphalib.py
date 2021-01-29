@@ -475,7 +475,6 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
             if args.year.startswith('allyears') and unc.endswith(('2016','2017','2018')): tmpdir = indir.replace('allyears', unc.split('_')[1])
             else: tmpdir = indir
             templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', args.signal+'_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
-	    templates['CMS_ttHbb_'+unc+UpDown].SetName( 'TTH_PTH_GT300_CMS_ttHbb_'+unc+UpDown  )
     print(templates)
 
     if not isData and args.sig_and_bkg: templates['background'].Add( templates['ttH'] )
@@ -486,7 +485,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     uncDataHists = {}
     for iuncName, iunc  in templates.iteritems():
         if not iuncName.startswith(('ttH', 'data', 'background')):
-            uncDataHists[iuncName] = ROOT.RooDataHist('TTH_PTH_GT300_'+iuncName, 'TTH_PTH_GT300_'+iuncName, ROOT.RooArgList(msd), iunc )
+            uncDataHists[iuncName] = ROOT.RooDataHist('TTH_PTH_GT300_CMS_ttHbb_'+iuncName, 'TTH_PTH_GT300_CMS_ttHbb_'+iuncName, ROOT.RooArgList(msd), iunc )
 
     polyArgList = ROOT.RooArgList( )
     if args.pdf.startswith(('poly','exp')): polyArgList.add(msd)
@@ -616,8 +615,8 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     ws = ROOT.RooWorkspace('ws')
     getattr(ws, 'import')( data_obs )
     getattr(ws, 'import')( ttH )
-    #for ih in uncDataHists:
-    #    getattr(ws, 'import')( uncDataHists[ih] )
+    for ih in uncDataHists:
+        getattr(ws, 'import')( uncDataHists[ih] )
     if args.pdf.startswith(('poly','exp')):
         getattr(ws, 'import')( rooDict['bkgFuncWithoutNorm'] )
         getattr(ws, 'import')( rooDict['bkg_norm'] )
@@ -625,11 +624,6 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
         getattr(ws, 'import')( rooDict['bkgFunc'] )
     ws.writeToFile( combineFolder+'/ws_ttHbb.root' )
     ws.Print()
-    wsFile = ROOT.TFile( combineFolder+'/ws_ttHbb.root', 'update' )
-    for iuncName, iunc  in templates.iteritems():
-        if not iuncName.startswith(('ttH', 'data', 'background')):
-            iunc.Write()
-    wsFile.Close()
 
     combineLabel='_r'+str(args.rMin)+'to'+str(args.rMax)
     datacardLabel='ttHbb'+combineLabel+'.txt'
@@ -638,8 +632,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.write("jmax * number of processes minus 1 \n")
     datacard.write("kmax * number of nuisance parameters \n")
     datacard.write("-------------------------------\n")
-    datacard.write("shapes * * ws_ttHbb.root ws:$PROCESS\n")
-    datacard.write("shapes TTH_PTH_GT300 * ws_ttHbb.root $PROCESS_$SYSTEMATIC\n")
+    datacard.write("shapes * * ws_ttHbb.root ws:$PROCESS ws:$PROCESS_$SYSTEMATIC\n")
     datacard.write("-------------------------------\n")
     datacard.write("bin           boosted_ttH\n")
     datacard.write("observation   -1\n")
@@ -658,7 +651,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
 
     combineCmd = 'combine -M FitDiagnostics %s -n %s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --saveNormalizations --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(datacardLabel,combineLabel,args.rMin,args.rMax)
     #if not isData: combineCmd += '--plot '
-    combineCmd += ' --plot -v 5'
+    combineCmd += ' --plot'
     exec_me(combineCmd, folder=combineFolder)
 
     if args.runImpacts:
