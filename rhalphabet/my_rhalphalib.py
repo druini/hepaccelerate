@@ -489,7 +489,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     uncDataHists = {}
     for iuncName, iunc  in templates.iteritems():
         if not iuncName.startswith(('ttH', 'data', 'background')):
-            uncDataHists[iuncName] = ROOT.RooDataHist('TTH_PTH_GT300_CMS_ttHbb_'+iuncName, 'TTH_PTH_GT300_CMS_ttHbb_'+iuncName, ROOT.RooArgList(msd), iunc )
+            uncDataHists[iuncName] = ROOT.RooDataHist('TTH_PTH_GT300_'+iuncName, 'TTH_PTH_GT300_'+iuncName, ROOT.RooArgList(msd), iunc )
 
     polyArgList = ROOT.RooArgList( )
     if args.pdf.startswith(('poly','exp')): polyArgList.add(msd)
