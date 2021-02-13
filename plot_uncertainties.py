@@ -23,13 +23,13 @@ def rebin(bins, counts, yerr, rebin_factor):
     new_bins   = bins[::rebin_factor]
     new_counts = np.add.reduceat(counts, range(0, len(counts), rebin_factor))
     new_yerr   = np.add.reduceat(yerr, range(0, len(yerr), rebin_factor))
-    return new_bins, new_counts, new_yerr
+    return np.array(new_bins), np.array(new_counts), np.array(new_yerr)
 
 def prepare_removeCorrections(indir, histName, correctionList, sample):
   linestyle = cycle(["--","-.",":"])
 
   hist  = { name : load_mc(indir, f'{name}_merged', histName, sample) for name in correctionList }
-  color = { name : plt.cm.tab10(i) for i,name in enumerate(hist.keys()) }
+  color = { name : plt.cm.Set1(i) for i,name in enumerate(hist.keys()) }
   ls    = { name : next(linestyle) for name in hist }
 
   hist['msoftdrop_nom']  = load_mc(indir, 'msd_nom_merged', histName, sample)
@@ -48,10 +48,15 @@ def plot_removeCorrections(hist, color, ls, outdir, sample):
     plt.style.use([hep.cms.style.ROOT, {'font.size': 24}])
     f, ax = plt.subplots()
     hep.cms.label(data=False, paper=False, year=args.year, ax=ax, loc=0)
+    lab = {
+            'no_PUPPI'      : 'all corrections but PUPPI',
+            'msoftdrop_nom' : 'all corrections',
+            'msoftdrop_raw' : 'no corrections'
+            }
     for hn,h in hist.items():
         h['edges'], h['contents'], h['contents_w2'] = rebin(h['edges'], h['contents'], h['contents_w2'], rebin_factor)
 
-        hep.histplot(h['contents'], h['edges'], edges=True, label=hn,ls=ls[hn],color=color[hn])
+        hep.histplot(h['contents'], h['edges'], edges=True, label=lab[hn],ls=ls[hn],color=color[hn])
         #print(uncName, hn, h['contents'][-3:])
     plt.xlim(90,170)
     #plt.xlim(0,1000)
@@ -247,9 +252,9 @@ if __name__ == '__main__':
   if not os.path.exists(outdir):
       os.makedirs(outdir)
 
-  histName = f'hist_{args.variable}_{args.mask}_weights_nominal'
-  plot_corrections(args.sample,histName,indir,outdir)
-  plot_allcorrections(args.sample,histName,indir,outdir)
+#  histName = f'hist_{args.variable}_{args.mask}_weights_nominal'
+#  plot_corrections(args.sample,histName,indir,outdir)
+#  plot_allcorrections(args.sample,histName,indir,outdir)
   #for variation in os.listdir(indir):
   #    #if not variation=='nominal': continue
   #    if not variation.startswith('nominal'): continue
@@ -258,9 +263,10 @@ if __name__ == '__main__':
   #        os.makedirs(odir)
   #    plot_weights(args.sample,variation,indir,odir)
 
-#  corrList = ['no_PUPPI']#, 'no_PUPPI_JMS_JMR','no_JMS_JMR']#, 'no_JMS', 'no_JMR']
-#  hist, col, ls = prepare_removeCorrections(indir, histName, corrList, args.sample)
-#  plot_removeCorrections(hist, col, ls, outdir, args.sample)
+  histName = f'hist_{args.variable}_{args.mask}'
+  corrList = ['no_PUPPI']#, 'no_PUPPI_JMS_JMR','no_JMS_JMR']#, 'no_JMS', 'no_JMR']
+  hist, col, ls = prepare_removeCorrections(indir, histName, corrList, args.sample)
+  plot_removeCorrections(hist, col, ls, outdir, args.sample)
 
 #  for unc in ['jer','jesTotal','jmr','jms', 'puWeight']:
 #      plot_unc(indir,histName, unc, outdir)
