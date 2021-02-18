@@ -668,7 +668,26 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.write('rate          '+str( 1 if args.pdf.startswith(('poly','exp')) else round(templates['background'].Integral(),2) )+'         '+str(round(templates['ttH'].Integral(),2))+'\n')
     datacard.write("-------------------------------\n")
     #if not args.runPrefit: datacard.write("boosted_bkg_norm    rateParam   boosted_ttH     boosted_bkg     "+str(round(templates['background'].Integral(),2))+"\n")
-    if not args.statOnly: datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
+    if not args.statOnly: #datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
+        if args.year=='2016':
+            datacard.write("lumi_13TeV_2016    lnN     -        1.022\n")
+            datacard.write("lumi_13TeV_BBD     lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_DB      lnN     -        1.005\n")
+            datacard.write("lumi_13TeV_GS      lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_XY      lnN     -        1.009\n")
+        elif args.year=='2017':
+            datacard.write("lumi_13TeV_2017    lnN     -        1.020\n")
+            datacard.write("lumi_13TeV_BBD     lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_BCC     lnN     -        1.003\n")
+            datacard.write("lumi_13TeV_DB      lnN     -        1.005\n")
+            datacard.write("lumi_13TeV_LS      lnN     -        1.003\n")
+            datacard.write("lumi_13TeV_GS      lnN     -        1.001\n")
+            datacard.write("lumi_13TeV_XY      lnN     -        1.008\n")
+        elif args.year=='2018':
+            datacard.write("lumi_13TeV_2018    lnN     -        1.015\n")
+            datacard.write("lumi_13TeV_BCC     lnN     -        1.002\n")
+            datacard.write("lumi_13TeV_LS      lnN     -        1.002\n")
+            datacard.write("lumi_13TeV_XY      lnN     -        1.020\n")
     for iunc in uncList:
         if iunc in uncorrelatedUnc:
             suffixCorrelation = '_'+args.year
