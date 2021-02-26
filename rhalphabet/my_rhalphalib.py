@@ -472,13 +472,17 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     templates['ttH'].SetName('TTH_PTH_GT300')
     templates['ttH'].SetTitle('TTH_PTH_GT300')
     for unc in uncList:
+        if unc in uncorrelatedUnc:
+            suffixCorrelation = '_'+args.year
+        else:
+            suffixCorrelation = ''
         for UpDown in [ 'Up', 'Down' ]:
             print(unc+UpDown)
             if args.year.startswith('allyears') and unc.endswith(('2016','2017','2018')): tmpdir = indir.replace('allyears', unc.split('_')[1])
             else: tmpdir = indir
-            templates['CMS_ttHbb_'+unc+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', args.signal+'_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
-	    templates['CMS_ttHbb_'+unc+UpDown].SetName( 'TTH_PTH_GT300__CMS_ttHbb_'+unc+UpDown  )
-	    templates['CMS_ttHbb_'+unc+UpDown].SetTitle( 'TTH_PTH_GT300__CMS_ttHbb_'+unc+UpDown  )
+            templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', args.signal+'_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
+	    templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown].SetName( 'TTH_PTH_GT300__CMS_ttHbb_'+unc+suffixCorrelation+UpDown  )
+	    templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown].SetTitle( 'TTH_PTH_GT300__CMS_ttHbb_'+unc+suffixCorrelation+UpDown  )
     print(templates)
 
     if not isData and args.sig_and_bkg: templates['background'].Add( templates['ttH'] )
@@ -664,8 +668,32 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.write('rate          '+str( 1 if args.pdf.startswith(('poly','exp')) else round(templates['background'].Integral(),2) )+'         '+str(round(templates['ttH'].Integral(),2))+'\n')
     datacard.write("-------------------------------\n")
     #if not args.runPrefit: datacard.write("boosted_bkg_norm    rateParam   boosted_ttH     boosted_bkg     "+str(round(templates['background'].Integral(),2))+"\n")
-    if not args.statOnly: datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
-    for iunc in uncList: datacard.write("CMS_ttHbb_"+iunc+"     shape   -        1\n")
+    if not args.statOnly: #datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
+        if args.year=='2016':
+            datacard.write("lumi_13TeV_2016    lnN     -        1.022\n")
+            datacard.write("lumi_13TeV_BBD     lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_DB      lnN     -        1.005\n")
+            datacard.write("lumi_13TeV_GS      lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_XY      lnN     -        1.009\n")
+        elif args.year=='2017':
+            datacard.write("lumi_13TeV_2017    lnN     -        1.020\n")
+            datacard.write("lumi_13TeV_BBD     lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_BCC     lnN     -        1.003\n")
+            datacard.write("lumi_13TeV_DB      lnN     -        1.005\n")
+            datacard.write("lumi_13TeV_LS      lnN     -        1.003\n")
+            datacard.write("lumi_13TeV_GS      lnN     -        1.001\n")
+            datacard.write("lumi_13TeV_XY      lnN     -        1.008\n")
+        elif args.year=='2018':
+            datacard.write("lumi_13TeV_2018    lnN     -        1.015\n")
+            datacard.write("lumi_13TeV_BCC     lnN     -        1.002\n")
+            datacard.write("lumi_13TeV_LS      lnN     -        1.002\n")
+            datacard.write("lumi_13TeV_XY      lnN     -        1.020\n")
+    for iunc in uncList:
+        if iunc in uncorrelatedUnc:
+            suffixCorrelation = '_'+args.year
+        else:
+            suffixCorrelation = ''
+        datacard.write("CMS_ttHbb_"+iunc+suffixCorrelation+"     shape   -        1\n")
     for q in range( int(polyDegPt) ):
         if args.runPrefit: datacard.write('boosted_bkg_paramX'+str(q)+'_'+str(args.year)+"    param    "+str(prefit_bkgpar[q])+"     "+str(2*prefit_bkgparerror[q])+"\n")
         else: datacard.write('boosted_bkg_paramX'+str(q)+"    flatParam\n")
@@ -776,6 +804,11 @@ if __name__ == '__main__':
               'psWeight_FSR',
               'psWeight_ISR',
               'puWeight'
+              ]
+      uncorrelatedUnc = [
+              'jer',
+              'jmr',
+              'jms'
               ]
       if args.year=='2018': uncList += ['jesHEMIssue']
       for iunc in uncList:
