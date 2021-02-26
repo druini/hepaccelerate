@@ -431,7 +431,7 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
       if wn != 'nominal': continue
       #ret[f'nevts_overlap{weight_name}'] = Histogram( [sum(weights[w]), sum(weights[w][mask_events['2J2WdeltaR']]), sum(weights[w][mask_events['resolved']]), sum(weights[w][mask_events['overlap']])], 0,0 )
       for mask_name, mask in mask_events.items():
-        if not 'deltaR' in mask_name: continue
+        #if not 'deltaR' in mask_name: continue
 #        with open(f'/afs/cern.ch/work/d/druini/public/hepaccelerate/tests/events_pass_selection_{sample}_{mask_name}.txt','a+') as f:
 #          for nevt, run, lumiBlock in zip(scalars['event'][mask], scalars['run'][mask], scalars['luminosityBlock']):
 #            f.write(f'{nevt}, {run}, {lumiBlock}\n')
@@ -443,45 +443,45 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
             print(f'!!!!!!!!!!!!!!!!!!!!!!!! Please add variable {var_name} to the histogram settings')
 
 ############# genPart study: where are the b quarks?
-    if sample=='ttHTobb':
-        genH = (abs(genparts.pdgId)==25) & (genparts.status==22)
-        nH   = ha.sum_in_offsets(genparts,genH,NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.bool),genparts.masks["all"], NUMPY_LIB.int8)
-#        if not NUMPY_LIB.all(nH==1):
-#          pdb.set_trace()
-        for mn,m in mask_events.items():
-            genH_pt = ha.get_in_offsets(genparts.pt, genparts.offsets, indices['leading'], m, genH)
-            ret[f'hist_genH_pt_{mn}'] = get_histogram(genH_pt[m], weights['nominal'][m], NUMPY_LIB.linspace(*histogram_settings['leading_jet_pt']))
-            genb = {}
-            genb['top'] = ha.genPart_from_mother(genparts, 5, 6, m)
-            genb['H']   = ha.genPart_from_mother(genparts, 5, 25, m)
-            for mom,genmask in genb.items():
-                genb_vars = {}
-                genb_vars['pt']  = genparts.pt[genmask]
-                genb_vars['phi'] = genparts.phi[genmask]
-                genb_vars['eta'] = genparts.eta[genmask]
-                nevs = NUMPY_LIB.sum(m)
-                dr_b1fatjet = ha.calc_dr(genb_vars['phi'][::2], genb_vars['eta'][::2],leading_fatjet_phi[m],leading_fatjet_eta[m],NUMPY_LIB.ones(nevs))
-                dr_b2fatjet = ha.calc_dr(genb_vars['phi'][1::2], genb_vars['eta'][1::2],leading_fatjet_phi[m],leading_fatjet_eta[m],NUMPY_LIB.ones(nevs))
-                #for weight_name, w in weight_names.items():
-                for wn,w in weights.items():
-                    if wn=='ones': continue
-                    #ret[f'hist_dr_b1fatjet_{mn+weight_name}'] = get_histogram( dr_b1fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
-                    #ret[f'hist_dr_b2fatjet_{mn+weight_name}'] = get_histogram( dr_b2fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
-                    ret[f'hist_dr_genbfrom{mom}_fatjet_{mn}_weights_{wn}'] = get_histogram( dr_b1fatjet, w[m], NUMPY_LIB.linspace(0,10,101) ) + get_histogram( dr_b2fatjet, w[m], NUMPY_LIB.linspace(0,10,101) )
-                    for var in ['pt','eta']:
-                        ret[f'hist_genbfrom{mom}_{var}_{mn}_weights_{wn}'] = get_histogram( genb_vars[var][::2], w[m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) ) + get_histogram( genb_vars[var][1::2], w[m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) )
+    #if sample=='ttHTobb':
+    #    genH = (abs(genparts.pdgId)==25) & (genparts.status==22)
+    #    nH   = ha.sum_in_offsets(genparts,genH,NUMPY_LIB.ones(nEvents, dtype=NUMPY_LIB.bool),genparts.masks["all"], NUMPY_LIB.int8)
+#   #     if not NUMPY_LIB.all(nH==1):
+#   #       pdb.set_trace()
+    #    for mn,m in mask_events.items():
+    #        genH_pt = ha.get_in_offsets(genparts.pt, genparts.offsets, indices['leading'], m, genH)
+    #        ret[f'hist_genH_pt_{mn}'] = get_histogram(genH_pt[m], weights['nominal'][m], NUMPY_LIB.linspace(*histogram_settings['leading_jet_pt']))
+    #        genb = {}
+    #        genb['top'] = ha.genPart_from_mother(genparts, 5, 6, m)
+    #        genb['H']   = ha.genPart_from_mother(genparts, 5, 25, m)
+    #        for mom,genmask in genb.items():
+    #            genb_vars = {}
+    #            genb_vars['pt']  = genparts.pt[genmask]
+    #            genb_vars['phi'] = genparts.phi[genmask]
+    #            genb_vars['eta'] = genparts.eta[genmask]
+    #            nevs = NUMPY_LIB.sum(m)
+    #            dr_b1fatjet = ha.calc_dr(genb_vars['phi'][::2], genb_vars['eta'][::2],leading_fatjet_phi[m],leading_fatjet_eta[m],NUMPY_LIB.ones(nevs))
+    #            dr_b2fatjet = ha.calc_dr(genb_vars['phi'][1::2], genb_vars['eta'][1::2],leading_fatjet_phi[m],leading_fatjet_eta[m],NUMPY_LIB.ones(nevs))
+    #            #for weight_name, w in weight_names.items():
+    #            for wn,w in weights.items():
+    #                if wn=='ones': continue
+    #                #ret[f'hist_dr_b1fatjet_{mn+weight_name}'] = get_histogram( dr_b1fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
+    #                #ret[f'hist_dr_b2fatjet_{mn+weight_name}'] = get_histogram( dr_b2fatjet, weights[w][m], NUMPY_LIB.linspace(0,10,101) )
+    #                ret[f'hist_dr_genbfrom{mom}_fatjet_{mn}_weights_{wn}'] = get_histogram( dr_b1fatjet, w[m], NUMPY_LIB.linspace(0,10,101) ) + get_histogram( dr_b2fatjet, w[m], NUMPY_LIB.linspace(0,10,101) )
+    #                for var in ['pt','eta']:
+    #                    ret[f'hist_genbfrom{mom}_{var}_{mn}_weights_{wn}'] = get_histogram( genb_vars[var][::2], w[m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) ) + get_histogram( genb_vars[var][1::2], w[m], NUMPY_LIB.linspace(*histogram_settings[f'leading_jet_{var}']) )
 
     ####### printout event numbers 
-    outdir = os.path.join(args.outdir,args.version,parametersName,uncertaintyName)
-    if not os.path.exists(outdir):
-      os.makedirs(outdir)
+    #outdir = os.path.join(args.outdir,args.version,parametersName,uncertaintyName)
+    #if not os.path.exists(outdir):
+    #  os.makedirs(outdir)
 
-    outf = os.path.join(outdir, f'{sample}_{uncertaintyName}.txt')
-    exists = os.path.isfile(outf)
-    with open(outf,'a+') as f:
-      if not exists: f.write('run, lumi, event\n')
-      for run,lumi,nevt in zip(scalars['run'][mask_events['2J2WdeltaR_Pass']],scalars['luminosityBlock'][mask_events['2J2WdeltaR_Pass']],scalars['event'][mask_events['2J2WdeltaR_Pass']]):
-        f.write(f'{run}, {lumi}, {nevt}\n')
+    #outf = os.path.join(outdir, f'{sample}_{uncertaintyName}.txt')
+    #exists = os.path.isfile(outf)
+    #with open(outf,'a+') as f:
+    #  if not exists: f.write('run, lumi, event\n')
+    #  for run,lumi,nevt in zip(scalars['run'][mask_events['2J2WdeltaR_Pass']],scalars['luminosityBlock'][mask_events['2J2WdeltaR_Pass']],scalars['event'][mask_events['2J2WdeltaR_Pass']]):
+    #    f.write(f'{run}, {lumi}, {nevt}\n')
 
     ### next lines are to write event numbers of very high pt events
     #mask = mask_events['2J2WdeltaR'] & (leading_fatjet_pt>1500)
@@ -866,7 +866,8 @@ if __name__ == "__main__":
     uncertainties = {'noCorrections' : None}
     if args.corrections: 
       uncertainties['nominal'] = [[],['FatJet','msoftdrop','msoftdrop_nom']]
-      if is_mc:#args.sample.startswith('ttH'):
+      #if is_mc:
+      if args.sample.startswith('ttHTobb'):
         signalUncertainties = {
             #'jerUp'        : [[],['FatJet','pt','pt_jerUp','FatJet','mass','mass_jerUp']],
             #'jerDown'      : [[],['FatJet','pt','pt_jerDown','FatJet','mass','mass_jerDown']],
