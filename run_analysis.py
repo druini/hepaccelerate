@@ -994,6 +994,9 @@ if __name__ == "__main__":
             print(parameters["corrections"])
             for corr in parameters["corrections"]:
                 ext.add_weight_sets([corr])
+                local_name = corr.strip().split(" ")[0]
+                for variation in ['Up','Down']:
+                    ext.add_weight_set(local_name+variation, 'dense_lookup', my_SF_extractor(corr, variation))
             ext.finalize()
             evaluator = ext.make_evaluator()
 

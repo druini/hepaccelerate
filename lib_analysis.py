@@ -143,6 +143,12 @@ def compute_lepton_weights(leps, lepton_pt, lepton_eta, mask_rows, mask_content,
     per_event_weights = ha.multiply_in_offsets(leps, weights, mask_rows, mask_content)
     return per_event_weights
 
+def my_SF_extractor(weightdesc, variation):
+    (local_name, name, thefile) = tuple(weightdesc.strip().split(" "))
+    with uproot.open(thefile) as f:
+        weights = f[name].values + (1. if variation=='Up' else -1.)*np.sqrt(f[name].variances)
+        edges   = f[name].edges
+    return (weights, edges)
 
 # btagging scale factor 
 def compute_btag_weights(jets, mask_rows, mask_content, sf, btagalgorithm, btagWP, systematic):
