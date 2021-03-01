@@ -262,8 +262,19 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         weights["nominal"] = weights["nominal"] * weights['pu']
 
         # lepton SF corrections
-        electron_weights = compute_lepton_weights(electrons, electrons.pt, (electrons.deltaEtaSC + electrons.eta), mask_events, good_electrons, evaluator, ["el_triggerSF", "el_recoSF", "el_idSF"])
-        muon_weights = compute_lepton_weights(muons, muons.pt, muons.eta, mask_events, good_muons, evaluator, ["mu_triggerSF", "mu_isoSF", "mu_idSF"], args.year)
+        variation = 'Up' if uncertaintyName.endswith('Up') else 'Down'
+        muSFlist  = ["mu_triggerSF", "mu_isoSF", "mu_idSF"]
+        elSFlist  = ["el_triggerSF", "el_recoSF", "el_idSF"]
+        if uncertaintyName.startswith('el_triggerSF'):
+            elSFlist = ["el_triggerSF"+variation, "el_recoSF", "el_idSF"]
+        elif uncertaintyName.startswith('el_SF'):
+            elSFlist = ["el_triggerSF", "el_recoSF"+variation, "el_idSF"+variation]
+        elif uncertaintyName.startswith('mu_triggerSF'):
+            muSFlist = ["mu_triggerSF"+variation, "mu_isoSF", "mu_idSF"]
+        elif uncertaintyName.startswith('mu_SF'):
+            muSFlist = ["mu_triggerSF", "mu_isoSF"+variation, "mu_idSF"+variation]
+        electron_weights = compute_lepton_weights(electrons, electrons.pt, (electrons.deltaEtaSC + electrons.eta), mask_events, good_electrons, evaluator, elSFlist)
+        muon_weights = compute_lepton_weights(muons, muons.pt, muons.eta, mask_events, good_muons, evaluator, muSFlist, args.year)
         weights['lepton']  = muon_weights * electron_weights
         weights["nominal"] = weights["nominal"] * weights['lepton']
 
@@ -881,6 +892,10 @@ if __name__ == "__main__":
             #'puWeightDown' : [['puWeight','puWeightDown'],[]],
             }
         for variation in ['Up','Down']:
+            signalUncertainties[f'el_triggerSF{variation}'] = [[],[]]
+            signalUncertainties[f'mu_triggerSF{variation}'] = [[],[]]
+            signalUncertainties[f'el_SF{variation}']        = [[],[]]
+            signalUncertainties[f'mu_SF{variation}']        = [[],[]]
             if (args.year.startswith('2018')) or args.sample.startswith('ttH'):
                 signalUncertainties[f'psWeight_ISR{variation}']       = [[],[]]
                 signalUncertainties[f'psWeight_FSR{variation}']       = [[],[]]
@@ -1008,7 +1023,7 @@ if __name__ == "__main__":
           parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p] #
           for un,u in uncertainties.items():
           #### this is where the magic happens: run the main analysis
-            #if not un.startswith((f'jesHF_{args.year}','jesHEMIssue')): continue
+            #if not un.startswith(('el','mu')): continue
             #try:
                 results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, uncertaintyName=un, parametersName=p, extraCorrection=(None if not args.corrections else extraCorrections['no_PUPPI']))
             #except:
@@ -1030,7 +1045,7 @@ if __name__ == "__main__":
     for pn,res in results.items():
       #if not '1btag' in pn: continue
       for rn,r in res.items():
-        #if not rn.startswith((f'jesHF_{args.year}','jesHEMIssue')): continue
+        #if not rn.startswith(('el','mu')): continue
         outdir = args.outdir
         if args.version!='':
           outdir = os.path.join(outdir,args.version)
