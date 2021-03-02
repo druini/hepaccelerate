@@ -466,8 +466,10 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     msd = rl.Observable('msd', msdbins)
 
     templates = {
-        'ttH'     : loadTH1_from_json(indir+'/nominal/', args.signal+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd),
-        'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor,  msd),
+        #'ttH'     : loadTH1_from_json(indir+'/nominal/', args.signal+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd),
+        #'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor,  msd),
+        'ttH'     : loadTH1_from_json(indir+'/nominal/', args.signal+'_nominal_merged', None,None, msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd),
+        'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', None,None, msd_start_idx, msd_stop_idx, args.PASS, rebin_factor,  msd),
     }
     templates['ttH'].SetName('TTH_PTH_GT300')
     templates['ttH'].SetTitle('TTH_PTH_GT300')
@@ -480,7 +482,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
             print(unc+UpDown)
             if args.year.startswith('allyears') and unc.endswith(('2016','2017','2018')): tmpdir = indir.replace('allyears', unc.split('_')[1])
             else: tmpdir = indir
-            templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', args.signal+'_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
+            templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', args.signal+'_'+unc+UpDown+'_merged', None,None, msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
 	    templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown].SetName( 'TTH_PTH_GT300__CMS_ttHbb_'+unc+suffixCorrelation+UpDown  )
 	    templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown].SetTitle( 'TTH_PTH_GT300__CMS_ttHbb_'+unc+suffixCorrelation+UpDown  )
     print(templates)
@@ -784,7 +786,8 @@ if __name__ == '__main__':
       uncList = []
   else:
       uncList = [
-              'AK4deepjetM',
+              'AK4deepjetM_yearUncorrelated',
+              'AK4deepjetM_yearCorrelated',
               'AK8DDBvLM1',
               'jer',
               'jesAbsolute',
@@ -803,12 +806,22 @@ if __name__ == '__main__':
               'pdfWeight',
               'psWeight_FSR',
               'psWeight_ISR',
-              'puWeight'
+              'puWeight',
+              'el_SF',
+              'el_triggerSF',
+              'mu_SF',
+              'mu_triggerSF',
               ]
       uncorrelatedUnc = [
+              'AK4deepjetM_yearUncorrelated',
+              'AK8DDBvLM1',
               'jer',
               'jmr',
-              'jms'
+              'jms',
+              'el_SF',
+              'el_triggerSF',
+              'mu_SF',
+              'mu_triggerSF',
               ]
       if args.year=='2018': uncList += ['jesHEMIssue']
       for iunc in uncList:
