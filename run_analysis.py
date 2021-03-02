@@ -279,11 +279,19 @@ def analyze_data(data, sample, NUMPY_LIB=None, parameters={}, samples_info={}, i
         weights["nominal"] = weights["nominal"] * weights['lepton']
 
         # btag SF corrections
+        if uncertaintyName=='AK4deepjetM_yearCorrelatedUp':
+            btag_sysType = 'up_correlated'
+        elif uncertaintyName=='AK4deepjetM_yearUncorrelatedUp':
+            btag_sysType = 'up_uncorrelated'
+        elif uncertaintyName=='AK4deepjetM_yearCorrelatedDown':
+            btag_sysType = 'down_correlated'
+        elif uncertaintyName=='AK4deepjetM_yearUncorrelatedDown':
+            btag_sysType = 'down_uncorrelated'
         if uncertaintyName=='AK4deepjetMUp':
             btag_sysType = 'up'
         elif uncertaintyName=='AK4deepjetMDown':
             btag_sysType = 'down'
-        weights['btag'] = compute_btag_weights(jets, mask_events, good_jets_nohiggs, parameters["btag_SF_target"], parameters["btagging_algorithm"], parameters['btagging_WP'], btag_sysType)
+        weights['btag'] = compute_btag_weights(jets, mask_events, good_jets_nohiggs, btag_sysType, parameters)
         weights['btag'][ NUMPY_LIB.isinf(weights['btag']) | NUMPY_LIB.isnan(weights['btag']) ] = 1.
         weights["nominal"] = weights["nominal"] * weights['btag']
 
@@ -754,7 +762,6 @@ if __name__ == "__main__":
     from coffea.util import USE_CUPY
     from coffea.lumi_tools import LumiMask, LumiData
     from coffea.lookup_tools import extractor
-    from coffea.btag_tools import BTagScaleFactor
 
     # load definitions
     from definitions_analysis import parameters, eraDependentParameters, samples_info
@@ -908,7 +915,10 @@ if __name__ == "__main__":
                     [f'{metstruct}_pt',f'{metstruct}{metT1}_pt_jer{variation}',f'{metstruct}_phi',f'{metstruct}{metT1}_phi_jer{variation}'],
                     ['FatJet','pt',f'pt_jer{variation}','FatJet','mass',f'mass_jer{variation}','FatJet','msoftdrop',f'msoftdrop_jer{variation}','Jet','pt',f'pt_jer{variation}','Jet','mass',f'mass_jer{variation}'] ]
             signalUncertainties[f'AK8DDBvLM1{variation}']         = [[],['FatJet','bbtagSF_DDBvL_M1',f'bbtagSF_DDBvL_M1_{variation.lower()}']]
-            signalUncertainties[f'AK4deepjetM{variation}']        = [[],['Jet','btagSF_deepjet_M',f'btagSF_deepjet_M_{variation.lower()}']]
+            signalUncertainties[f'AK4deepjetM_yearCorrelated{variation}']   = [[],[]]
+            signalUncertainties[f'AK4deepjetM_yearUncorrelated{variation}'] = [[],[]]
+            signalUncertainties[f'AK4deepjetM{variation}']                  = [[],[]]
+            signalUncertainties[f'AK4deepjetM{variation}']                  = [[],[]]
             for source in ['jmr','jms']:
                 signalUncertainties[f'{source}{variation}']       = [[],['FatJet','msoftdrop',f'msoftdrop_{source}{variation}']]
             for source in jesSources:
@@ -1003,7 +1013,6 @@ if __name__ == "__main__":
 
             # add information needed for MC corrections
             parameters["pu_corrections_target"] = load_puhist_target(parameters["pu_corrections_file"])
-            parameters["btag_SF_target"] = BTagScaleFactor(parameters["btag_SF_{}".format(parameters["btagging_algorithm"])], BTagScaleFactor.MEDIUM)
             ### this computes the lepton weights
             ext = extractor()
             print(parameters["corrections"])
@@ -1023,7 +1032,7 @@ if __name__ == "__main__":
           parameters['met'], parameters['bbtagging_algorithm'], parameters['bbtagging_WP'], parameters['btags'] = pars[p] #
           for un,u in uncertainties.items():
           #### this is where the magic happens: run the main analysis
-            #if not un.startswith(('el','mu')): continue
+                #if not un.startswith('AK4deepjetM_'): continue
             #try:
                 results[p][un] += dataset.analyze(analyze_data, NUMPY_LIB=NUMPY_LIB, parameters=parameters, is_mc = is_mc, lumimask=lumimask, cat=args.categories, sample=args.sample, samples_info=samples_info, boosted=args.boosted, uncertainty=u, uncertaintyName=un, parametersName=p, extraCorrection=(None if not args.corrections else extraCorrections['no_PUPPI']))
             #except:
@@ -1045,7 +1054,7 @@ if __name__ == "__main__":
     for pn,res in results.items():
       #if not '1btag' in pn: continue
       for rn,r in res.items():
-        #if not rn.startswith(('el','mu')): continue
+        #if not rn.startswith('AK4deepjetM_'): continue
         outdir = args.outdir
         if args.version!='':
           outdir = os.path.join(outdir,args.version)

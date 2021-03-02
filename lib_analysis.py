@@ -151,7 +151,9 @@ def my_SF_extractor(weightdesc, variation):
     return (weights, edges)
 
 # btagging scale factor 
-def compute_btag_weights(jets, mask_rows, mask_content, sf, btagalgorithm, btagWP, systematic):
+def compute_btag_weights(jets, mask_rows, mask_content, systematic, parameters):
+    btagalgorithm = parameters['btagging_algorithm']
+    btagWP        = parameters['btagging_WP']
 
     tagged    = mask_content & (getattr(jets, btagalgorithm)>btagWP)
     nontagged = mask_content & (getattr(jets, btagalgorithm)<btagWP)
@@ -161,9 +163,19 @@ def compute_btag_weights(jets, mask_rows, mask_content, sf, btagalgorithm, btagW
     cjets = mask_content & (jets.hadronFlavour==4)
     ljets = mask_content & (jets.hadronFlavour==0)
 
-    tag_weight[bjets] = sf.eval(systematic, 5, abs(jets.eta[bjets]), jets.pt[bjets], ignore_missing=True)
+    from coffea.btag_tools import BTagScaleFactor
+    hfsf = BTagScaleFactor(parameters[f'btag_SF_{btagalgorithm}_YearCorrelation'], BTagScaleFactor.MEDIUM)
+    lfsf = BTagScaleFactor(parameters[f'btag_SF_{btagalgorithm}'], BTagScaleFactor.MEDIUM)
+
+    tag_weight[bjets] = hfsf.eval(systematic, 5, abs(jets.eta[bjets]), jets.pt[bjets], ignore_missing=True)
     #tag_weight[cjets] = sf.eval(systematic, 4, abs(jets.eta[cjets]), jets.pt[cjets], ignore_missing=True)
-    tag_weight[ljets] = sf.eval(systematic, 0, abs(jets.eta[ljets]), jets.pt[ljets], ignore_missing=True)
+    if systematic.endswith('uncorrelated'):
+        lfsystematic = systematic.split('_')[0]
+    elif systematic.endswith('correlated'):
+        lfsystematic = 'central'
+    else:
+        lfsystematic = systematic
+    tag_weight[ljets] = lfsf.eval(lfsystematic, 0, abs(jets.eta[ljets]), jets.pt[ljets], ignore_missing=True)
 
     for flav in [bjets,ljets]:
         nontag_weight[flav] = (1 - tag_weight[flav]*jets.btag_MCeff[flav]) / (1 - jets.btag_MCeff[flav])
