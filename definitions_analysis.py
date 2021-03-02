@@ -67,8 +67,9 @@ eraDependentParameters = {
         #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions16/13TeV/Final/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt",
         'lumimask': 'data/Cert_271036-284044_13TeV_PromptReco_Collisions16_JSON.txt',
         "pu_corrections_file" : "data/PileupData_GoldenJSON_Full2016.root",
-        "btag_SF_btagDeepFlavB" : 'data/2016/DeepJet_2016LegacySF_WP_V1.csv',
-        'btag_MCeff_btagDeepFlavB' : 'data/2016/btagEfficiencyMaps/out_btagEfficiencyMaps_TTToSemiLeptonic_nominal_merged.json',
+        "btag_SF_btagDeepFlavB"                 : 'data/2016/DeepJet_2016LegacySF_WP_V1.csv',
+        "btag_SF_btagDeepFlavB_YearCorrelation" : 'data/2016/DeepJet_2016LegacySF_V1_YearCorrelation-V1.csv',
+        'btag_MCeff_btagDeepFlavB'              : 'data/2016/btagEfficiencyMaps/out_btagEfficiencyMaps_TTToSemiLeptonic_nominal_merged.json',
         "corrections" : [
             "el_triggerSF Ele27_WPTight_Gsf data/TriggerSF_Run2016All_v1.histo.root",
             "el_recoSF EGamma_SF2D data/2016/EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.histo.root", ###FIXME for low Et
@@ -93,9 +94,9 @@ eraDependentParameters = {
         #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions17/13TeV/Final/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt",
         "lumimask": "data/Cert_294927-306462_13TeV_PromptReco_Collisions17_JSON.txt",
         "pu_corrections_file" : "data/pileup_Cert_294927-306462_13TeV_PromptReco_Collisions17_withVar.root",
-        #"btag_SF_btagDeepFlavB" : "./data/sfs_deepjet_2017_19-11-11.btag.csv",
-        "btag_SF_btagDeepFlavB" : 'data/DeepFlavour_2017_94XSF_V4_B_F.csv',
-        'btag_MCeff_btagDeepFlavB' : 'data/2017/btagEfficiencyMaps/out_btagEfficiencyMaps_TTToSemiLeptonic_nominal_merged.json',
+        "btag_SF_btagDeepFlavB"                 : 'data/2017/DeepFlavour_94XSF_WP_V3_B_F.csv',
+        "btag_SF_btagDeepFlavB_YearCorrelation" : 'data/2017/DeepFlavour_94XSF_V3_B_F_comb_YearCorrelation-V1.csv',
+        'btag_MCeff_btagDeepFlavB'              : 'data/2017/btagEfficiencyMaps/out_btagEfficiencyMaps_TTToSemiLeptonic_nominal_merged.json',
         "corrections" : [
             "el_triggerSF SFs_ele_pt_ele_sceta_ele28_ht150_OR_ele35_2017BCDEF ./data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Data_MC_v5.0.histo.root",
             "el_recoSF EGamma_SF2D data/2017/egammaEffi_EGM2D_runBCDEF_passingRECO.histo.root", ###FIXME for low Et
@@ -120,8 +121,9 @@ eraDependentParameters = {
         "lumimask": "data/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt",
         #"lumimask": "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/PromptReco/Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.txt",
         "pu_corrections_file" : "data/PileupHistogram-goldenJSON-13tev-2018-100bins_withVar.root",
-        "btag_SF_btagDeepFlavB" : 'data/DeepJet_2018_102XSF_V2.csv',
-        'btag_MCeff_btagDeepFlavB' : 'data/2018/btagEfficiencyMaps/out_btagEfficiencyMaps_TTToSemiLeptonic_nominal_merged.json',
+        "btag_SF_btagDeepFlavB"                 : 'data/2018/DeepJet_102XSF_V1.csv',
+        "btag_SF_btagDeepFlavB_YearCorrelation" : 'data/2018/DeepJet_102XSF_V1_YearCorrelation-V1.csv',
+        'btag_MCeff_btagDeepFlavB'              : 'data/2018/btagEfficiencyMaps/out_btagEfficiencyMaps_TTToSemiLeptonic_nominal_merged.json',
         "corrections" : [
             "el_triggerSF ele28_ht150_OR_ele32_ele_pt_ele_sceta data/SingleEG_JetHT_Trigger_Scale_Factors_ttHbb_Legacy2018_v1.histo.root",
             "el_recoSF EGamma_SF2D data/2018/egammaEffi_EGM2D_updatedAll.histo.root",
