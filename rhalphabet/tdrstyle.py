@@ -87,8 +87,8 @@ def setTDRStyle():
 # Margins:
   tdrStyle.SetPadTopMargin(0.09)
   tdrStyle.SetPadBottomMargin(0.12)
-  tdrStyle.SetPadLeftMargin(0.12)
-  tdrStyle.SetPadRightMargin(0.10)
+  tdrStyle.SetPadLeftMargin(0.15)
+  tdrStyle.SetPadRightMargin(0.05)
 
 # For the Global title:
 
