@@ -2,7 +2,7 @@ import ROOT as rt
 import tdrstyle
 import CMS_lumi as CMS_lumi
 import sys, os, argparse
-#from ctypes import c_double as double # possible replacement for ROOT.Double
+from ctypes import c_double as double # possible replacement for ROOT.Double
 from math import sqrt
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,8 +15,8 @@ rt.gROOT.ForceStyle()
 tdrstyle.setTDRStyle()
 rt.gStyle.SetOptStat(0)
 
-rt.tdrStyle.SetPadLeftMargin(0.15)
-rt.tdrStyle.SetPadRightMargin(0.05)
+#rt.tdrStyle.SetPadLeftMargin(0.15)
+#rt.tdrStyle.SetPadRightMargin(0.05)
 
 def makeOutdir(rootFilePath):
   if not os.path.isfile(rootFilePath):
@@ -26,7 +26,7 @@ def makeOutdir(rootFilePath):
   if not (os.path.sep in rootFilePath): #if the file is in the current directory
     outdir = os.getcwd()
   else:
-    outdir = os.path.join(*rootFilePath.split(os.path.sep)[:-1])
+    outdir = os.path.sep+os.path.join(*rootFilePath.split(os.path.sep)[:-1])
   #outdir = os.path.join(outdir,'plots')
   outdir = os.path.join(outdir,'plots'+os.path.splitext(rootFilePath.split('fitDiagnostics')[1])[0])
   if not os.path.exists(outdir):
@@ -44,9 +44,10 @@ def TH1fromRooObj(RooObj, errorBand=None, extBins=None, returnBins=False, return
   else:
     raise Exception(f'unknown object type: {type(RooObj)}')
 
-  hist = [[rt.Double(0),rt.Double(0)] for b in bins]
+  hist = [[double(0.),double(0.)] for b in bins]
   for n,b in enumerate(bins):
     RooObj.GetPoint(b, *hist[n])
+  hist = [[h[0].value,h[1].value] for h in hist]
   if extBins is not None:
       hist = [b for b in hist if b[0] in extBins]
   binWidth = round(hist[1][0] - hist[0][0])
@@ -60,13 +61,13 @@ def TH1fromRooObj(RooObj, errorBand=None, extBins=None, returnBins=False, return
       ###
     if args.simpleFit:
       nPoints = errorBand.GetN()
-      errUp   = [[rt.Double(0),rt.Double(0)] for b in range(2,int(nPoints/2)-1)]
-      errDown = [[rt.Double(0),rt.Double(0)] for b in range(2,int(nPoints/2)-1)]
+      errUp   = [[double(0),double(0)] for b in range(2,int(nPoints/2)-1)]
+      errDown = [[double(0),double(0)] for b in range(2,int(nPoints/2)-1)]
       for n,_ in enumerate(errUp):
           errorBand.GetPoint(n, *errUp[n])
           errorBand.GetPoint(nPoints-1-n, *errDown[n])
-      errUp   = [e for e in errUp if e[0] in np.array(hist)[:,0]]
-      errDown = [e for e in errDown if e[0] in np.array(hist)[:,0]]
+      errUp   = [[e[0].value,e[1].value] for e in errUp if e[0].value in np.array(hist)[:,0]]
+      errDown = [[e[0].value,e[1].value] for e in errDown if e[0].value in np.array(hist)[:,0]]
     else:
       ###
       idxUp   = range(int(errorBand.GetN()/2))[3:-4:2]
@@ -74,12 +75,14 @@ def TH1fromRooObj(RooObj, errorBand=None, extBins=None, returnBins=False, return
       print(bins, idxUp, idxDown)
       assert( len(idxUp)==nbins )
       assert( len(idxDown)==nbins )
-      errUp   = [[rt.Double(0),rt.Double(0)] for b in range(nbins)]
-      errDown = [[rt.Double(0),rt.Double(0)] for b in range(nbins)]
+      errUp   = [[double(0),double(0)] for b in range(nbins)]
+      errDown = [[double(0),double(0)] for b in range(nbins)]
       for n,i in enumerate(idxUp):
         errorBand.GetPoint(i, *errUp[n])
       for n,i in enumerate(idxDown):
         errorBand.GetPoint(i, *errDown[n])
+      errUp   = [[h[0].value,h[1].value] for h in errUp]
+      errDown = [[h[0].value,h[1].value] for h in errDown]
     for n,_ in enumerate(errUp):
       assert( errUp[n][0]-errDown[n][0]<.5 ) # check that up and down errors correspond to the same bin
       assert( (hist[n][1]-(errUp[n][1]+errDown[n][1])/2)/hist[n][1] < 1e-3 ) # check that histogram is in the middle of the error band
@@ -142,6 +145,7 @@ def plotRhalphaShapes(rootFilePath, nptbins):
           pad1.cd()
 
           leg = rt.TLegend(0.70,0.7,0.90,0.87)
+          leg.SetBorderSize(0)
           leg.SetFillStyle(0)
           leg.SetTextSize(0.04)
           plot   = rootfile.Get(p)
