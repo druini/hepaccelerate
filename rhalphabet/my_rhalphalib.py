@@ -671,25 +671,57 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.write("-------------------------------\n")
     #if not args.runPrefit: datacard.write("boosted_bkg_norm    rateParam   boosted_ttH     boosted_bkg     "+str(round(templates['background'].Integral(),2))+"\n")
     if not args.statOnly: #datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
+        datacard.write("dy                 lnN     -        1.092\n")
+        #datacard.write("d60                lnN     -        1.092\n")
+        #datacard.write("d120               lnN     -        1.093\n")
+        #datacard.write("d200               lnN     -        1.095\n")
+        datacard.write("d300               lnN     -        1.050\n")
+        datacard.write("d450               lnN     -        0.972/1.102\n")
         if args.year=='2016':
-            datacard.write("lumi_13TeV_2016    lnN     -        1.022\n")
-            datacard.write("lumi_13TeV_BBD     lnN     -        1.004\n")
-            datacard.write("lumi_13TeV_DB      lnN     -        1.005\n")
-            datacard.write("lumi_13TeV_GS      lnN     -        1.004\n")
-            datacard.write("lumi_13TeV_XY      lnN     -        1.009\n")
+            datacard.write("lumi_13TeV_2016              lnN     -        1.022\n")
+            datacard.write("lumi_13TeV_BBD               lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_DB                lnN     -        1.005\n")
+            datacard.write("lumi_13TeV_GS                lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_XY                lnN     -        1.009\n")
+            datacard.write("CMS_ttHbb_FSR                lnN     -        1.067/0.898\n")
+            datacard.write("CMS_ttHbb_ISR                lnN     -        1.009/0.988\n")
+            datacard.write("CMS_ttHbb_el_SF_2016         lnN     -        1.007\n")
+            datacard.write("CMS_ttHbb_el_triggerSF_2016  lnN     -        1.010\n")
+            datacard.write("CMS_ttHbb_mu_SF_2016         lnN     -        1.007\n")
+            datacard.write("CMS_ttHbb_mu_triggerSF_2016  lnN     -        1.002\n")
+            datacard.write("CMS_ttHbb_pdfWeight          lnN     -        1.012\n")
+            datacard.write("CMS_ttHbb_AK8DDBvLM1_2016    lnN     -        0.86/1.14\n")
         elif args.year=='2017':
-            datacard.write("lumi_13TeV_2017    lnN     -        1.020\n")
-            datacard.write("lumi_13TeV_BBD     lnN     -        1.004\n")
-            datacard.write("lumi_13TeV_BCC     lnN     -        1.003\n")
-            datacard.write("lumi_13TeV_DB      lnN     -        1.005\n")
-            datacard.write("lumi_13TeV_LS      lnN     -        1.003\n")
-            datacard.write("lumi_13TeV_GS      lnN     -        1.001\n")
-            datacard.write("lumi_13TeV_XY      lnN     -        1.008\n")
+            datacard.write("lumi_13TeV_2017              lnN     -        1.020\n")
+            datacard.write("lumi_13TeV_BBD               lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_BCC               lnN     -        1.003\n")
+            datacard.write("lumi_13TeV_DB                lnN     -        1.005\n")
+            datacard.write("lumi_13TeV_LS                lnN     -        1.003\n")
+            datacard.write("lumi_13TeV_GS                lnN     -        1.001\n")
+            datacard.write("lumi_13TeV_XY                lnN     -        1.008\n")
+            datacard.write("CMS_ttHbb_FSR                lnN     -        1.013/0.989\n")
+            datacard.write("CMS_ttHbb_ISR                lnN     -        1.007/0.990\n")
+            datacard.write("CMS_ttHbb_scale              lnN     -        0.982/1.009\n")
+            datacard.write("CMS_ttHbb_el_SF_2017         lnN     -        1.012\n")
+            datacard.write("CMS_ttHbb_el_triggerSF_2017  lnN     -        1.008\n")
+            datacard.write("CMS_ttHbb_mu_SF_2017         lnN     -        1.003\n")
+            datacard.write("CMS_ttHbb_mu_triggerSF_2017  lnN     -        1.001\n")
+            datacard.write("CMS_ttHbb_pdfWeight          lnN     -        1.012\n")
+            datacard.write("CMS_ttHbb_AK8DDBvLM1_2017    lnN     -        0.77/1.23\n")
         elif args.year=='2018':
-            datacard.write("lumi_13TeV_2018    lnN     -        1.015\n")
-            datacard.write("lumi_13TeV_BCC     lnN     -        1.002\n")
-            datacard.write("lumi_13TeV_LS      lnN     -        1.002\n")
-            datacard.write("lumi_13TeV_XY      lnN     -        1.020\n")
+            datacard.write("lumi_13TeV_2018              lnN     -        1.015\n")
+            datacard.write("lumi_13TeV_BCC               lnN     -        1.002\n")
+            datacard.write("lumi_13TeV_LS                lnN     -        1.002\n")
+            datacard.write("lumi_13TeV_XY                lnN     -        1.020\n")
+            datacard.write("CMS_ttHbb_FSR                lnN     -        1.039/0.928\n")
+            datacard.write("CMS_ttHbb_ISR                lnN     -        0.988/1.015\n")
+            datacard.write("CMS_ttHbb_scale              lnN     -        0.991/1.009\n")
+            datacard.write("CMS_ttHbb_el_SF_2018         lnN     -        1.008\n")
+            datacard.write("CMS_ttHbb_el_triggerSF_2018  lnN     -        1.005\n")
+            datacard.write("CMS_ttHbb_mu_SF_2018         lnN     -        1.001\n")
+            datacard.write("CMS_ttHbb_mu_triggerSF_2018  lnN     -        1.001\n")
+            datacard.write("CMS_ttHbb_pdfWeight          lnN     -        1.013\n")
+            datacard.write("CMS_ttHbb_AK8DDBvLM1_2018    lnN     -        0.76/1.24\n")
     for iunc in uncList:
         if iunc in uncorrelatedUnc:
             suffixCorrelation = '_'+args.year
@@ -788,7 +820,7 @@ if __name__ == '__main__':
       uncList = [
               'AK4deepjetM_yearUncorrelated',
               'AK4deepjetM_yearCorrelated',
-              'AK8DDBvLM1',
+              #'AK8DDBvLM1',
               'jer',
               'jesAbsolute',
               'jesAbsolute_'+args.year,
@@ -803,14 +835,14 @@ if __name__ == '__main__':
               'jesRelativeSample_'+args.year,
               'jmr',
               'jms',
-              'pdfWeight',
-              'psWeight_FSR',
-              'psWeight_ISR',
+              #'pdfWeight',
+              #'psWeight_FSR',
+              #'psWeight_ISR',
               'puWeight',
-              'el_SF',
-              'el_triggerSF',
-              'mu_SF',
-              'mu_triggerSF',
+              #'el_SF',
+              #'el_triggerSF',
+              #'mu_SF',
+              #'mu_triggerSF',
               ]
       uncorrelatedUnc = [
               'AK4deepjetM_yearUncorrelated',
