@@ -457,7 +457,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         print(prefit_bkgparerror)
 
 def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncList,isData=True,runExp=False):
-    dataOrBkg = 'data' if isData else 'background'
+    dataOrBkg    = 'data' if isData else 'background'
+    asimovOption = '' if args.unblind else ' -t -1 --expectSignal 1'
 
     msdbins = np.linspace(0,300,301)[::rebin_factor]
     msd_start_idx = np.where(msdbins==msd_start)[0][0]
@@ -509,11 +510,12 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
             rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10.,i), -parLim, parLim )
         elif args.pdf.startswith('exp'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10.,i), -ROOT.TMath.Power(10,i), ROOT.TMath.Power(10,i) )
         else:
-            if args.year.startswith('2016'):
-                rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10,i), -100./ROOT.TMath.Power(10,i), 100./ROOT.TMath.Power(10,i) )
-                #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), -1000., 100000./ROOT.TMath.Power(10,i) )
-                #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), -100., 100. )
-            else:
+            #if args.year.startswith('2016'):
+            #    rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10,i), -100./ROOT.TMath.Power(10,i), 100./ROOT.TMath.Power(10,i) )
+            #    #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), -1000., 100000./ROOT.TMath.Power(10,i) )
+            #    #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), -100., 100. )
+            #else:
+                #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 10., 0., 1000. )
                 rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), (-1000. if i==0 else 0), 100000./ROOT.TMath.Power(10,i) )
         polyArgList.add( rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] )
 #################2016
@@ -734,15 +736,15 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.close()
     with open( combineFolder+'/'+datacardLabel, 'r') as fin: print(fin.read())
 
-    combineCmd = 'combine -M FitDiagnostics %s -n %s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --cminDefaultMinimizerStrategy 0 --plot -v 5 --saveNormalizations --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(datacardLabel,combineLabel,args.rMin,args.rMax)
-    if isData: combineCmd = combineCmd+' -t -1 --expectSignal 1'
+    combineCmd = 'combine -M FitDiagnostics %s -n %s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --cminDefaultMinimizerStrategy 0 --plot --toysFrequentist -v 5 --saveNormalizations --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(datacardLabel,combineLabel,args.rMin,args.rMax)
+    if isData: combineCmd = combineCmd+asimovOption
     exec_me(combineCmd, folder=combineFolder)
 
     if args.runImpacts:
         exec_me( 'text2workspace.py '+datacardLabel )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doInitialFit --robustFit 1 --rMin -20 --rMax 20 -t -1 --expectSignal 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doFits --robustFit 1 --rMin -20 --rMax 20 -t -1 --expectSignal 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 -o impacts.json' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doInitialFit --robustFit 1 --rMin -20 --rMax 20'+asimovOption )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doFits --robustFit 1 --rMin -20 --rMax 20'+asimovOption )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --robustFit 1 --rMin -20 --rMax 20 -o impacts.json' )
         exec_me( 'plotImpacts.py -i impacts.json -o impacts --blind' )
 
     ##### Priting parameters
@@ -788,6 +790,7 @@ if __name__ == '__main__':
   parser.add_argument('--statOnly', action='store_true', default=False)
   parser.add_argument('-j', '--jsonpath', default='/afs/cern.ch/work/d/druini/public/hepaccelerate/results', help='path to json files')
   parser.add_argument('-o','--outdir', default=None, help='specifiy a custom output directory')
+  parser.add_argument('-u','--unblind', action='store_true', help='removes the \'-t -1 --expectSignal 1\' options from combine')
 
   try: args = parser.parse_args()
   except:
@@ -869,7 +872,7 @@ if __name__ == '__main__':
     if not os.path.exists(indir):
       raise Exception('invalid input path: %s'%indir)
 
-    if args.outdir is None: outdir = os.path.join('/eos/home-d/druini/hepaccelerate/rhalphabet/output', args.year, args.version, sel)
+    if args.outdir is None: outdir = os.path.join('/eos/home-d/druini/hepaccelerate/rhalphabet/output', args.year, args.version, sel, 'unblind' if args.unblind else '')
     else: outdir = args.outdir
     if not os.path.exists(outdir):
         os.makedirs(outdir)
