@@ -791,6 +791,7 @@ if __name__ == '__main__':
   parser.add_argument('-j', '--jsonpath', default='/afs/cern.ch/work/d/druini/public/hepaccelerate/results', help='path to json files')
   parser.add_argument('-o','--outdir', default=None, help='specifiy a custom output directory')
   parser.add_argument('-u','--unblind', action='store_true', help='removes the \'-t -1 --expectSignal 1\' options from combine')
+  parser.add_argument('--skipNuisances', default=0, type=int)
 
   try: args = parser.parse_args()
   except:
@@ -821,32 +822,35 @@ if __name__ == '__main__':
       uncList = []
   else:
       uncList = [
+              'jms',
+              'jesAbsolute_'+args.year,
+              'jmr',
+              'jesAbsolute',
+              'jer',
+              'jesRelativeSample_'+args.year,
+              'jesRelativeBal',
+              'jesFlavorQCD',
+              'jesBBEC1_'+args.year,
+              'puWeight',
+              'jesBBEC1',
+              'jesEC2_'+args.year,
               'AK4deepjetM_yearUncorrelated',
               'AK4deepjetM_yearCorrelated',
               #'AK8DDBvLM1',
-              'jer',
-              'jesAbsolute',
-              'jesAbsolute_'+args.year,
-              'jesBBEC1',
-              'jesBBEC1_'+args.year,
               'jesEC2',
-              'jesEC2_'+args.year,
-              'jesFlavorQCD',
               'jesHF',
               'jesHF_'+args.year,
-              'jesRelativeBal',
-              'jesRelativeSample_'+args.year,
-              'jmr',
-              'jms',
               #'pdfWeight',
               #'psWeight_FSR',
               #'psWeight_ISR',
-              'puWeight',
               #'el_SF',
               #'el_triggerSF',
               #'mu_SF',
               #'mu_triggerSF',
               ]
+      #uncList = [u for i,u in enumerate(uncList) if i!=args.skipNuisances] ### removes the nth nuisance
+      #uncList = [u for i,u in enumerate(uncList) if i==args.skipNuisances] ### keeps the nth nuisance only
+      #uncList = uncList[args.skipNuisances:] ### removes first n nuisances
       uncorrelatedUnc = [
               'AK4deepjetM_yearUncorrelated',
               'AK8DDBvLM1',
@@ -872,7 +876,9 @@ if __name__ == '__main__':
     if not os.path.exists(indir):
       raise Exception('invalid input path: %s'%indir)
 
-    if args.outdir is None: outdir = os.path.join('/eos/home-d/druini/hepaccelerate/rhalphabet/output', args.year, args.version, sel, 'unblind' if args.unblind else '')
+    if args.outdir is None:
+        outdir = os.path.join('/eos/home-d/druini/hepaccelerate/rhalphabet/output', args.year, args.version, sel, 'unblind' if args.unblind else '')
+        #outdir = os.path.join('/eos/home-d/druini/hepaccelerate/rhalphabet/output', args.year, args.version, sel, 'unblind' if args.unblind else '', 'only'+str(args.skipNuisances+1))# if args.skipNuisances>0 else '')
     else: outdir = args.outdir
     if not os.path.exists(outdir):
         os.makedirs(outdir)
