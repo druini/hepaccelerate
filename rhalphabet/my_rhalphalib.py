@@ -457,7 +457,8 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
         print(prefit_bkgparerror)
 
 def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncList,isData=True,runExp=False):
-    dataOrBkg = 'data' if isData else 'background'
+    dataOrBkg    = 'data' if isData else 'background'
+    asimovOption = '' if args.unblind else ' -t -1 --expectSignal 1'
 
     msdbins = np.linspace(0,300,301)[::rebin_factor]
     msd_start_idx = np.where(msdbins==msd_start)[0][0]
@@ -466,8 +467,10 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     msd = rl.Observable('msd', msdbins)
 
     templates = {
-        'ttH'     : loadTH1_from_json(indir+'/nominal/', args.signal+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd),
-        'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor,  msd),
+        #'ttH'     : loadTH1_from_json(indir+'/nominal/', args.signal+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd),
+        #'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor,  msd),
+        'ttH'     : loadTH1_from_json(indir+'/nominal/', args.signal+'_nominal_merged', None,None, msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd),
+        'background' : loadTH1_from_json(indir+'/nominal/', dataOrBkg+'_nominal_merged', None,None, msd_start_idx, msd_stop_idx, args.PASS, rebin_factor,  msd),
     }
     templates['ttH'].SetName('TTH_PTH_GT300')
     templates['ttH'].SetTitle('TTH_PTH_GT300')
@@ -480,7 +483,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
             print(unc+UpDown)
             if args.year.startswith('allyears') and unc.endswith(('2016','2017','2018')): tmpdir = indir.replace('allyears', unc.split('_')[1])
             else: tmpdir = indir
-            templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', args.signal+'_'+unc+UpDown+'_merged', ptbins[0], ptbins[-1], msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
+            templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown] = loadTH1_from_json(tmpdir+'/'+unc+UpDown+'/', args.signal+'_'+unc+UpDown+'_merged', None,None, msd_start_idx, msd_stop_idx, args.PASS, rebin_factor, msd)
 	    templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown].SetName( 'TTH_PTH_GT300__CMS_ttHbb_'+unc+suffixCorrelation+UpDown  )
 	    templates['CMS_ttHbb_'+unc+suffixCorrelation+UpDown].SetTitle( 'TTH_PTH_GT300__CMS_ttHbb_'+unc+suffixCorrelation+UpDown  )
     print(templates)
@@ -507,11 +510,12 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
             rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10.,i), -parLim, parLim )
         elif args.pdf.startswith('exp'): rooDict[ 'boosted_bkg_paramX'+str(i) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10.,i), -ROOT.TMath.Power(10,i), ROOT.TMath.Power(10,i) )
         else:
-            if args.year.startswith('2016'):
-                rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10,i), -100./ROOT.TMath.Power(10,i), 100./ROOT.TMath.Power(10,i) )
-                #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), -1000., 100000./ROOT.TMath.Power(10,i) )
-                #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), -100., 100. )
-            else:
+            #if args.year.startswith('2016'):
+            #    rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1./ROOT.TMath.Power(10,i), -100./ROOT.TMath.Power(10,i), 100./ROOT.TMath.Power(10,i) )
+            #    #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), -1000., 100000./ROOT.TMath.Power(10,i) )
+            #    #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), -100., 100. )
+            #else:
+                #rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 10., 0., 1000. )
                 rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] = ROOT.RooRealVar('boosted_bkg_paramX'+str(i)+'_'+str(args.year), 'boosted_bkg_paramX'+str(i)+'_'+str(args.year), 1000./ROOT.TMath.Power(10,i), (-1000. if i==0 else 0), 100000./ROOT.TMath.Power(10,i) )
         polyArgList.add( rooDict[ 'boosted_bkg_paramX'+str(i)+'_'+str(args.year) ] )
 #################2016
@@ -669,25 +673,57 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.write("-------------------------------\n")
     #if not args.runPrefit: datacard.write("boosted_bkg_norm    rateParam   boosted_ttH     boosted_bkg     "+str(round(templates['background'].Integral(),2))+"\n")
     if not args.statOnly: #datacard.write("lumi_13TeV_2017    lnN     -        1.023\n")
+        datacard.write("dy                 lnN     -        1.092\n")
+        #datacard.write("d60                lnN     -        1.092\n")
+        #datacard.write("d120               lnN     -        1.093\n")
+        #datacard.write("d200               lnN     -        1.095\n")
+        datacard.write("d300               lnN     -        1.050\n")
+        datacard.write("d450               lnN     -        0.972/1.102\n")
         if args.year=='2016':
-            datacard.write("lumi_13TeV_2016    lnN     -        1.022\n")
-            datacard.write("lumi_13TeV_BBD     lnN     -        1.004\n")
-            datacard.write("lumi_13TeV_DB      lnN     -        1.005\n")
-            datacard.write("lumi_13TeV_GS      lnN     -        1.004\n")
-            datacard.write("lumi_13TeV_XY      lnN     -        1.009\n")
+            datacard.write("lumi_13TeV_2016              lnN     -        1.022\n")
+            datacard.write("lumi_13TeV_BBD               lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_DB                lnN     -        1.005\n")
+            datacard.write("lumi_13TeV_GS                lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_XY                lnN     -        1.009\n")
+            datacard.write("CMS_ttHbb_FSR                lnN     -        1.067/0.898\n")
+            datacard.write("CMS_ttHbb_ISR                lnN     -        1.009/0.988\n")
+            datacard.write("CMS_ttHbb_el_SF_2016         lnN     -        1.007\n")
+            datacard.write("CMS_ttHbb_el_triggerSF_2016  lnN     -        1.010\n")
+            datacard.write("CMS_ttHbb_mu_SF_2016         lnN     -        1.007\n")
+            datacard.write("CMS_ttHbb_mu_triggerSF_2016  lnN     -        1.002\n")
+            datacard.write("CMS_ttHbb_pdfWeight          lnN     -        1.012\n")
+            datacard.write("CMS_ttHbb_AK8DDBvLM1_2016    lnN     -        0.86/1.14\n")
         elif args.year=='2017':
-            datacard.write("lumi_13TeV_2017    lnN     -        1.020\n")
-            datacard.write("lumi_13TeV_BBD     lnN     -        1.004\n")
-            datacard.write("lumi_13TeV_BCC     lnN     -        1.003\n")
-            datacard.write("lumi_13TeV_DB      lnN     -        1.005\n")
-            datacard.write("lumi_13TeV_LS      lnN     -        1.003\n")
-            datacard.write("lumi_13TeV_GS      lnN     -        1.001\n")
-            datacard.write("lumi_13TeV_XY      lnN     -        1.008\n")
+            datacard.write("lumi_13TeV_2017              lnN     -        1.020\n")
+            datacard.write("lumi_13TeV_BBD               lnN     -        1.004\n")
+            datacard.write("lumi_13TeV_BCC               lnN     -        1.003\n")
+            datacard.write("lumi_13TeV_DB                lnN     -        1.005\n")
+            datacard.write("lumi_13TeV_LS                lnN     -        1.003\n")
+            datacard.write("lumi_13TeV_GS                lnN     -        1.001\n")
+            datacard.write("lumi_13TeV_XY                lnN     -        1.008\n")
+            datacard.write("CMS_ttHbb_FSR                lnN     -        1.013/0.989\n")
+            datacard.write("CMS_ttHbb_ISR                lnN     -        1.007/0.990\n")
+            datacard.write("CMS_ttHbb_scale              lnN     -        0.982/1.009\n")
+            datacard.write("CMS_ttHbb_el_SF_2017         lnN     -        1.012\n")
+            datacard.write("CMS_ttHbb_el_triggerSF_2017  lnN     -        1.008\n")
+            datacard.write("CMS_ttHbb_mu_SF_2017         lnN     -        1.003\n")
+            datacard.write("CMS_ttHbb_mu_triggerSF_2017  lnN     -        1.001\n")
+            datacard.write("CMS_ttHbb_pdfWeight          lnN     -        1.012\n")
+            datacard.write("CMS_ttHbb_AK8DDBvLM1_2017    lnN     -        0.77/1.23\n")
         elif args.year=='2018':
-            datacard.write("lumi_13TeV_2018    lnN     -        1.015\n")
-            datacard.write("lumi_13TeV_BCC     lnN     -        1.002\n")
-            datacard.write("lumi_13TeV_LS      lnN     -        1.002\n")
-            datacard.write("lumi_13TeV_XY      lnN     -        1.020\n")
+            datacard.write("lumi_13TeV_2018              lnN     -        1.015\n")
+            datacard.write("lumi_13TeV_BCC               lnN     -        1.002\n")
+            datacard.write("lumi_13TeV_LS                lnN     -        1.002\n")
+            datacard.write("lumi_13TeV_XY                lnN     -        1.020\n")
+            datacard.write("CMS_ttHbb_FSR                lnN     -        1.039/0.928\n")
+            datacard.write("CMS_ttHbb_ISR                lnN     -        0.988/1.015\n")
+            datacard.write("CMS_ttHbb_scale              lnN     -        0.991/1.009\n")
+            datacard.write("CMS_ttHbb_el_SF_2018         lnN     -        1.008\n")
+            datacard.write("CMS_ttHbb_el_triggerSF_2018  lnN     -        1.005\n")
+            datacard.write("CMS_ttHbb_mu_SF_2018         lnN     -        1.001\n")
+            datacard.write("CMS_ttHbb_mu_triggerSF_2018  lnN     -        1.001\n")
+            datacard.write("CMS_ttHbb_pdfWeight          lnN     -        1.013\n")
+            datacard.write("CMS_ttHbb_AK8DDBvLM1_2018    lnN     -        0.76/1.24\n")
     for iunc in uncList:
         if iunc in uncorrelatedUnc:
             suffixCorrelation = '_'+args.year
@@ -700,15 +736,15 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.close()
     with open( combineFolder+'/'+datacardLabel, 'r') as fin: print(fin.read())
 
-    combineCmd = 'combine -M FitDiagnostics %s -n %s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --cminDefaultMinimizerStrategy 0 --plot -v 5 --saveNormalizations --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(datacardLabel,combineLabel,args.rMin,args.rMax)
-    if isData: combineCmd = combineCmd+' -t -1 --expectSignal 1'
+    combineCmd = 'combine -M FitDiagnostics %s -n %s --robustFit 1 --setRobustFitAlgo Minuit2,Migrad --cminDefaultMinimizerStrategy 0 --plot --toysFrequentist -v 5 --saveNormalizations --saveShapes --saveWorkspace --setParameterRanges r=%i,%i'%(datacardLabel,combineLabel,args.rMin,args.rMax)
+    if isData: combineCmd = combineCmd+asimovOption
     exec_me(combineCmd, folder=combineFolder)
 
     if args.runImpacts:
         exec_me( 'text2workspace.py '+datacardLabel )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doInitialFit --robustFit 1 --rMin -20 --rMax 20 -t -1 --expectSignal 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doFits --robustFit 1 --rMin -20 --rMax 20 -t -1 --expectSignal 1' )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 -o impacts.json' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doInitialFit --robustFit 1 --rMin -20 --rMax 20'+asimovOption )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doFits --robustFit 1 --rMin -20 --rMax 20'+asimovOption )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --robustFit 1 --rMin -20 --rMax 20 -o impacts.json' )
         exec_me( 'plotImpacts.py -i impacts.json -o impacts --blind' )
 
     ##### Priting parameters
@@ -754,6 +790,8 @@ if __name__ == '__main__':
   parser.add_argument('--statOnly', action='store_true', default=False)
   parser.add_argument('-j', '--jsonpath', default='/afs/cern.ch/work/d/druini/public/hepaccelerate/results', help='path to json files')
   parser.add_argument('-o','--outdir', default=None, help='specifiy a custom output directory')
+  parser.add_argument('-u','--unblind', action='store_true', help='removes the \'-t -1 --expectSignal 1\' options from combine')
+  parser.add_argument('--skipNuisances', default=0, type=int)
 
   try: args = parser.parse_args()
   except:
@@ -784,31 +822,45 @@ if __name__ == '__main__':
       uncList = []
   else:
       uncList = [
-              'AK4deepjetM',
-              'AK8DDBvLM1',
-              'jer',
-              'jesAbsolute',
+              'jms',
               'jesAbsolute_'+args.year,
-              'jesBBEC1',
-              'jesBBEC1_'+args.year,
-              'jesEC2',
-              'jesEC2_'+args.year,
+              'jmr',
+              'jesAbsolute',
+              'jer',
+              'jesRelativeSample_'+args.year,
+              'jesRelativeBal',
               'jesFlavorQCD',
+              'jesBBEC1_'+args.year,
+              'puWeight',
+              'jesBBEC1',
+              'jesEC2_'+args.year,
+              'AK4deepjetM_yearUncorrelated',
+              'AK4deepjetM_yearCorrelated',
+              #'AK8DDBvLM1',
+              'jesEC2',
               'jesHF',
               'jesHF_'+args.year,
-              'jesRelativeBal',
-              'jesRelativeSample_'+args.year,
-              'jmr',
-              'jms',
-              'pdfWeight',
-              'psWeight_FSR',
-              'psWeight_ISR',
-              'puWeight'
+              #'pdfWeight',
+              #'psWeight_FSR',
+              #'psWeight_ISR',
+              #'el_SF',
+              #'el_triggerSF',
+              #'mu_SF',
+              #'mu_triggerSF',
               ]
+      #uncList = [u for i,u in enumerate(uncList) if i!=args.skipNuisances] ### removes the nth nuisance
+      #uncList = [u for i,u in enumerate(uncList) if i==args.skipNuisances] ### keeps the nth nuisance only
+      #uncList = uncList[args.skipNuisances:] ### removes first n nuisances
       uncorrelatedUnc = [
+              'AK4deepjetM_yearUncorrelated',
+              'AK8DDBvLM1',
               'jer',
               'jmr',
-              'jms'
+              'jms',
+              'el_SF',
+              'el_triggerSF',
+              'mu_SF',
+              'mu_triggerSF',
               ]
       if args.year=='2018': uncList += ['jesHEMIssue']
       for iunc in uncList:
@@ -824,7 +876,9 @@ if __name__ == '__main__':
     if not os.path.exists(indir):
       raise Exception('invalid input path: %s'%indir)
 
-    if args.outdir is None: outdir = os.path.join('/eos/home-d/druini/hepaccelerate/rhalphabet/output', args.year, args.version, sel)
+    if args.outdir is None:
+        outdir = os.path.join('/eos/home-d/druini/hepaccelerate/rhalphabet/output', args.year, args.version, sel, 'unblind' if args.unblind else '')
+        #outdir = os.path.join('/eos/home-d/druini/hepaccelerate/rhalphabet/output', args.year, args.version, sel, 'unblind' if args.unblind else '', 'only'+str(args.skipNuisances+1))# if args.skipNuisances>0 else '')
     else: outdir = args.outdir
     if not os.path.exists(outdir):
         os.makedirs(outdir)

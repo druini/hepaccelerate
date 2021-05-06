@@ -264,9 +264,9 @@ def fStat(iFName1,iFName2,p1,p2,n):
             F = (lTree1.limit-lTree2.limit)/(p2-p1)/(lTree2.limit/(n-p2))
             print i0, ":", lTree1.limit, "-", lTree2.limit, "=", lTree1.limit-lTree2.limit, "F =", F
             lDiffs.append(F)
-#        else: F = 0
-#        print i0, ":", lTree1.limit, "-", lTree2.limit, "=", lTree1.limit-lTree2.limit, "F =", F
-#        lDiffs.append(F)
+        #else: F = 0
+        #print i0, ":", lTree1.limit, "-", lTree2.limit, "=", lTree1.limit-lTree2.limit, "F =", F
+        #lDiffs.append(F)
     print "number of toys with F>0: %s / %s"%(len(lDiffs),lTree1.GetEntries())
     return lDiffs
 
@@ -318,6 +318,7 @@ def ftest(base,alt,ntoys,iLabel,options):
 #            print "Using these toys input %s/toys1.root and %s/toys2.root"%(options.odir,options.odir)
 #            nllToys=fStat("%s/toys1.root"%(options.odir),"%s/toys2.root"%(options.odir),options.p1,options.p2,options.n)
     lPass=0
+    if len(nllBase)==0: nllBase.append(0)
     for val in nllToys:
         #print val,nllBase[0]
         if nllBase[0] > val:
@@ -474,7 +475,7 @@ if __name__ == "__main__":
     parser.add_option('--pt2', default=1, type=int, help='degree in pt for alternative/gen datacard')
     parser.add_option('--rho2', default=1, type=int, help='degree in rho for alternative/gen datacard')
     parser.add_option('-t','--toys'   ,type=int, default=300, help='number of toys')
-    parser.add_option('-s','--seed'   ,action='store',type='int',dest='seed'   ,default=-1, help='random seed')
+    parser.add_option('-s','--seed'   ,action='store',dest='seed'   ,default=-1, help='random seed')
     parser.add_option('--sig'    ,action='store',type='int',dest='sig'    ,default=1 ,help='sig')
     parser.add_option('-d','--datacard'   ,action='store',type='string',dest='datacard'   ,default=None, help='datacard name')
     parser.add_option('--datacard-alt'   ,action='store',type='string',dest='datacardAlt'   ,default=None, help='alternative datacard name')
