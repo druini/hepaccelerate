@@ -458,7 +458,7 @@ def test_rhalphabet(indir,outdir,msd_start,msd_stop,polyDegPt,polyDegRho,rebin_f
 
 def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncList,isData=True,runExp=False):
     dataOrBkg    = 'data' if isData else 'background'
-    asimovOption = '' if args.unblind else ' -t -1 --expectSignal 1'
+    asimovOption = '' if args.unblind else ' -t -1 --expectSignal '+str(args.rInject)
 
     msdbins = np.linspace(0,300,301)[::rebin_factor]
     msd_start_idx = np.where(msdbins==msd_start)[0][0]
@@ -474,6 +474,8 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     }
     templates['ttH'].SetName('TTH_PTH_GT300')
     templates['ttH'].SetTitle('TTH_PTH_GT300')
+    templates['background'].SetName('data_obs')
+    templates['background'].SetTitle('data_obs')
     for unc in uncList:
         if unc in uncorrelatedUnc:
             suffixCorrelation = '_'+args.year
@@ -579,10 +581,20 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
         prefit_bkgpar = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)+'_'+str(args.year)).getVal() for i in range(polyDegPt) ]
         prefit_bkgparerror = [ bkgfit.floatParsFinal().find('boosted_bkg_paramX'+str(i)+'_'+str(args.year)).getError()/(10. if args.pdf.startswith('Bern') else 1.) for i in range(polyDegPt) ]
 
-    mean = ROOT.RooRealVar("mean","Mean of Gaussian",110,140)
-    sigma = ROOT.RooRealVar("sigma","Width of Gaussian",1,-30,30)
-    gauss = ROOT.RooGaussian("gauss","gauss(msd,mean,sigma)",msd,mean,sigma)
-    sigfit = gauss.fitTo(ttH,
+    mean1  = ROOT.RooRealVar("mean1","Mean of Gaussian",110,140)
+    sigma1 = ROOT.RooRealVar("sigma1","Width of Gaussian",1,0,30)
+    mean2  = ROOT.RooRealVar("mean2","Mean of Gaussian",110,140)
+    sigma2 = ROOT.RooRealVar("sigma2","Width of Gaussian",25,0,30)
+    gauss1 = ROOT.RooGaussian("gauss1","gauss(msd,mean1,sigma1)",msd,mean1,sigma1)
+    gauss2 = ROOT.RooGaussian("gauss2","gauss(msd,mean2,sigma2)",msd,mean2,sigma2)
+    norm1   = ROOT.RooRealVar('norm1','norm1',5,0,10)
+    norm2   = ROOT.RooRealVar('norm2','norm2',5,0,10)
+    pdfsList   = ROOT.RooArgList(gauss1,gauss2)
+    #pdfsList.add(gauss1)
+    #pdfsList.add(gauss2)
+    pdfs = ROOT.RooAddPdf('double gauss','double gauss',pdfsList,ROOT.RooArgList(norm1,norm2))
+    #sigfit = gauss.fitTo(ttH,
+    sigfit = pdfs.fitTo(ttH,
                           #ROOT.RooFit.Extended(True),
                           ROOT.RooFit.SumW2Error(True),
                           ROOT.RooFit.Strategy(2),
@@ -620,13 +632,21 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     ttH.plotOn( xframe )
     xframe.Draw()
     xframe.GetXaxis().SetTitle("Leading Jet Mass [GeV]")
-    gauss.plotOn( xframe )
-    gauss.paramOn( xframe, ROOT.RooFit.Layout(0.6,0.9,0.94))
+    pdfs.plotOn( xframe )
+    pdfs.paramOn( xframe, ROOT.RooFit.Layout(0.6,0.9,0.94))
     xframe.Draw()
+    n_param = sigfit.floatParsFinal().getSize()
+    reduced_chi_square = xframe.chiSquare(n_param)
+    legend = ROOT.TLegend(0.3, 0.2, 0.6, 0.3)
+    legend.SetBorderSize(0)
+    legend.SetFillStyle(0)
+    legend.AddEntry(None,'#chi^{2}' + ' / ndf = {:.3f}'.format(reduced_chi_square),'')
+    legend.Draw()
     #xframe.SetMaximum(100000)
     #xframe.SetMinimum(0.00001)
     c1.SaveAs( combineFolder+'/test_simpleFit_signal_rootfit.png')
     del c1
+    #set_trace()
 
     ws = ROOT.RooWorkspace('ws')
     getattr(ws, 'import')( data_obs )
@@ -645,6 +665,7 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     ws.Print()
     wsFile = ROOT.TFile( combineFolder+'/ws_ttHbb.root', 'update' )
     templates['ttH'].Write()
+    templates['background'].Write()
     for iuncName, iunc  in templates.iteritems():
         if not iuncName.startswith(('ttH', 'data', 'background')):
             iunc.Write()
@@ -658,8 +679,9 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
     datacard.write("kmax * number of nuisance parameters \n")
     datacard.write("-------------------------------\n")
     datacard.write("shapes * * ws_ttHbb.root ws:$PROCESS ws:$PROCESS_$SYSTEMATIC\n")
-    #datacard.write("shapes data_obs * ws_ttHbb.root ws:$PROCESS\n")
     #datacard.write("shapes boosted_bkg * ws_ttHbb.root ws:$PROCESS\n")
+    #datacard.write("shapes * * ws_ttHbb.root $PROCESS $PROCESS__$SYSTEMATIC\n")
+    #datacard.write("shapes data_obs * ws_ttHbb.root ws:$PROCESS\n")
     #datacard.write("shapes * * ws_ttHbb.root ws:$PROCESS\n")
     #datacard.write("shapes TTH_PTH_GT300 * ws_ttHbb.root $PROCESS"+( '' if args.statOnly else " $PROCESS__$SYSTEMATIC")+'\n')
     datacard.write("-------------------------------\n")
@@ -744,8 +766,8 @@ def simpleFit(indir,outdir,msd_start,msd_stop,polyDegPt,rebin_factor,ptbins,uncL
         exec_me( 'text2workspace.py '+datacardLabel )
         exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doInitialFit --robustFit 1 --rMin -20 --rMax 20'+asimovOption )
         exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --doFits --robustFit 1 --rMin -20 --rMax 20'+asimovOption )
-        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --robustFit 1 --rMin -20 --rMax 20 -o impacts.json' )
-        exec_me( 'plotImpacts.py -i impacts.json -o impacts --blind' )
+        exec_me( 'combineTool.py -M Impacts -d '+datacardLabel.replace('txt', 'root')+' -m 125 --robustFit 1 --rMin -20 --rMax 20 -o impacts_r%i.json'%(args.rInject) )
+        exec_me( 'plotImpacts.py -i impacts_r%i.json -o impacts_r%i --blind'%(args.rInject,args.rInject) )
 
     ##### Priting parameters
     rootFile = ROOT.TFile.Open(os.getcwd()+'/fitDiagnostics_r'+str(args.rMin)+'to'+str(args.rMax)+'.root')
@@ -791,6 +813,7 @@ if __name__ == '__main__':
   parser.add_argument('-j', '--jsonpath', default='/afs/cern.ch/work/d/druini/public/hepaccelerate/results', help='path to json files')
   parser.add_argument('-o','--outdir', default=None, help='specifiy a custom output directory')
   parser.add_argument('-u','--unblind', action='store_true', help='removes the \'-t -1 --expectSignal 1\' options from combine')
+  parser.add_argument('--rInject', default=1, type=int, help='injected r for asimov impacts')
   parser.add_argument('--skipNuisances', default=0, type=int)
 
   try: args = parser.parse_args()
